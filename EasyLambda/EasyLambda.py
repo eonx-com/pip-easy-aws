@@ -14,7 +14,6 @@ class EasyLambda:
             self,
             aws_event,
             aws_context,
-            debug_logging=False,
             region=None,
             credentials=None
     ):
@@ -26,9 +25,6 @@ class EasyLambda:
 
         :type aws_context: LambdaContext
         :param aws_context: AWS Lambda uses this parameter to provide runtime information to your handler
-
-        :type debug_logging: bool
-        :param debug_logging: Flag to enable/disable debug logging for the Lambda function
 
         :type region: string/None
         :param region: The AWS region in which the session should be opened. If not specified the current region
@@ -46,6 +42,11 @@ class EasyLambda:
         self.aws_context = aws_context
         self.aws_event = aws_event
 
+        # Enable debug logging if appropriate
+        self.debug_logging = False
+        if 'debug_logging' in self.aws_event and self.aws_event['debug_logging'] is True:
+            self.enable_debug_logging()
+
         # Store user values in a dictionary- this means they can be dumped on a fatal error to aid with debugging
         self.user_data = {}
 
@@ -54,14 +55,11 @@ class EasyLambda:
         if self.stage is None:
             self.exit_fatal_error('Function was called without required "stage" parameter')
 
-        # Store debug logging flag
-        self.debug_logging = debug_logging
-
         # Get AWS session manager
         self.easy_session_manager = EasySessionManager(
             region=region,
             credentials=credentials,
-            debug_logging=debug_logging
+            debug_logging=self.debug_logging
         )
 
         # Get CloudWatch client
