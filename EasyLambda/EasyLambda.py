@@ -46,6 +46,9 @@ class EasyLambda:
         self.aws_context = aws_context
         self.aws_event = aws_event
 
+        # Store user values in a dictionary- this means they can be dumped on a fatal error to aid with debugging
+        self.user_data = {}
+
         # Ensure the function stage parameter was supplied
         self.stage = self.get_aws_event_parameter('stage')
         if self.stage is None:
@@ -113,6 +116,35 @@ class EasyLambda:
         # If any required parameter was missing, exit with a fatal error
         if parameter_error is True:
             self.exit_fatal_error('One or more required function parameter values was not supplied')
+
+    # User Data Handling
+
+    def set_value(self, name, value):
+        """
+        Set a user value
+
+        :type name: str
+        :param name: Name of value to set
+
+        :param value: The value to set
+
+        :return: None
+        """
+        self.user_data[name] = value
+
+    def get_value(self, name):
+        """
+        Return a user value
+
+        :type name: str
+        :param name: Name of value to retrieve
+
+        :return:
+        """
+        if name not in self.user_data:
+            return None
+
+        return self.user_data[name]
 
     # AWS Information Retrieval
 
