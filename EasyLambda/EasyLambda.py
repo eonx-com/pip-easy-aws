@@ -86,7 +86,7 @@ class EasyLambda:
 
     # Parameter Validation
 
-    def validate_event_parameters(self, parameters_required):
+    def validate_required_parameters(self, parameters_required):
         """
         Validate all required parameters were passed to the function
 
