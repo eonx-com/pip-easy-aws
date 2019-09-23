@@ -14,7 +14,6 @@ class EasyLambda:
             self,
             aws_event,
             aws_context,
-            stage,
             debug_logging=False,
             region=None,
             credentials=None
@@ -27,9 +26,6 @@ class EasyLambda:
 
         :type aws_context: LambdaContext
         :param aws_context: AWS Lambda uses this parameter to provide runtime information to your handler
-
-        :type stage: str
-        :param stage: Deployment stage (e.g. 'dev', 'uat', 'prod')
 
         :type debug_logging: bool
         :param debug_logging: Flag to enable/disable debug logging for the Lambda function
@@ -49,6 +45,11 @@ class EasyLambda:
         # Store the AWS event and context
         self.aws_context = aws_context
         self.aws_event = aws_event
+
+        # Ensure the function stage parameter was supplied
+        self.stage = self.get_aws_event_parameter('stage')
+        if self.stage is None:
+            self.exit_fatal_error('Function was called without required "stage" parameter')
 
         # Store debug logging flag
         self.debug_logging = debug_logging
