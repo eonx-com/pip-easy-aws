@@ -99,19 +99,19 @@ class EasyLambda:
 
         # Iterate all expected parameters
         for parameter in parameters_required:
-            self.log_debug('Checking Required Parameter: {parameter}'.format(parameter=parameter))
-            if parameter not in self.aws_event:
+            self.log_debug('Checking required parameter: {parameter}'.format(parameter=parameter))
+            if self.get_aws_event_parameter(parameter=parameter) is None:
                 # Required parameter was not found
-                self.log_error('Missing required function parameter: {parameter}'.format(parameter=parameter))
+                self.log_error('Missing parameter value: {parameter}'.format(parameter=parameter))
                 self.put_cloudwatch_count(metric_name='parameter-validation-error')
                 parameter_error = True
             else:
                 # Display debugging message with value
-                self.log_debug('Found Value: {value}'.format(value=self.aws_event[parameter]))
+                self.log_debug('Found value: {value}'.format(value=self.get_aws_event_parameter(parameter=parameter)))
 
         # If any required parameter was missing, exit with a fatal error
         if parameter_error is True:
-            self.exit_fatal_error('One or more required function parameters was not supplied')
+            self.exit_fatal_error('One or more required function parameter values was not supplied')
 
     # AWS Information Retrieval
 
@@ -122,6 +122,35 @@ class EasyLambda:
         :return: str
         """
         return self.stage
+
+    def get_aws_event(self):
+        """
+        Return the AWS event variable
+
+        :return: dict
+        """
+        return self.aws_event
+
+    def get_aws_event_parameter(self, parameter):
+        """
+        Return the AWS event parameter, or None if does not exist
+
+        :return: dict
+        """
+        aws_event = self.get_aws_event()
+
+        if parameter not in aws_event:
+            return None
+
+        return aws_event[parameter]
+
+    def get_aws_context(self):
+        """
+        Return the AWS context variable
+
+        :return: LambdaContext
+        """
+        return self.aws_context
 
     def get_aws_session_manager(self) -> EasySessionManager:
         """
@@ -139,7 +168,7 @@ class EasyLambda:
         Get the unique AWS request ID
         :return: str
         """
-        return self.aws_context.aws_request_id
+        return self.get_aws_context().aws_request_id
 
     def get_aws_function_arn(self) -> str:
         """
@@ -147,7 +176,7 @@ class EasyLambda:
 
         :return: str
         """
-        return self.aws_context.invoked_function_arn
+        return self.get_aws_context().invoked_function_arn
 
     def get_aws_function_name(self) -> str:
         """
@@ -155,7 +184,7 @@ class EasyLambda:
 
         :return: str
         """
-        return self.aws_context.function_name
+        return self.get_aws_context().function_name
 
     def def_aws_time_remaining(self) -> int:
         """
@@ -163,7 +192,7 @@ class EasyLambda:
 
         :return: int
         """
-        return self.aws_context.get_remaining_time_in_millis()
+        return self.get_aws_context().get_remaining_time_in_millis()
 
     # CloudWatch Logging Functions
 
