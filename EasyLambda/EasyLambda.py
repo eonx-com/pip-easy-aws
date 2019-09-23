@@ -57,9 +57,6 @@ class EasyLambda:
         # Store debug logging flag
         self.debug_logging = debug_logging
 
-        # Storage the deployment stage
-        self.stage = stage
-
         # Get AWS session manager
         self.easy_session_manager = EasySessionManager(
             region=region,
