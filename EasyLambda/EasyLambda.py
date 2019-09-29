@@ -3,6 +3,7 @@
 
 
 # noinspection PyMethodMayBeStatic
+import traceback
 from abc import abstractmethod
 
 from EasyBoto3.EasyCloudWatch import EasyCloudWatch
@@ -326,6 +327,10 @@ class EasyLambda:
             message=message,
             function_name=self.get_aws_function_name()
         ))
+
+        # Print stack trace
+        for line in traceback.format_stack():
+            print(line.strip())
 
         # Terminator process with 911 error code
         exit(911)
