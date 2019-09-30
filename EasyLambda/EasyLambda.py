@@ -44,12 +44,11 @@ class EasyLambda:
         self.aws_event = aws_event
 
         # Set logging level
-        self.log_level = None
+        self.log_level = 3
         if 'log_level' in self.aws_event:
             self.set_log_level(log_level=int(self.aws_event['log_level']))
         else:
             self.log('No logging level was defined in function configuration, defaulting to maximum debug logging')
-            self.set_log_level(3)
 
         # Store user values in a dictionary- this means they can be dumped on a fatal error to aid with debugging
         self.user_data = {}
