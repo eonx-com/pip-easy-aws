@@ -15,6 +15,28 @@ Derive a new application specific class (e.g. MyApplication) that extends the Ea
 class.
 
 ```python
-class DirectLinkSftpDownload(EasyLambda):
-    def __init__(self):
+from EasyIterator.EasyIterator import EasyIterator
+
+class MyApplication(EasyLambda):
+    """
+    Your application class
+    """
+```
+
+Inside this class, override the run() method of EasyLambda
+
+```python
+from EasyIterator.EasyIterator import EasyIterator
+
+class MyApplication(EasyLambda):
+    """
+    Your application class
+    """
+    def run(self):
+        """
+        Insert your application logic here
+        
+        :return: None 
+        """
+        pass
 ```

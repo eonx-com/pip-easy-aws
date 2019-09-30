@@ -233,7 +233,6 @@ class EasyLambda:
 
         :return: str
         """
-        self.log_trace('Retrieving AWS function name...')
         return self.get_aws_context().function_name
 
     def def_aws_time_remaining(self) -> int:
