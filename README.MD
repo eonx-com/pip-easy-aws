@@ -1,5 +1,8 @@
 # Easy Lambda Function
 
+This is a Python package designed to be used in Serverless Lambda functions. It's primary
+purpose is to facilitate simple logging and access to AWS facilities.
+
 ## Installation
 
 This package can be installed from the command line using PIP as follows:
@@ -8,4 +11,10 @@ This package can be installed from the command line using PIP as follows:
 
 ## Basic Usage
 
-Insert placeholder text here
+Derive a new application specific class (e.g. MyApplication) that extends the EasyLambda
+class.
+
+```python
+class DirectLinkSftpDownload(EasyLambda):
+    def __init__(self):
+```

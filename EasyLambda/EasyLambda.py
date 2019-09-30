@@ -259,13 +259,13 @@ class EasyLambda:
         self.log_level = log_level
 
         if self.log_level == 0:
-            self.log('Standard logging level')
+            print('Standard logging level')
         elif self.log_level == 1:
-            self.log('Warning logging enabled')
+            print('Warning logging enabled')
         elif self.log_level == 2:
-            self.log('Debug logging enabled')
+            print('Debug logging enabled')
         elif self.log_level >= 3:
-            self.log('Trace logging enabled')
+            print('Trace logging enabled')
 
     # Logging Functions
 
