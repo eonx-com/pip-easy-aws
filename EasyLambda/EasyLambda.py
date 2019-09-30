@@ -60,6 +60,7 @@ class EasyLambda:
             self.exit_fatal_error('Function was called without required "stage" parameter')
 
         # Get AWS session manager
+        self.log_trace('Retrieving EasySessionManager object...')
         self.easy_session_manager = EasySessionManager(
             region=region,
             credentials=credentials,
@@ -67,10 +68,12 @@ class EasyLambda:
         )
 
         # Get CloudWatch client
+        self.log_trace('Retrieving EasyCloudWatch client...')
         self.cloudwatch_client = self.easy_session_manager.get_cloudwatch_client()
 
         try:
             # Execute the user function code
+            self.log_trace('Executing user run function...')
             self.run()
         except Exception as run_exception:
             # On any unhandled exception generated a fatal error
