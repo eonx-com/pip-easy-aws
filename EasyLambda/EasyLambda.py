@@ -46,10 +46,10 @@ class EasyLambda:
         # Set logging level
         self.log_level = 0
         if 'log_level' in self.aws_event:
-            self.enable_debug_logging(log_level=int(self.aws_event[
-        # Store user values in a dictionary- this means they can be dumped on a fatal error to aid with debugging
-        self.user_data = {}'log_level']))
+            self.enable_debug_logging(log_level=int(self.aws_event['log_level']))
 
+        # Store user values in a dictionary- this means they can be dumped on a fatal error to aid with debugging
+        self.user_data = {}
 
         # Ensure the function stage parameter was supplied
         self.stage = self.get_aws_event_parameter('stage')
