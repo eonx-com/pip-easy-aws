@@ -43,13 +43,13 @@ class EasyLambda:
         self.aws_context = aws_context
         self.aws_event = aws_event
 
-        # Enable debug logging if appropriate
-        self.debug_logging = False
-        if 'debug_logging' in self.aws_event and self.aws_event['debug_logging'] is True:
-            self.enable_debug_logging()
-
+        # Set logging level
+        self.log_level = 0
+        if 'log_level' in self.aws_event:
+            self.enable_debug_logging(log_level=int(self.aws_event[
         # Store user values in a dictionary- this means they can be dumped on a fatal error to aid with debugging
-        self.user_data = {}
+        self.user_data = {}'log_level']))
+
 
         # Ensure the function stage parameter was supplied
         self.stage = self.get_aws_event_parameter('stage')
@@ -60,7 +60,7 @@ class EasyLambda:
         self.easy_session_manager = EasySessionManager(
             region=region,
             credentials=credentials,
-            debug_logging=self.debug_logging
+            log_level=self.log_level
         )
 
         # Get CloudWatch client
@@ -94,12 +94,12 @@ class EasyLambda:
 
         :return: None
         """
-        self.log_debug('Validating required parameters...')
+        self.log_trace('Validating required parameters...')
         parameter_error = False
 
         # Iterate all expected parameters
         for parameter in parameters_required:
-            self.log_debug('Checking required parameter: {parameter}'.format(parameter=parameter))
+            self.log_trace('Checking required parameter: {parameter}'.format(parameter=parameter))
             if self.get_aws_event_parameter(parameter=parameter) is None:
                 # Required parameter was not found
                 self.log_error('Missing parameter value: {parameter}'.format(parameter=parameter))
@@ -107,7 +107,7 @@ class EasyLambda:
                 parameter_error = True
             else:
                 # Display debugging message with value
-                self.log_debug('Found value: {value}'.format(value=self.get_aws_event_parameter(parameter=parameter)))
+                self.log_trace('Found value: {value}'.format(value=self.get_aws_event_parameter(parameter=parameter)))
 
         # If any required parameter was missing, exit with a fatal error
         if parameter_error is True:
@@ -126,6 +126,7 @@ class EasyLambda:
 
         :return: None
         """
+        self.log_trace('Setting user value: {name}={value}'.format(name=name, value=value))
         self.user_data[name] = value
 
     def get_value(self, name):
@@ -137,9 +138,13 @@ class EasyLambda:
 
         :return:
         """
+        self.log_trace('Getting user value: {name}'.format(name=name))
+
         if name not in self.user_data:
+            self.log_trace('User value not set, returning None...')
             return None
 
+        self.log_trace('User value found: {value}'.format(value=self.user_data[name]))
         return self.user_data[name]
 
     # AWS Information Retrieval
@@ -150,6 +155,7 @@ class EasyLambda:
 
         :return: str
         """
+        self.log_trace('Retrieving stage...')
         return self.stage
 
     def get_aws_event(self):
@@ -158,6 +164,7 @@ class EasyLambda:
 
         :return: dict
         """
+        self.log_trace('Retrieving AWS event...')
         return self.aws_event
 
     def get_aws_event_parameter(self, parameter):
@@ -167,10 +174,13 @@ class EasyLambda:
         :return: dict
         """
         aws_event = self.get_aws_event()
+        self.log_trace('Retrieving parameter: {parameter}...'.format(parameter=parameter))
 
         if parameter not in aws_event:
+            self.log_trace('Parameter did not exist')
             return None
 
+        self.log_trace('Found parameter value: {value}...'.format(value=aws_event[parameter]))
         return aws_event[parameter]
 
     def get_aws_context(self):
@@ -179,6 +189,7 @@ class EasyLambda:
 
         :return: LambdaContext
         """
+        self.log_trace('Retrieving AWS context...')
         return self.aws_context
 
     def get_aws_session_manager(self) -> EasySessionManager:
@@ -187,9 +198,11 @@ class EasyLambda:
 
         :return: EasySessionManager
         """
+        self.log_trace('Retrieving AWS session manager...')
         return self.easy_session_manager
 
     def get_aws_cloudwatch_client(self) -> EasyCloudWatch:
+        self.log_trace('Retrieving AWS CloudWatch client...')
         return self.cloudwatch_client
 
     def get_aws_request_id(self) -> str:
@@ -197,6 +210,7 @@ class EasyLambda:
         Get the unique AWS request ID
         :return: str
         """
+        self.log_trace('Retrieving AWS request ID...')
         return self.get_aws_context().aws_request_id
 
     def get_aws_function_arn(self) -> str:
@@ -205,6 +219,7 @@ class EasyLambda:
 
         :return: str
         """
+        self.log_trace('Retrieving AWS function ARN...')
         return self.get_aws_context().invoked_function_arn
 
     def get_aws_function_name(self) -> str:
@@ -213,6 +228,7 @@ class EasyLambda:
 
         :return: str
         """
+        self.log_trace('Retrieving AWS function name...')
         return self.get_aws_context().function_name
 
     def def_aws_time_remaining(self) -> int:
@@ -221,18 +237,30 @@ class EasyLambda:
 
         :return: int
         """
+        self.log_trace('Retrieving AWS execution time remaining...')
         return self.get_aws_context().get_remaining_time_in_millis()
 
-    # CloudWatch Logging Functions
+    # Logging Level Functions
 
-    def enable_debug_logging(self):
+    def enable_debug_logging(self, log_level=1):
         """
         Enable debug logging
 
+        :type log_level: int
+        :param log_level: Logging level
+
         :return: None
         """
-        self.debug_logging = True
-        self.log_debug('Debug logging enabled')
+        self.log_level = log_level
+
+        if self.log_level == 0:
+            self.log('Standard logging level')
+        elif self.log_level == 1:
+            self.log('Warning logging enabled')
+        elif self.log_level == 2:
+            self.log('Debug logging enabled')
+        elif self.log_level >= 3:
+            self.log('Trace logging enabled')
 
     def disable_debug_logging(self):
         """
@@ -240,16 +268,10 @@ class EasyLambda:
 
         :return: None
         """
-        self.debug_logging = False
+        self.log_level = 0
         self.log_debug('Debug logging disabled')
 
-    def is_debug_logging_enabled(self) -> bool:
-        """
-        Return boolean flag indicating whether debug logging is activated
-
-        :return: bool
-        """
-        return self.debug_logging
+    # Logging Functions
 
     def log(self, message):
         """
@@ -261,37 +283,6 @@ class EasyLambda:
         :return: None
         """
         print('[{function_name}] {message}'.format(
-            message=message,
-            function_name=self.get_aws_function_name()
-        ))
-
-    def log_debug(self, message):
-        """
-        Print debugging log message only if the global value 'debug_logging' is set to True
-
-        :param message: Message to print
-        :type message: str/Exception
-
-        :return: None
-        """
-        if self.debug_logging is True:
-            print('[{function_name}] DEBUG {message}'.format(
-                message=message,
-                function_name=self.get_aws_function_name()
-            ))
-
-    def log_warning(self, message):
-        """
-        Print warning log message
-
-        :param message: Message to print
-        :type message: str/Exception
-
-        :return: None
-        """
-        self.put_cloudwatch_count(metric_name='warning')
-
-        print('[{function_name}] WARNING {message}'.format(
             message=message,
             function_name=self.get_aws_function_name()
         ))
@@ -312,6 +303,53 @@ class EasyLambda:
             function_name=self.get_aws_function_name()
         ))
 
+    def log_warning(self, message):
+        """
+        Print warning log message
+
+        :param message: Message to print
+        :type message: str/Exception
+
+        :return: None
+        """
+        self.put_cloudwatch_count(metric_name='warning')
+
+        if self.log_level >= 1:
+            print('WARNING [{function_name}] {message}'.format(
+                message=message,
+                function_name=self.get_aws_function_name()
+            ))
+
+    def log_debug(self, message):
+        """
+        Print debugging log message only if the global value 'debug_logging' is set to True
+
+        :param message: Message to print
+        :type message: str/Exception
+
+        :return: None
+        """
+        if self.log_level >= 2:
+            print('DEBUG [{function_name}] {message}'.format(
+                message=message,
+                function_name=self.get_aws_function_name()
+            ))
+
+    def log_trace(self, message):
+        """
+        Print debugging log message only if the global value 'debug_logging' is set to True
+
+        :param message: Message to print
+        :type message: str/Exception
+
+        :return: None
+        """
+        if self.log_level >= 3:
+            print('TRACE [{function_name}] {message}'.format(
+                message=message,
+                function_name=self.get_aws_function_name()
+            ))
+
     def exit_fatal_error(self, message):
         """
         Terminate execution after logging a fatal error message, reports error code 911 and adds a CloudWatch
@@ -323,7 +361,7 @@ class EasyLambda:
         self.put_cloudwatch_count(metric_name='fatal-error')
 
         # Log error
-        print('[{function_name}] FATAL ERROR {message}'.format(
+        print('FATAL ERROR [{function_name}] {message}'.format(
             message=message,
             function_name=self.get_aws_function_name()
         ))
@@ -352,6 +390,7 @@ class EasyLambda:
 
         :return: None
         """
+        self.log_trace('Putting CloudWatch Custom Metric: {metric_name}...'.format(metric_name=metric_name))
         self.cloudwatch_client.put_metric(
             stage=self.get_stage(),
             namespace=self.get_aws_function_name(),
@@ -369,6 +408,7 @@ class EasyLambda:
 
         :return: None
         """
+        self.log_trace('Putting CloudWatch Count Metric: {metric_name}...'.format(metric_name=metric_name))
         self.put_cloudwatch_custom_metric(
             metric_name=metric_name,
             value=1.0,
