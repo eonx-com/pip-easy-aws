@@ -40,3 +40,25 @@ class MyApplication(EasyLambda):
         """
         pass
 ```
+
+## Logging
+
+##### Setting Log Level
+
+To set the logging level call the `set_log_level()` function passing in an integer value:
+
+* 0 (Standard Application Logging)
+* 1 (Warning Logging)
+* 2 (Verbose Logging)
+* 3 (Trace Logging)
+
+```python
+self.set_log_level(3)
+```
+
+You can then use the `log_xxx()` functions in your code to log messages.
+
+* 0 (log)
+* 1 (log_warning, log)
+* 2 (log_debug, log_warning, log)
+* 3 (log_trace, log_debug, log_warning, log)
