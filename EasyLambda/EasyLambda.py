@@ -46,7 +46,7 @@ class EasyLambda:
         # Set logging level
         self.log_level = 0
         if 'log_level' in self.aws_event:
-            self.enable_debug_logging(log_level=int(self.aws_event['log_level']))
+            self.set_log_level(log_level=int(self.aws_event['log_level']))
 
         # Store user values in a dictionary- this means they can be dumped on a fatal error to aid with debugging
         self.user_data = {}
@@ -242,7 +242,7 @@ class EasyLambda:
 
     # Logging Level Functions
 
-    def enable_debug_logging(self, log_level=1):
+    def set_log_level(self, log_level=1):
         """
         Enable debug logging
 
@@ -261,15 +261,6 @@ class EasyLambda:
             self.log('Debug logging enabled')
         elif self.log_level >= 3:
             self.log('Trace logging enabled')
-
-    def disable_debug_logging(self):
-        """
-        Disable debug logging
-
-        :return: None
-        """
-        self.log_level = 0
-        self.log_debug('Debug logging disabled')
 
     # Logging Functions
 
