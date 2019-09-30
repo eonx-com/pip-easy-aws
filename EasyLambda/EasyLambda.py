@@ -194,7 +194,6 @@ class EasyLambda:
 
         :return: LambdaContext
         """
-        self.log_trace('Retrieving AWS context...')
         return self.aws_context
 
     def get_aws_session_manager(self) -> EasySessionManager:
