@@ -73,6 +73,12 @@ class EasyLambda:
             # Execute the user function code
             self.log_trace('Executing user run function...')
             self.run()
+
+            # Display the time remaining
+            context = self.get_aws_context()
+            self.log('Execution completed with {remaining_time} milliseconds remaining'.format(
+                remaining_time=context.get_remaining_time_in_millis()
+            ))
         except Exception as run_exception:
             # On any unhandled exception generated a fatal error
             self.exit_fatal_error('Unhandled exception during execution of Lambda function: {run_exception}'.format(
