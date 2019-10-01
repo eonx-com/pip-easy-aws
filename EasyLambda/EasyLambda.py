@@ -1,15 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-
-# noinspection PyMethodMayBeStatic
 import traceback
-from abc import abstractmethod
 
+from abc import abstractmethod
 from EasyBoto3.EasyCloudWatch import EasyCloudWatch
 from EasyBoto3.EasySessionManager import EasySessionManager
 
 
+# noinspection PyMethodMayBeStatic
 class EasyLambda:
     def __init__(
             self,
