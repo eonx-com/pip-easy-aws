@@ -42,6 +42,10 @@ class EasyLambda:
         self.aws_context = aws_context
         self.aws_event = aws_event
 
+        # Keep all log entries in a history variable, when an error occurs this will be saved along with the errored files in the
+        # error destination(s)
+        self.log_history = ''
+
         # Set logging level
         self.log_level = 3
         if 'log_level' in self.aws_event:
@@ -281,10 +285,11 @@ class EasyLambda:
 
         :return: None
         """
-        print('[{function_name}] {message}'.format(
-            message=message,
-            function_name=self.get_aws_function_name()
-        ))
+        message = '[{function_name}] {message}'.format(message=message, function_name=self.get_aws_function_name())
+
+        # Add to log history
+        self.log_history = "{log_history}\n{message}".format(log_history=self.log_history, message=message)
+        print(message)
 
     def log_error(self, message):
         """
@@ -296,11 +301,11 @@ class EasyLambda:
         :return: None
         """
         self.put_cloudwatch_count(metric_name='error')
+        message = 'ERROR [{function_name}] {message}'.format(message=message, function_name=self.get_aws_function_name())
 
-        print('[{function_name}] ERROR {message}'.format(
-            message=message,
-            function_name=self.get_aws_function_name()
-        ))
+        # Add to log history
+        self.log_history = "{log_history}\n{message}".format(log_history=self.log_history, message=message)
+        print(message)
 
     def log_warning(self, message):
         """
@@ -311,13 +316,13 @@ class EasyLambda:
 
         :return: None
         """
-        self.put_cloudwatch_count(metric_name='warning')
+        message = 'WARNING [{function_name}] {message}'.format(message=message, function_name=self.get_aws_function_name())
+
+        # Add to log history
+        self.log_history = "{log_history}\n{message}".format(log_history=self.log_history, message=message)
 
         if self.log_level >= 1:
-            print('WARNING [{function_name}] {message}'.format(
-                message=message,
-                function_name=self.get_aws_function_name()
-            ))
+            print(message)
 
     def log_debug(self, message):
         """
@@ -328,11 +333,13 @@ class EasyLambda:
 
         :return: None
         """
+        message = 'DEBUG [{function_name}] {message}'.format(message=message, function_name=self.get_aws_function_name())
+
+        # Add to log history
+        self.log_history = "{log_history}\n{message}".format(log_history=self.log_history, message=message)
+
         if self.log_level >= 2:
-            print('DEBUG [{function_name}] {message}'.format(
-                message=message,
-                function_name=self.get_aws_function_name()
-            ))
+            print(message)
 
     def log_trace(self, message):
         """
@@ -343,11 +350,21 @@ class EasyLambda:
 
         :return: None
         """
+        message = 'TRACE [{function_name}] {message}'.format(message=message, function_name=self.get_aws_function_name())
+
+        # Add to log history
+        self.log_history = "{log_history}\n{message}".format(log_history=self.log_history, message=message)
+
         if self.log_level >= 3:
-            print('TRACE [{function_name}] {message}'.format(
-                message=message,
-                function_name=self.get_aws_function_name()
-            ))
+            print(message)
+
+    def get_log_history(self) -> str:
+        """
+        Return the complete log history regardless of the current log level
+
+        :return: str
+        """
+        return self.log_history
 
     def exit_fatal_error(self, message):
         """
