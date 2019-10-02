@@ -83,6 +83,13 @@ class EasyLambda:
             self.log('Execution completed with {remaining_time} milliseconds remaining'.format(
                 remaining_time=context.get_remaining_time_in_millis()
             ))
+            
+            # Add CloudWatch metric to monitor time remaining
+            self.put_cloudwatch_custom_metric(
+                metric_name='time_remaining',
+                value=context.get_remaining_time_in_millis(),
+                unit='Milliseconds'
+            )
         except Exception as run_exception:
             # On any unhandled exception generated a fatal error
             self.exit_fatal_error('Unhandled exception during execution of Lambda function: {run_exception}'.format(
