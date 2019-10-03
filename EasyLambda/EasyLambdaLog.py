@@ -1,15 +1,11 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import traceback
 
-from EasyLambda.EasyLambdaCloudWatch import EasyLambdaCloudWatch
-from EasyLambda.EasyLambdaSession import EasyLambdaSession
 
-
-class EasyLambdaLog(EasyLambdaSession, EasyLambdaCloudWatch):
-    """
-    Easy Lambda logging class
-    """
-
-    def __init__(self, aws_event, aws_context):
+class EasyLambdaLog(object):
+    def __init__(self, aws_event, aws_context, easy_session_manager):
         """
         :type aws_event: dict
         :param aws_event: AWS Lambda uses this parameter to pass in event data to the handler
@@ -19,15 +15,16 @@ class EasyLambdaLog(EasyLambdaSession, EasyLambdaCloudWatch):
 
         :return: None
         """
-        super(EasyLambdaLog, self).__init__(aws_event=aws_event, aws_context=aws_context)
-
         self.__aws_context__ = aws_context
         self.__aws_event__ = aws_event
         self.__log_level__ = 3
         self.__log_history__ = ''
 
         # Default the namespace to the function name
-        self.__log_namespace__ = self.get_aws_function_name()
+        self.__log_namespace__ = self.__aws_context__.function_name
+
+        # Get CloudWatch client so we can record metrics on errors/warnings
+        self.__easy_cloudwatch_client__ = easy_session_manager.get_cloudwatch_client()
 
     # Getter/setter for logging namespace
 
@@ -113,7 +110,7 @@ class EasyLambdaLog(EasyLambdaSession, EasyLambdaCloudWatch):
 
         :return: None
         """
-        self.put_cloudwatch_count('errors')
+        self.__easy_cloudwatch_client__.put_cloudwatch_count('errors')
 
         message = 'ERROR {namespace}{message}'.format(message=message, namespace=self.get_log_namespace())
         self.__log_history_append__(message)
@@ -129,7 +126,7 @@ class EasyLambdaLog(EasyLambdaSession, EasyLambdaCloudWatch):
 
         :return: None
         """
-        self.put_cloudwatch_count('warnings')
+        self.__easy_cloudwatch_client__.put_cloudwatch_count('warnings')
 
         message = 'WARNING {namespace}{message}'.format(message=message, namespace=self.get_log_namespace())
         self.__log_history_append__(message)

@@ -1,6 +1,7 @@
-from EasyBoto3.EasySessionManager import EasySessionManager
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-from EasyLambda import EasyLambda
+from EasyBoto3.EasySessionManager import EasySessionManager
 from EasyLambda.EasyLambdaLog import EasyLambdaLog
 
 
@@ -19,17 +20,26 @@ class EasyLambdaSession(EasyLambdaLog):
 
         :return: None
         """
-        super(EasyLambda.EasyLambdaSession, self).__init__(aws_event=aws_event, aws_context=aws_context)
-
         self.__aws_context__ = aws_context
         self.__aws_event__ = aws_event
         self.__aws_stage__ = self.get_aws_event_parameter('stage')
 
+        # Create session manager object
+        self.__easy_session_manager__ = EasySessionManager()
+
+        # Initialize logging class
+        EasyLambdaLog.__init__(
+            self=self,
+            aws_event=aws_event,
+            aws_context=aws_context,
+            easy_session_manager=self.__easy_session_manager__
+        )
+
         # Set logging level based on function parameters
         if 'log_level' in self.__aws_event__:
-            self.set_log_level(log_level=int(self.__aws_event__['log_level']))
-
-        self.__easy_session_manager__ = EasySessionManager(log_level=self.get_log_level())
+            self.set_log_level(
+                log_level=int(self.__aws_event__['log_level'])
+            )
 
     # AWS Information Retrieval
 

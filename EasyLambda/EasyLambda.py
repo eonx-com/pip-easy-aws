@@ -8,7 +8,7 @@ from EasyLambda.EasyLambdaCloudWatch import EasyLambdaCloudWatch
 from EasyLambda.EasyLambdaLog import EasyLambdaLog
 
 
-class EasyLambda(object, EasyLambdaSession, EasyLambdaLog, EasyLambdaCloudWatch):
+class EasyLambda(EasyLambdaSession, EasyLambdaCloudWatch, EasyLambdaLog):
     def __init__(self, aws_event, aws_context):
         """
         :type aws_event: dict
@@ -19,7 +19,28 @@ class EasyLambda(object, EasyLambdaSession, EasyLambdaLog, EasyLambdaCloudWatch)
 
         :return: None
         """
-        super(EasyLambda, self).__init__(aws_event=aws_event, aws_context=aws_context)
+        # Initialize AWS Session Manager
+        EasyLambdaSession.__init__(
+            self=self,
+            aws_event=aws_event,
+            aws_context=aws_context
+        )
+
+        # Initialize AWS CloudWatch client
+        EasyLambdaCloudWatch.__init__(
+            self=self,
+            aws_event=aws_event,
+            aws_context=aws_context,
+            easy_session_manager=self.get_easy_session_manager()
+        )
+
+        # Initialize logging class
+        EasyLambdaLog.__init__(
+            self=self,
+            aws_event=aws_event,
+            aws_context=aws_context,
+            easy_session_manager=self.get_easy_session_manager()
+        )
 
         try:
             self.log_trace('Executing user run function...')
