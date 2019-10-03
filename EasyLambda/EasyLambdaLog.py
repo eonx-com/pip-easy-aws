@@ -45,7 +45,8 @@ class EasyLambdaLog(object):
         
         :return: None
         """
-        self.__log_namespace__ = '{namespace}'.format(namespace=namespace)
+        namespace = str(namespace).upper()
+        self.__log_namespace__ = '[{namespace}] '.format(namespace=namespace)
 
     # Getter/setter for logging level
 
