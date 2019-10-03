@@ -21,6 +21,7 @@ class EasyLambdaLog(object):
         self.__log_history__ = ''
 
         # Default the namespace to the function name
+        self.__log_namespace__ = ''
         self.set_log_namespace(namespace=self.__aws_context__.function_name)
 
         # Get CloudWatch client so we can record metrics on errors/warnings
