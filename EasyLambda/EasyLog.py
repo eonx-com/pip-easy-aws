@@ -7,7 +7,12 @@ from EasyLambda.EasyCloudWatch import EasyCloudWatch
 
 
 class EasyLog(EasyCloudWatch):
-    def __init__(self, aws_event, aws_context, easy_session_manager):
+    def __init__(
+            self,
+            aws_event,
+            aws_context,
+            easy_session_manager
+    ):
         """
         :type aws_event: dict
         :param aws_event: AWS Lambda uses this parameter to pass in event data to the handler
@@ -15,9 +20,9 @@ class EasyLog(EasyCloudWatch):
         :type aws_context: LambdaContext
         :param aws_context: AWS Lambda uses this parameter to provide runtime information to your handler
 
-        :return: None
+        :type easy_session_manager: EasySessionManager
+        :param easy_session_manager: EasySessionManager object used by this class
         """
-        # Initialize logging class
         EasyCloudWatch.__init__(
             self=self,
             aws_event=aws_event,

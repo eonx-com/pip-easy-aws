@@ -8,6 +8,7 @@ from time import strftime
 
 
 class EasyIterator(EasyLog):
+    # Filesystem constants
     FILESYSTEM_SOURCES = 'SOURCE'
     FILESYSTEM_ERROR_DESTINATIONS = 'ERROR'
     FILESYSTEM_SUCCESS_DESTINATIONS = 'SUCCESS'
@@ -165,19 +166,23 @@ class EasyIterator(EasyLog):
         # Store the start time of the current iteration
         self.__current_iteration_start_time__ = strftime("%Y-%m-%d %H:%M:%S")
 
+        # Maintain a list of files that have been iterated
         iterated_files = []
 
+        # Go through each of the source filesystems
         for source in self.__filesystems__[EasyIterator.FILESYSTEM_SOURCES]:
-            # Make sure we received the expected object type
+            # Make sure it is the expected object type
             if isinstance(source, Source) is False:
+                # This should never happen if the classes are used correctly
                 raise Exception(EasyIterator.ERROR_UNKNOWN_SOURCE_FILESYSTEM)
 
+            # Work out out many files we have left
             if maximum_files is None:
                 remaining_files = None
             else:
                 remaining_files = maximum_files - len(iterated_files)
 
-            # Iterate the current source, and append the iterated files to the list
+            # Iterate the current file source, and append the iterated files to the list
             iterated_files.append(source.iterate_files(
                 callback=callback,
                 maximum_files=remaining_files,

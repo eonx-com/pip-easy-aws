@@ -1,13 +1,12 @@
 # Easy Lambda Function
 
-This is a Python package designed to be used in Serverless Lambda functions. It's primary
-purpose is to facilitate simple logging and access to AWS facilities.
+This is a Python package designed to be used in Serverless Lambda functions to make life easier.
 
 ## Installation
 
 This package can be installed from the command line using PIP as follows:
 
-`pip install git+ssh://git@github.com/loyaltycorp/easy_lambda.git`
+`pip install git+ssh://git@github.com/loyaltycorp/easy_lambda.git@v3.0`
 
 ## Basic Usage
 
@@ -15,7 +14,7 @@ Derive a new application specific class (e.g. MyApplication) that extends the Ea
 class.
 
 ```python
-from Iterator.EasyIterator import EasyIterator
+from EasyLambda.EasyLambda import EasyLambda
 
 class MyApplication(EasyLambda):
     """
@@ -26,7 +25,7 @@ class MyApplication(EasyLambda):
 Inside this class, override the run() method of EasyLambda
 
 ```python
-from Iterator.EasyIterator import EasyIterator
+from EasyLambda.EasyLambda import EasyLambda
 
 class MyApplication(EasyLambda):
     """
@@ -45,20 +44,19 @@ class MyApplication(EasyLambda):
 
 ##### Setting Log Level
 
-To set the logging level call the `set_log_level()` function passing in an integer value:
+To set the logging level call the `set_log_level()` function passing in one of the
+EasyLog.LEVEL_XXXXX constants:
 
-* 0 (Standard Application Logging)
-* 1 (Warning Logging)
-* 2 (Verbose Logging)
-* 3 (Trace Logging)
+* EasyLog.LEVEL_INFO 
+* EasyLog.LEVEL_WARNING
+* EasyLog.LEVEL_DEBUG
+* EasyLog.LEVEL_TRACE
 
 ```python
-self.set_log_level(3)
+self.set_log_level(EasyLog.LEVEL_DEBUG)
 ```
 
-You can then use the `log_xxx()` functions in your code to log messages.
+If no level is defined it will automatically default to LEVEL_TRACE (the most verbose)
 
-* 0 (log)
-* 1 (log_warning, log)
-* 2 (log_debug, log_warning, log)
-* 3 (log_trace, log_debug, log_warning, log)
+You can then use any of the `log_xxxxx()` functions in your code to log messages with the 
+appropriate level.

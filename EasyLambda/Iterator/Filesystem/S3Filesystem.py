@@ -2,7 +2,7 @@ from EasyLambda.EasyLog import EasyLog
 from EasyLambda.EasyValidator import EasyValidator
 
 
-class S3Filesystem(EasyValidator, EasyLog):
+class S3Filesystem(EasyLog):
     # Error constants
     ERROR_INVALID_S3_CONFIGURATION = 'The supplied S3 sources configuration was invalid'
 
@@ -24,9 +24,6 @@ class S3Filesystem(EasyValidator, EasyLog):
         :type configuration: dict
         :param configuration: The filesystems configuration
         """
-        # Initialize parameter validation class
-        EasyValidator.__init__(self=self)
-
         # Initialize logging class
         EasyLog.__init__(
             self=self,
