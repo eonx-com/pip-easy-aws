@@ -1,5 +1,6 @@
 from EasyBoto3.EasySessionManager import EasySessionManager
 
+from EasyLambda import EasyLambda
 from EasyLambda.EasyLambdaLog import EasyLambdaLog
 
 
@@ -18,7 +19,7 @@ class EasyLambdaSession(EasyLambdaLog):
 
         :return: None
         """
-        super(EasyLambdaSession, self).__init__(aws_event=aws_event, aws_context=aws_context)
+        super(EasyLambda.EasyLambdaSession, self).__init__(aws_event=aws_event, aws_context=aws_context)
 
         self.__aws_context__ = aws_context
         self.__aws_event__ = aws_event
