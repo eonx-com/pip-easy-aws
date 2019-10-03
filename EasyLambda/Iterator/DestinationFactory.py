@@ -1,17 +1,17 @@
 from EasyLambda.Iterator.FilesystemFactory import FilesystemFactory
-from EasyLambda.Iterator.Source.Source import Source
+from EasyLambda.Iterator.Destination.Destination import Destination
 
 
-class SourceFactory:
+class DestinationFactory:
     @staticmethod
-    def create_s3_source(
+    def create_s3_destination(
             bucket_name,
             base_path='/',
             delete_on_success=False,
             delete_on_error=False
-    ) -> Source:
+    ) -> Destination:
         """
-        Create a new AWS S3 file source
+        Create a new AWS S3 file destination
 
         :type bucket_name: str
         :param bucket_name:
@@ -25,21 +25,21 @@ class SourceFactory:
         :type delete_on_error: bool
         :param delete_on_error:
 
-        :return: Source
+        :return: Destination
         """
         filesystem = FilesystemFactory.create_s3_filesystem(
             bucket_name=bucket_name,
             base_path=base_path
         )
 
-        return Source(
+        return Destination(
             filesystem=filesystem,
             delete_on_success=delete_on_success,
             delete_on_error=delete_on_error
         )
 
     @staticmethod
-    def create_sftp_source(
+    def create_sftp_destination(
             address,
             username,
             password=None,
@@ -50,9 +50,9 @@ class SourceFactory:
             base_path='/',
             delete_on_success=False,
             delete_on_error=False
-    ) -> Source:
+    ) -> Destination:
         """
-        Create a new SFTP file source
+        Create a new SFTP file destination
 
         :type address: str
         :param address: Host server address/IP address
@@ -84,7 +84,7 @@ class SourceFactory:
         :type delete_on_error: bool
         :param delete_on_error:
 
-        :return: Source
+        :return: Destination
         """
         filesystem = FilesystemFactory.create_sftp_filesystem(
             address=address,
@@ -97,7 +97,7 @@ class SourceFactory:
             base_path=base_path
         )
 
-        return Source(
+        return Destination(
             filesystem=filesystem,
             delete_on_success=delete_on_success,
             delete_on_error=delete_on_error

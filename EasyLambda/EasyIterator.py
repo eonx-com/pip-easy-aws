@@ -3,7 +3,7 @@
 
 from EasyBoto3.EasySessionManager import EasySessionManager
 from EasyLambda.EasyLog import EasyLog
-from EasyLambda.Iterator.Source import Source
+from EasyLambda.Iterator.Source.Source import Source
 from time import strftime
 
 
