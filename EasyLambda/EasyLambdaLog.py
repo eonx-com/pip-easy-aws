@@ -3,8 +3,10 @@
 
 import traceback
 
+from EasyLambda.EasyLambdaCloudWatch import EasyLambdaCloudWatch
 
-class EasyLambdaLog(object):
+
+class EasyLambdaLog(EasyLambdaCloudWatch):
     def __init__(self, aws_event, aws_context, easy_session_manager):
         """
         :type aws_event: dict
@@ -15,9 +17,22 @@ class EasyLambdaLog(object):
 
         :return: None
         """
+        # Initialize logging class
+        EasyLambdaCloudWatch.__init__(
+            self=self,
+            aws_event=aws_event,
+            aws_context=aws_context,
+            easy_session_manager=easy_session_manager
+        )
         self.__aws_context__ = aws_context
         self.__aws_event__ = aws_event
+
+        # Set logging level based on function parameters, otherwise default to full trace logging
         self.__log_level__ = 3
+        if 'log_level' in self.__aws_event__:
+            self.__log_level__ = int(self.__aws_event__['log_level'])
+
+        # Start with an empty log history
         self.__log_history__ = ''
 
         # Default the namespace to the function name

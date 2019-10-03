@@ -35,12 +35,6 @@ class EasyLambdaSession(EasyLambdaLog):
             easy_session_manager=self.__easy_session_manager__
         )
 
-        # Set logging level based on function parameters
-        if 'log_level' in self.__aws_event__:
-            self.set_log_level(
-                log_level=int(self.__aws_event__['log_level'])
-            )
-
     # AWS Information Retrieval
 
     def get_aws_context(self):

@@ -18,17 +18,19 @@ class EasyLambdaCloudWatch(EasyLambdaLog):
 
         :return: None
         """
-
-        self.__aws_context__ = aws_context
-        self.__aws_event__ = aws_event
-        self.__easy_cloudwatch_client__ = easy_session_manager.get_cloudwatch_client()
-
         # Initialize logging class
-        super(EasyLambdaCloudWatch, self).__init__(
+        EasyLambdaLog.__init__(
+            self=self,
             aws_event=aws_event,
             aws_context=aws_context,
             easy_session_manager=easy_session_manager
         )
+
+        self.__aws_context__ = aws_context
+        self.__aws_event__ = aws_event
+
+        # Get AWS CloudWatch client
+        self.__easy_cloudwatch_client__ = easy_session_manager.get_cloudwatch_client()
 
     def put_cloudwatch_custom_metric(self, metric_name, value, unit):
         """
