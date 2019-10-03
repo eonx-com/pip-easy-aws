@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from EasyLambda.EasyLambdaLog import EasyLambdaLog
+from EasyLambda.EasyLog import EasyLog
 
 
-class EasyLambdaCloudWatch(EasyLambdaLog):
+class EasyCloudWatch(EasyLog):
     def __init__(self, aws_event, aws_context, easy_session_manager):
         """
         :type aws_event: dict
@@ -19,7 +19,7 @@ class EasyLambdaCloudWatch(EasyLambdaLog):
         :return: None
         """
         # Initialize logging class
-        EasyLambdaLog.__init__(
+        EasyLog.__init__(
             self=self,
             aws_event=aws_event,
             aws_context=aws_context,

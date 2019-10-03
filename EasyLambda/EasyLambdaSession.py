@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 
 from EasyBoto3.EasySessionManager import EasySessionManager
-from EasyLambda.EasyLambdaLog import EasyLambdaLog
+from EasyLambda.EasyLog import EasyLog
 
 
-class EasyLambdaSession(EasyLambdaLog):
+class EasyLambdaSession(EasyLog):
     def __init__(
             self,
             aws_event,
@@ -28,7 +28,7 @@ class EasyLambdaSession(EasyLambdaLog):
         self.__easy_session_manager__ = EasySessionManager()
 
         # Initialize logging class
-        EasyLambdaLog.__init__(
+        EasyLog.__init__(
             self=self,
             aws_event=aws_event,
             aws_context=aws_context,

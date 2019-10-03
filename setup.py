@@ -15,5 +15,6 @@ setup(
         'boto3',
         'botocore',
         'EasyBoto3 @ git+ssh://git@github.com/loyaltycorp/easy_boto3.git@v2.0'
+        'EasySftp @ git+ssh://git@github.com/loyaltycorp/easy_sftp.git@v2.0'
     ]
 )

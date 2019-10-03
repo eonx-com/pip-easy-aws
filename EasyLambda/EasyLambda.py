@@ -3,12 +3,15 @@
 
 from abc import abstractmethod
 
+from EasyLambda.EasyCloudWatch import EasyCloudWatch
+from EasyLambda.EasyIterator import EasyIterator
+from EasyLambda.EasyLog import EasyLog
 from EasyLambda.EasyLambdaSession import EasyLambdaSession
-from EasyLambda.EasyLambdaCloudWatch import EasyLambdaCloudWatch
-from EasyLambda.EasyLambdaLog import EasyLambdaLog
+from EasyLambda.EasyValidator import EasyValidator
 
 
-class EasyLambda(EasyLambdaSession, EasyLambdaCloudWatch, EasyLambdaLog):
+# noinspection PyMethodMayBeStatic
+class EasyLambda(EasyLambdaSession, EasyValidator, EasyCloudWatch, EasyLog):
     def __init__(self, aws_event, aws_context):
         """
         :type aws_event: dict
@@ -26,8 +29,11 @@ class EasyLambda(EasyLambdaSession, EasyLambdaCloudWatch, EasyLambdaLog):
             aws_context=aws_context
         )
 
+        # Initialize parameter validation class
+        EasyValidator.__init__(self=self)
+
         # Initialize AWS CloudWatch client
-        EasyLambdaCloudWatch.__init__(
+        EasyCloudWatch.__init__(
             self=self,
             aws_event=aws_event,
             aws_context=aws_context,
@@ -35,7 +41,7 @@ class EasyLambda(EasyLambdaSession, EasyLambdaCloudWatch, EasyLambdaLog):
         )
 
         # Initialize logging class
-        EasyLambdaLog.__init__(
+        EasyLog.__init__(
             self=self,
             aws_event=aws_event,
             aws_context=aws_context,
@@ -64,31 +70,17 @@ class EasyLambda(EasyLambdaSession, EasyLambdaCloudWatch, EasyLambdaLog):
             unit='Milliseconds'
         )
 
-    def validate_required_parameters(self, parameters_required):
+    def get_iterator(self) -> EasyIterator:
         """
-        Validate all required parameters were passed to the function
+        Return file iterator
 
-        :type parameters_required: tuple
-        :param parameters_required: List of required parameters
-
-        :return: None
+        :return: EasyIterator
         """
-        self.log_debug('Validating required parameters...')
-        parameter_error = False
-
-        # Iterate all expected parameters
-        for parameter in parameters_required:
-            self.log_trace('Validating: {parameter}'.format(parameter=parameter))
-            if self.get_aws_event_parameter(parameter=parameter) is None:
-                # Required parameter was not found
-                self.log_error('Missing parameter value: {parameter}'.format(parameter=parameter))
-                self.put_cloudwatch_count(metric_name='parameter-validation-error')
-                parameter_error = True
-
-        # If any required parameter was missing, exit with a fatal error
-        if parameter_error is True:
-            self.put_cloudwatch_count('unhandled_exceptions')
-            raise Exception('One or more required function parameter values was not supplied')
+        return EasyIterator(
+            aws_event=self.__aws_event__,
+            aws_context=self.__aws_context__,
+            easy_session_manager=self.get_easy_session_manager()
+        )
 
     @abstractmethod
     def run(self):

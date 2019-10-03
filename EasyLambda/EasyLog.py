@@ -3,10 +3,10 @@
 
 import traceback
 
-from EasyLambda.EasyLambdaCloudWatch import EasyLambdaCloudWatch
+from EasyLambda.EasyCloudWatch import EasyCloudWatch
 
 
-class EasyLambdaLog(EasyLambdaCloudWatch):
+class EasyLog(EasyCloudWatch):
     def __init__(self, aws_event, aws_context, easy_session_manager):
         """
         :type aws_event: dict
@@ -18,7 +18,7 @@ class EasyLambdaLog(EasyLambdaCloudWatch):
         :return: None
         """
         # Initialize logging class
-        EasyLambdaCloudWatch.__init__(
+        EasyCloudWatch.__init__(
             self=self,
             aws_event=aws_event,
             aws_context=aws_context,

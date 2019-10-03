@@ -15,7 +15,7 @@ Derive a new application specific class (e.g. MyApplication) that extends the Ea
 class.
 
 ```python
-from EasyIterator.EasyIterator import EasyIterator
+from Iterator.EasyIterator import EasyIterator
 
 class MyApplication(EasyLambda):
     """
@@ -26,7 +26,7 @@ class MyApplication(EasyLambda):
 Inside this class, override the run() method of EasyLambda
 
 ```python
-from EasyIterator.EasyIterator import EasyIterator
+from Iterator.EasyIterator import EasyIterator
 
 class MyApplication(EasyLambda):
     """
