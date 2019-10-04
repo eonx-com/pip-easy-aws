@@ -6,7 +6,7 @@ class S3Filesystem(EasyLog):
     # Error constants
     ERROR_INVALID_S3_CONFIGURATION = 'The supplied S3 sources configuration was invalid'
 
-    def __init__(self, aws_context, aws_event, easy_session_manager, configuration):
+    def __init__(self, aws_context, aws_event, easy_aws, configuration):
         """
         Configure S3 filesystem object
 
@@ -18,8 +18,8 @@ class S3Filesystem(EasyLog):
         :type aws_context: LambdaContext
         :param aws_context: AWS Lambda uses this parameter to provide runtime information to your handler
 
-        :type easy_session_manager: EasySessionManager
-        :param easy_session_manager: EasySessionManager object used by this class
+        :type easy_aws: EasyAws
+        :param easy_aws: EasyAws object used by this class
 
         :type configuration: dict
         :param configuration: The filesystems configuration
@@ -29,7 +29,7 @@ class S3Filesystem(EasyLog):
             self=self,
             aws_event=aws_event,
             aws_context=aws_context,
-            easy_session_manager=self.easy_session_manager
+            easy_aws=self.easy_aws
         )
 
         # Validate supplied configuration
@@ -38,14 +38,14 @@ class S3Filesystem(EasyLog):
             'bucket_name',
             'base_path'
         )
-        if EasyValidator.validate_parameters(requirements=requirements, parameters=configuration) is False:
+        if EasyValidator.validate_parameters(rules=requirements, data=configuration) is False:
             raise Exception(S3Filesystem.ERROR_INVALID_S3_CONFIGURATION)
 
         # Get S3 client
-        self.__s3_client__ = easy_session_manager.get_s3_client()
+        self.__s3_client__ = easy_aws.get_s3_client()
 
         # Get S3 bucket object
-        self.__s3_bucket__ = easy_session_manager.get_s3_bucket_client(
+        self.__s3_bucket__ = easy_aws.get_s3_bucket_client(
             bucket_name=configuration['bucket_name'],
             base_path=configuration['base_path']
         )

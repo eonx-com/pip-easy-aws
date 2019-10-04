@@ -13,9 +13,7 @@ setup(
     install_requires=[
         'boto',
         'boto3',
-        'botocore',age 14
-
-        'EasyBoto3 @ git+ssh://git@github.com/loyaltycorp/easy_boto3.git@v2.0'
+        'botocore',
         'EasySftp @ git+ssh://git@github.com/loyaltycorp/easy_sftp.git@v2.0'
     ]
 )

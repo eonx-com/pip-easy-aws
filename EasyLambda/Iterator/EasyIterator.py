@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from EasyBoto3.EasySessionManager import EasySessionManager
 from EasyLambda.EasyLog import EasyLog
 from EasyLambda.Iterator.Source.Source import Source
 from time import strftime
@@ -20,7 +19,7 @@ class EasyIterator(EasyLog):
             self,
             aws_event,
             aws_context,
-            easy_session_manager
+            easy_aws
     ):
         """
         :type aws_event: dict
@@ -29,8 +28,8 @@ class EasyIterator(EasyLog):
         :type aws_context: LambdaContext
         :param aws_context: AWS Lambda uses this parameter to provide runtime information to your handler
 
-        :type easy_session_manager: EasySessionManager
-        :param easy_session_manager: EasySessionManager object used by this class
+        :type easy_aws: EasyAws
+        :param easy_aws: EasyAws object used by this class
 
         :return: None
         """
@@ -39,11 +38,11 @@ class EasyIterator(EasyLog):
             self=self,
             aws_event=aws_event,
             aws_context=aws_context,
-            easy_session_manager=easy_session_manager
+            easy_aws=easy_aws
         )
 
         # Store session manager
-        self.__easy_session_manager__ = easy_session_manager
+        self.__easy_aws__ = easy_aws
 
         # Setup storage for filesystems we will be using
         self.__filesystems__ = {

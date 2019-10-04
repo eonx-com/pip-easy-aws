@@ -1,230 +1,235 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import traceback
+import inspect
 
+from time import strftime
 from EasyLambda.EasyCloudWatch import EasyCloudWatch
 
 
-class EasyLog(EasyCloudWatch):
-    def __init__(
-            self,
-            aws_event,
-            aws_context,
-            easy_session_manager
-    ):
-        """
-        :type aws_event: dict
-        :param aws_event: AWS Lambda uses this parameter to pass in event data to the handler
+class EasyLog:
+    # Logging level constants
+    LEVEL_ERROR = 0
+    LEVEL_INFO = 1
+    LEVEL_WARNING = 2
+    LEVEL_DEBUG = 3
+    LEVEL_TRACE = 4
 
-        :type aws_context: LambdaContext
-        :param aws_context: AWS Lambda uses this parameter to provide runtime information to your handler
+    # Private class variables
+    __history__ = []
+    __level__ = None
+    __cloudwatch_client__ = None
 
-        :type easy_session_manager: EasySessionManager
-        :param easy_session_manager: EasySessionManager object used by this class
+    @staticmethod
+    def set_level(level) -> None:
         """
-        EasyCloudWatch.__init__(
-            self=self,
-            aws_event=aws_event,
-            aws_context=aws_context,
-            easy_session_manager=easy_session_manager
+        Set logging display level
+
+        :type level: int
+        :param level: Logging level, one of the LEVEL class constants
+
+        :return: None
+        """
+        if level not in (EasyLog.LEVEL_INFO, EasyLog.LEVEL_WARNING, EasyLog.LEVEL_DEBUG, EasyLog.LEVEL_TRACE):
+            raise Exception('Unknown logging level specified')
+
+        EasyLog.__level__ = level
+
+    @staticmethod
+    def info(message) -> None:
+        """
+        Info level logging function
+
+        :type message: str or Exception
+        :param message: The message to be logged
+
+        :return: None
+        """
+        # This has to be the first line in the function otherwise this will return the wrong stack frame
+        stack_frame = inspect.stack()[1]
+
+        EasyLog.log(
+            level=EasyLog.LEVEL_INFO,
+            stack_frame=stack_frame,
+            message=message
         )
-        self.__aws_context__ = aws_context
-        self.__aws_event__ = aws_event
 
-        # Set logging level based on function parameters, otherwise default to full trace logging
-        self.__log_level__ = 3
-        if 'log_level' in self.__aws_event__:
-            self.__log_level__ = int(self.__aws_event__['log_level'])
-
-        # Start with an empty log history
-        self.__log_history__ = ''
-
-        # Default the namespace to the function name
-        self.__log_namespace__ = ''
-        self.set_log_namespace(namespace=self.__aws_context__.function_name)
-
-        # Get CloudWatch client so we can record metrics on errors/warnings
-        self.__easy_cloudwatch_client__ = easy_session_manager.get_cloudwatch_client()
-
-    # Getter/setter for logging namespace
-
-    def get_log_namespace(self) -> str:
+    @staticmethod
+    def error(message) -> None:
         """
-        Get the namespace for log messages
+        Error level logging function
 
-        :return: str
-        """
-        return self.__log_namespace__ or ''
-
-    def set_log_namespace(self, namespace) -> None:
-        """
-        Set the namespace to display in log messages
-        
-        :type namespace: str
-        :param namespace: The namespace to display in logs
-        
-        :return: None
-        """
-        namespace = str(namespace).upper()
-        self.__log_namespace__ = '[{namespace}] '.format(namespace=namespace)
-
-    # Getter/setter for logging level
-
-    def get_log_level(self) -> int:
-        """
-        Get the current log level
-
-        :return: int
-        """
-        return self.__log_level__
-
-    def set_log_level(self, log_level=1) -> None:
-        """
-        Enable debug logging
-
-        :type log_level: int
-        :param log_level: Logging level
+        :param message: Message to print
+        :type message: str/Exception
 
         :return: None
         """
-        if self.__log_level__ == 0:
-            level = 'Standard'
-        elif self.__log_level__ == 1:
-            level = 'Warning'
-        elif self.__log_level__ == 2:
-            level = 'Debug'
-        elif self.__log_level__ >= 3:
-            level = 'Trace'
+        # This has to be the first line in the function otherwise this will return the wrong stack frame
+        stack_frame = inspect.stack()[1]
+
+        EasyLog.log(
+            level=EasyLog.LEVEL_ERROR,
+            stack_frame=stack_frame,
+            message=message
+        )
+
+    @staticmethod
+    def warning(message) -> None:
+        """
+        Warning level logging function
+
+        :param message: Message to print
+        :type message: str/Exception
+
+        :return: None
+        """
+        # This has to be the first line in the function otherwise this will return the wrong stack frame
+        stack_frame = inspect.stack()[1]
+
+        EasyLog.log(
+            level=EasyLog.LEVEL_WARNING,
+            stack_frame=stack_frame,
+            message=message
+        )
+
+    @staticmethod
+    def debug(message) -> None:
+        """
+        Debug level logging function
+
+        :param message: Message to print
+        :type message: str/Exception
+
+        :return: None
+        """
+        # This has to be the first line in the function otherwise this will return the wrong stack frame
+        stack_frame = inspect.stack()[1]
+
+        EasyLog.log(
+            level=EasyLog.LEVEL_DEBUG,
+            stack_frame=stack_frame,
+            message=message
+        )
+
+    @staticmethod
+    def trace(message) -> None:
+        """
+        Trace level logging function
+
+        :param message: Message to print
+        :type message: str/Exception
+
+        :return: None
+        """
+        # This has to be the first line in the function otherwise this will return the wrong stack frame
+        stack_frame = inspect.stack()[1]
+
+        EasyLog.log(
+            level=EasyLog.LEVEL_TRACE,
+            stack_frame=stack_frame,
+            message=message
+        )
+
+    @staticmethod
+    def exception(message, exception) -> None:
+        """
+        Exception error logging function
+
+        :type message: str
+        :param message: Message to print
+
+        :type exception: Exception
+        :param exception: The exception error that was raised
+
+        :return: None
+        """
+        # This has to be the first line in the function otherwise this will return the wrong stack frame
+        stack_frame = inspect.stack()[1]
+
+        EasyLog.log(level=EasyLog.LEVEL_ERROR, stack_frame=stack_frame, message=message)
+        EasyLog.log(level=EasyLog.LEVEL_ERROR, message=exception)
+
+        EasyCloudWatch.increment_count('count_exceptions')
+
+    @staticmethod
+    def log(level, message, stack_frame=None) -> None:
+        # Convert the log level to a human readable string
+        if level == EasyLog.LEVEL_ERROR:
+            level_name = 'ERROR'
+            if EasyLog.__cloudwatch_client__ is not None:
+                EasyCloudWatch.increment_count('count_errors')
+                pass
+        elif level == EasyLog.LEVEL_INFO:
+            level_name = 'INFO'
+        elif level == EasyLog.LEVEL_WARNING:
+            level_name = 'WARNING'
+            if EasyLog.__cloudwatch_client__ is not None:
+                EasyCloudWatch.increment_count('count_warnings')
+                pass
+        elif level == EasyLog.LEVEL_DEBUG:
+            level_name = 'DEBUG'
+        elif level == EasyLog.LEVEL_TRACE:
+            level_name = 'TRACE'
         else:
             raise Exception('Unknown logging level specified')
 
-        self.__log_level__ = log_level
-        print('{level} level logging enabled'.format(level=level))
+        # Retrieve current timestamp
+        timestamp = strftime("%Y-%m-%d %H:%M:%S")
 
-    # Logging Functions
+        # Trim whitespace off the message
+        message = message.strip()
 
-    def log(self, message) -> None:
-        """
-        Print standard log message
+        # Create history entry
+        history = {
+            'message': message,
+            'message_formatted': '',
+            'level': level_name,
+            'timestamp': timestamp,
+            'filename': '',
+            'function': '',
+            'line_number': '',
+        }
 
-        :param message: Message to print
-        :type message: str/Exception
+        # Create a display formatted version of the message
+        message_formatted = message
 
-        :return: None
-        """
-        message = '{namespace}{message}'.format(
-            message=message,
-            namespace=self.get_log_namespace()
-        )
+        # If we received a stack frame, add its details to the log entry
+        if stack_frame is not None:
+            history.filename = stack_frame.filename
+            history.function = stack_frame.function
+            history.line_number = stack_frame.lineno
+            message_formatted = '{level_name} {filename}:{function} ({line_number}) - {message_formatted}'.format(
+                level_name=level_name,
+                filename=history.filename,
+                function=history.function,
+                line_number=history.line_number,
+                message_formatted=message_formatted
+            )
 
-        self.__log_history_append__(message)
+        message_formatted = '[{timestamp}] {message_formatted}'.format(timestamp=timestamp, message_formatted=message_formatted)
+        history.message_formatted = message_formatted
 
-        # Output log message
-        print(message)
+        # Display the message if appropriate based on the current log level
+        if EasyLog.__level__ >= level:
+            print(message_formatted)
 
-    def log_error(self, message) -> None:
-        """
-        Print error log message
+        # Add entry to the log
+        EasyLog.__history__.append(history)
 
-        :param message: Message to print
-        :type message: str/Exception
-
-        :return: None
-        """
-        self.__easy_cloudwatch_client__.put_cloudwatch_count('errors')
-
-        message = 'ERROR {namespace}{message}'.format(message=message, namespace=self.get_log_namespace())
-        self.__log_history_append__(message)
-
-        print(message)
-
-    def log_warning(self, message) -> None:
-        """
-        Print warning log message
-
-        :param message: Message to print
-        :type message: str/Exception
-
-        :return: None
-        """
-        self.__easy_cloudwatch_client__.put_cloudwatch_count('warnings')
-
-        message = 'WARNING {namespace}{message}'.format(message=message, namespace=self.get_log_namespace())
-        self.__log_history_append__(message)
-
-        if self.__log_level__ >= 1:
-            print(message)
-
-    def log_debug(self, message) -> None:
-        """
-        Print debugging log message only if the global value 'debug_logging' is set to True
-
-        :param message: Message to print
-        :type message: str/Exception
-
-        :return: None
-        """
-        message = 'DEBUG {namespace}{message}'.format(message=message, namespace=self.get_log_namespace())
-        self.__log_history_append__(message)
-
-        if self.__log_level__ >= 2:
-            print(message)
-
-    def log_trace(self, message) -> None:
-        """
-        Print debugging log message only if the global value 'debug_logging' is set to True
-
-        :param message: Message to print
-        :type message: str/Exception
-
-        :return: None
-        """
-        message = 'TRACE {namespace}{message}'.format(message=message, namespace=self.get_log_namespace())
-        self.__log_history_append__(message)
-
-        if self.__log_level__ >= 3:
-            print(message)
-
-    def log_stack_trace(self) -> None:
-        """
-        Add stack trace to the log
-
-        :return: None
-        """
-        for line in traceback.format_stack():
-            self.log(line.strip())
-
-    # Logging history functions
-
-    def clear_log_history(self) -> None:
+    @staticmethod
+    def clear_log_history() -> None:
         """
         Clear any existing log history
 
         :return: None
         """
-        self.__log_history__ = ''
+        EasyLog.__history__ = []
 
-    def get_log_history(self) -> str:
+    @staticmethod
+    def get_log_history(self) -> list:
         """
         Return the complete log history regardless of the current log level
 
-        :return: str
+        :return: list
         """
-        return self.__log_history__
-
-    # Internal function
-
-    def __log_history_append__(self, message) -> None:
-        """
-        Append the message to the log history
-
-        :type message: str
-        :param message: Message to log into the history
-
-        :return: None
-        """
-        self.__log_history__ = "{log_history}\n{message}\n".format(
-            log_history=self.__log_history__,
-            message=str(message).strip()
-        )
+        return self.__history__

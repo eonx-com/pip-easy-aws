@@ -4,14 +4,10 @@
 from abc import abstractmethod
 
 from EasyLambda.EasyCloudWatch import EasyCloudWatch
-from EasyLambda.EasyIterator import EasyIterator
 from EasyLambda.EasyLog import EasyLog
-from EasyLambda.EasyLambdaSession import EasyLambdaSession
-from EasyLambda.EasyValidator import EasyValidator
 
 
-# noinspection PyMethodMayBeStatic
-class EasyLambda(EasyLambdaSession, EasyValidator, EasyCloudWatch, EasyLog):
+class EasyLambda:
     def __init__(self, aws_event, aws_context):
         """
         :type aws_event: dict
@@ -19,74 +15,106 @@ class EasyLambda(EasyLambdaSession, EasyValidator, EasyCloudWatch, EasyLog):
 
         :type aws_context: LambdaContext
         :param aws_context: AWS Lambda uses this parameter to provide runtime information to your handler
-
-        :return: None
         """
-        # Initialize AWS Session Manager
-        EasyLambdaSession.__init__(
-            self=self,
-            aws_event=aws_event,
-            aws_context=aws_context
-        )
-
-        # Initialize parameter validation class
-        EasyValidator.__init__(self=self)
-
-        # Initialize AWS CloudWatch client
-        EasyCloudWatch.__init__(
-            self=self,
-            aws_event=aws_event,
-            aws_context=aws_context,
-            easy_session_manager=self.get_easy_session_manager()
-        )
-
-        # Initialize logging class
-        EasyLog.__init__(
-            self=self,
-            aws_event=aws_event,
-            aws_context=aws_context,
-            easy_session_manager=self.get_easy_session_manager()
-        )
+        self.__aws_event__ = aws_event
+        self.__aws_context__ = aws_context
 
         try:
-            self.log_trace('Executing user run function...')
+            EasyLog.trace('Executing user initialization function...')
+            self.init()
+        except Exception as init_exception:
+            # Something went wrong inside the users init function- log the error
+            EasyLog.exception('Unhandled exception during execution of user initialization function', init_exception)
+            raise init_exception
+
+        try:
+            EasyLog.trace('Executing user run function...')
             self.run()
         except Exception as run_exception:
-            self.put_cloudwatch_count('unhandled_exceptions')
-            self.log_error('Unhandled exception during execution user function: {run_exception}'.format(
-                run_exception=run_exception
-            ))
+            # Something went wrong inside the users run function- log the error
+            EasyLog.error('Unhandled exception during execution of user run function:\n{run_exception}'.format(run_exception=run_exception))
+            raise run_exception
 
-        # Display the time remaining on completion of user code
+        # Execution completed, log out the time remaining- this may be useful for tracking bloat/performance degradation over the life of the Lambda function
         time_remaining = self.get_aws_time_remaining()
-        self.log_debug('Execution completed with {time_remaining} milliseconds remaining'.format(
-            time_remaining=time_remaining
-        ))
-
-        # Add CloudWatch metric to monitor time remaining
-        self.put_cloudwatch_custom_metric(
-            metric_name='time_remaining',
-            value=time_remaining,
-            unit='Milliseconds'
-        )
-
-    def get_iterator(self) -> EasyIterator:
-        """
-        Return file iterator
-
-        :return: EasyIterator
-        """
-        return EasyIterator(
-            aws_event=self.__aws_event__,
-            aws_context=self.__aws_context__,
-            easy_session_manager=self.get_easy_session_manager()
-        )
+        EasyLog.info('Execution completed with {time_remaining} milliseconds remaining'.format(time_remaining=time_remaining))
+        EasyCloudWatch.put_metric('lambda_time_remaining', time_remaining, 'Milliseconds')
 
     @abstractmethod
-    def run(self):
+    def init(self) -> None:
         """
-        This function should be overridden with code to be executed
+        This function should be overridden with code to be executed prior to running the main run function
 
         :return: None
         """
         pass
+
+    @abstractmethod
+    def run(self) -> None:
+        """
+        This function should be overridden with the main application code
+
+        :return: None
+        """
+        pass
+
+    # AWS Information Retrieval
+
+    def get_aws_context(self):
+        """
+        Return the AWS event context
+
+        :return: LambdaContext
+        """
+        return self.__aws_context__
+
+    def get_aws_event(self) -> dict:
+        """
+        Return the AWS event parameter
+
+        :return: dict
+        """
+        return self.__aws_event__
+
+    def get_aws_event_parameter(self, parameter):
+        """
+        Return the AWS event parameter, or None if does not exist
+
+        :return: None or str
+        """
+        if parameter not in self.__aws_event__:
+            return None
+
+        return self.__aws_event__[parameter]
+
+    def get_aws_request_id(self) -> str:
+        """
+        Get the unique AWS request ID
+
+        :return: str
+        """
+        return self.__aws_context__.aws_request_id
+
+    def get_aws_function_arn(self) -> str:
+        """
+        Return the ARN of the AWS function being executed
+
+        :return: str
+        """
+        return self.__aws_context__.invoked_function_arn
+
+    def get_aws_function_name(self) -> str:
+        """
+        Return the name of the AWS function being executed
+
+        :return: str
+        """
+        return self.__aws_context__.function_name
+
+    def get_aws_time_remaining(self) -> int:
+        """
+        Return the number of milliseconds remaining before the Lambda times out
+
+        :return: int
+        """
+        return self.__aws_context__.get_remaining_time_in_millis()

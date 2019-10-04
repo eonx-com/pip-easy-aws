@@ -1,71 +1,63 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import boto3
+import os
+
 from EasyLambda.EasyLog import EasyLog
 
 
-class EasyCloudWatch(EasyLog):
-    def __init__(self, aws_event, aws_context, easy_session_manager):
+class EasyCloudWatch:
+    # Cache for Boto3 CloudWatch client
+    __client__ = None
+
+    @staticmethod
+    def get_cloudwatch_client():
         """
-        :type aws_event: dict
-        :param aws_event: AWS Lambda uses this parameter to pass in event data to the handler
-
-        :type aws_context: LambdaContext
-        :param aws_context: AWS Lambda uses this parameter to provide runtime information to your handler
-
-        :type easy_session_manager: EasySessionManager
-        :param easy_session_manager: EasySessionManager object used by this class
-
-        :return: None
+        Setup Boto3 CloudWatch client
         """
-        # Initialize logging class
-        EasyLog.__init__(
-            self=self,
-            aws_event=aws_event,
-            aws_context=aws_context,
-            easy_session_manager=easy_session_manager
-        )
+        # If we haven't gotten a client yet- create one now and cache it for future calls
+        if EasyCloudWatch.__client__ is None:
+            EasyLog.trace('Instantiating AWS CloudWatch client...')
+            EasyCloudWatch.__client__ = boto3.session.Session().client('cloudwatch')
 
-        self.__aws_context__ = aws_context
-        self.__aws_event__ = aws_event
+        # Return the cached client
+        return EasyCloudWatch.__client__
 
-        # Get AWS CloudWatch client
-        self.__easy_cloudwatch_client__ = easy_session_manager.get_cloudwatch_client()
-
-    def put_cloudwatch_custom_metric(self, metric_name, value, unit):
+    @staticmethod
+    def put_metric(metric_name, value, unit):
         """
-        Push a custom CloudWatch metric
+        Push a CloudWatch metric
 
         :type metric_name: str
         :param metric_name: Metric name
 
         :type value: float
-        :param value: Value to push
+        :param value: Value to save
 
         :type unit: str
         :param unit: Unit of measurement (e.g. Bytes, Count)
 
         :return: None
         """
-        self.__easy_cloudwatch_client__.put_metric(
-            stage=self.__aws_event__['stage'],
-            namespace=self.__aws_context__.function_name,
-            metric_name=metric_name,
-            value=value,
-            unit=unit
+        EasyLog.trace('Putting AWS CloudWatch metric: {metric_name}...'.format(metric_name=metric_name))
+        EasyCloudWatch.get_cloudwatch_client().put_metric_data(
+            Namespace=os.environ('AWS_LAMBDA_FUNCTION_NAME'),
+            MetricData=[{'MetricName': metric_name, 'Unit': unit, 'Value': value}]
         )
 
-    def put_cloudwatch_count(self, metric_name):
+    @staticmethod
+    def increment_count(metric_name):
         """
-        Push a CloudWatch count metric
+        Increment a count CloudWatch metric
 
         :type metric_name: str
         :param metric_name: Metric name
 
         :return: None
         """
-        self.put_cloudwatch_custom_metric(
-            metric_name=metric_name,
-            value=1.0,
-            unit='Count'
+        EasyLog.trace('Incrementing AWS CloudWatch counter: {metric_name}...'.format(metric_name=metric_name))
+        EasyCloudWatch.get_cloudwatch_client().put_metric_data(
+            Namespace=os.environ('AWS_LAMBDA_FUNCTION_NAME'),
+            MetricData=[{'MetricName': metric_name, 'Unit': 'Count', 'Value': 1.0}]
         )
