@@ -8,13 +8,13 @@ from EasyLambda.EasyLog import EasyLog
 
 
 class EasyCloudWatch:
-    # Cache for Boto3 CloudWatch client
+    # Cache for CloudWatch client
     __client__ = None
 
     @staticmethod
     def get_cloudwatch_client():
         """
-        Setup Boto3 CloudWatch client
+        Setup CloudWatch client
         """
         # If we haven't gotten a client yet- create one now and cache it for future calls
         if EasyCloudWatch.__client__ is None:

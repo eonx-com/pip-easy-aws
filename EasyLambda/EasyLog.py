@@ -2,13 +2,14 @@
 # -*- coding: utf-8 -*-
 
 import inspect
+import os
 
 from time import strftime
-from EasyLambda.EasyCloudWatch import EasyCloudWatch
 
 
 class EasyLog:
     # Logging level constants
+    LEVEL_EXCEPTION = -1
     LEVEL_ERROR = 0
     LEVEL_INFO = 1
     LEVEL_WARNING = 2
@@ -146,26 +147,40 @@ class EasyLog:
         # This has to be the first line in the function otherwise this will return the wrong stack frame
         stack_frame = inspect.stack()[1]
 
-        EasyLog.log(level=EasyLog.LEVEL_ERROR, stack_frame=stack_frame, message=message)
-        EasyLog.log(level=EasyLog.LEVEL_ERROR, message=exception)
-
-        EasyCloudWatch.increment_count('count_exceptions')
+        EasyLog.log(level=EasyLog.LEVEL_EXCEPTION, stack_frame=stack_frame, message=message)
+        EasyLog.log(level=EasyLog.LEVEL_EXCEPTION, message=exception)
 
     @staticmethod
     def log(level, message, stack_frame=None) -> None:
+        # If no logging level is defined, select one based on the current context
+        if EasyLog.__level__ is None:
+            # Work out if we are in a unit test
+            current_stack = inspect.stack()
+            is_unit_test = False
+            for stack_frame in current_stack:
+                for program_line in stack_frame[4]:
+                    if "unittest" in program_line:
+                        is_unit_test = True
+                        break
+
+            if is_unit_test is True:
+                # Running unit tests, disable logging
+                print('Running unit tests, logging exceptions only...')
+                EasyLog.__level__ = -1
+            else:
+                # Not running unit tests, default to maximum logging level
+                print('No logging level has been defined, defaulting to maximum logging...')
+                EasyLog.__level__ = 4
+
         # Convert the log level to a human readable string
         if level == EasyLog.LEVEL_ERROR:
             level_name = 'ERROR'
-            if EasyLog.__cloudwatch_client__ is not None:
-                EasyCloudWatch.increment_count('count_errors')
-                pass
+        elif level == EasyLog.LEVEL_EXCEPTION:
+            level_name = 'EXCEPTION'
         elif level == EasyLog.LEVEL_INFO:
             level_name = 'INFO'
         elif level == EasyLog.LEVEL_WARNING:
             level_name = 'WARNING'
-            if EasyLog.__cloudwatch_client__ is not None:
-                EasyCloudWatch.increment_count('count_warnings')
-                pass
         elif level == EasyLog.LEVEL_DEBUG:
             level_name = 'DEBUG'
         elif level == EasyLog.LEVEL_TRACE:
@@ -177,7 +192,7 @@ class EasyLog:
         timestamp = strftime("%Y-%m-%d %H:%M:%S")
 
         # Trim whitespace off the message
-        message = message.strip()
+        message = str(message).strip()
 
         # Create history entry
         history = {
@@ -195,22 +210,22 @@ class EasyLog:
 
         # If we received a stack frame, add its details to the log entry
         if stack_frame is not None:
-            history.filename = stack_frame.filename
-            history.function = stack_frame.function
-            history.line_number = stack_frame.lineno
-            message_formatted = '{level_name} {filename}:{function} ({line_number}) - {message_formatted}'.format(
+            history['filename'] = stack_frame.filename
+            history['function'] = stack_frame.function
+            history['line_number'] = stack_frame.lineno
+            message_formatted = '[{level_name}: {filename}] {function}():{line_number} - {message_formatted}'.format(
                 level_name=level_name,
-                filename=history.filename,
-                function=history.function,
-                line_number=history.line_number,
+                filename=os.path.basename(history['filename']),
+                function=history['function'],
+                line_number=history['line_number'],
                 message_formatted=message_formatted
             )
 
         message_formatted = '[{timestamp}] {message_formatted}'.format(timestamp=timestamp, message_formatted=message_formatted)
-        history.message_formatted = message_formatted
+        history['message_formatted'] = message_formatted
 
         # Display the message if appropriate based on the current log level
-        if EasyLog.__level__ >= level:
+        if EasyLog.__level__ is None or EasyLog.__level__ >= level:
             print(message_formatted)
 
         # Add entry to the log

@@ -37,13 +37,13 @@ class EasyCloudFormation:
     # Cache drift detection request IDs
     __drift_request_ids__ = {}
 
-    # Cache for Boto3 CloudFormation client
+    # Cache for CloudFormation client
     __client__ = None
 
     @staticmethod
     def get_cloudformation_client():
         """
-        Setup Boto3 CloudWatch client
+        Setup CloudWatch client
         """
         # If we haven't gotten a client yet- create one now and cache it for future calls
         if EasyCloudFormation.__client__ is None:
@@ -152,7 +152,7 @@ class EasyCloudFormation:
         """
         EasyLog.trace('Requesting drift check on stack: {stack_name}'.format(stack_name=stack_name))
 
-        # Make sure the stack name exists and can be seen by the Boto3 client
+        # Make sure the stack name exists and can be seen by the client
         EasyLog.debug('Checking requested stack exists...')
         stacks = EasyCloudFormation.list_stacks()
 

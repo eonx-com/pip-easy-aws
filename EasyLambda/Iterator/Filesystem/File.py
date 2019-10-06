@@ -63,10 +63,10 @@ class File:
 
     def replace(self, file):
         """
-        Replace the contents of the file with the contents of the other file. The file passed to the function will not be affected by this action
+        Replace the content of the file with the content of the other file. The file passed to the function will not be affected by this action
 
         :type file: File
-        :param file: The file which should overwrite the existing files contents
+        :param file: The file which should overwrite the existing files content
 
         :return: None
         """

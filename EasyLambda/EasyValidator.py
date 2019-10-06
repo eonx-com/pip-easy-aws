@@ -7,6 +7,7 @@ class EasyValidator:
     RULE_ALL_OR_NOTHING = 'ALL_OR_NOTHING'
     RULE_ANY = 'ANY'
     RULE_NONE = 'NONE'
+    RULE_TYPE = 'TYPE'
     RULE_CALLBACK = 'CALLBACK'
 
     # Error constants
@@ -69,6 +70,42 @@ class EasyValidator:
                     EasyLog.error(EasyValidator.ERROR_MALFORMED_RULESET)
                     return False
 
+        return True
+
+    @staticmethod
+    def validate_type(rule, data) -> bool:
+        """
+        Validate the type of variables
+
+        :type rule: dict
+        :param rule: The rule to be validated
+
+        :type data: dict
+        :param data: The user data to validate
+
+        :return: bool
+        """
+        rule_values = rule['values']
+        rule_allow_none = rule['allow_none']
+        rule_type = rule['type']
+
+        # Iterate through all values
+        for expected_value in rule_values:
+            # Check if the type is correct
+            if expected_value in data.keys():
+                EasyLog.debug('Current key: {expected_value}'.format(expected_value=expected_value))
+                EasyLog.debug('Current type: {type}'.format(type=type(data[expected_value])))
+                EasyLog.debug('Expected type: {rule_type}'.format(rule_type=rule_type))
+
+                if type(data[expected_value]) == rule_type:
+                    continue
+                elif data[expected_value] is None:
+                    if rule_allow_none is False:
+                        # Value was None but that is not allowed
+                        return False
+
+        # None of the values were found, validation was successful
+        EasyLog.debug('Validation successful')
         return True
 
     @staticmethod
@@ -189,6 +226,8 @@ class EasyValidator:
         """
         EasyLog.trace('Validating data...')
 
+        error = False
+
         # Validate the ruleset before we start validation
         EasyValidator.validate_ruleset(ruleset)
 
@@ -199,21 +238,36 @@ class EasyValidator:
 
             # Validate each rule passes, as soon as one fails- everything fails
             if rule_type == EasyValidator.RULE_ANY:
+                EasyLog.debug('Validating any rule...')
                 if EasyValidator.validate_any(rule=rule, data=data) is False:
-                    return False
+                    EasyLog.debug('Validation of any rule failed')
+                    error = True
             elif rule_type == EasyValidator.RULE_ALL:
+                EasyLog.debug('Validating all rule...')
                 if EasyValidator.validate_all(rule=rule, data=data) is False:
-                    return False
+                    EasyLog.debug('Validation of all rule failed')
+                    error = True
             elif rule_type == EasyValidator.RULE_ALL_OR_NOTHING:
+                EasyLog.debug('Validating all or nothing rule...')
                 if EasyValidator.validate_all_any_nothing(rule=rule, data=data) is False:
-                    return False
+                    EasyLog.debug('Validation of all or nothing rule failed')
+                    error = True
             elif rule_type == EasyValidator.RULE_NONE:
+                EasyLog.debug('Validating none rule...')
                 if EasyValidator.validate_none(rule=rule, data=data) is False:
-                    return False
+                    EasyLog.debug('Validation of none rule failed')
+                    error = True
+            elif rule_type == EasyValidator.RULE_TYPE:
+                EasyLog.debug('Validating type rule...')
+                if EasyValidator.validate_type(rule=rule, data=data) is False:
+                    EasyLog.debug('Validation of type rule failed')
+                    error = True
             elif rule_type == EasyValidator.RULE_CALLBACK:
+                EasyLog.debug('Validating using custom callback...')
                 validation_function = rule['validation_function']
                 if validation_function() is False:
-                    return False
+                    EasyLog.debug('Validation by custom callback failed')
+                    error = True
 
         # Validation was successful
-        return True
+        return error

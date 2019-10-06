@@ -11,19 +11,19 @@ class SourceFactory:
             delete_on_error=False
     ) -> Source:
         """
-        Create a new AWS S3 file source
+        Create a new S3 file source
 
         :type bucket_name: str
-        :param bucket_name:
+        :param bucket_name: The name of the S3 bucket this object
 
         :type base_path: str
-        :param base_path:
+        :param base_path: Base path inside the the bucket
 
         :type delete_on_success: bool
-        :param delete_on_success:
+        :param delete_on_success: If True, files in this source will be deleted on successful iterator
 
         :type delete_on_error: bool
-        :param delete_on_error:
+        :param delete_on_error: If True, files in this source will be deleted after an error in iteration
 
         :return: Source
         """

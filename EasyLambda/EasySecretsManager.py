@@ -10,7 +10,7 @@ from EasyLambda.EasyLog import EasyLog
 
 
 class EasySecretsManager:
-    # Cache for Boto3 SecretsManager client
+    # Cache for SecretsManager client
     __client__ = None
 
     # Cache for retrieved secrets
@@ -19,7 +19,7 @@ class EasySecretsManager:
     @staticmethod
     def get_secretsmanager_client():
         """
-        Setup Boto3 CloudWatch client
+        Setup SecretsManager client
         """
         # If we haven't gotten a client yet- create one now and cache it for future calls
         if EasySecretsManager.__client__ is None:
@@ -43,7 +43,7 @@ class EasySecretsManager:
 
         # Retrieve all available secrets (it may be necessary to perform multiple requests
         while True:
-            # Iterate through the contents of the most recent search results
+            # Iterate through the content of the most recent search results
             for secret in secrets_current['SecretList']:
                 if secrets is None:
                     secrets = {}

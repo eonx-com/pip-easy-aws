@@ -4,7 +4,7 @@ from EasyLambda.EasyLog import EasyLog
 from EasyLambda.EasyS3 import EasyS3
 
 
-class File:
+class EasyS3File:
     def __init__(self, bucket_name, bucket_filename):
         """
         :type bucket_name: str
@@ -13,38 +13,73 @@ class File:
         :type bucket_filename: str
         :param bucket_filename: Path/filename of the file inside the bucket
         """
+        EasyLog.trace('Instantiating EasyS3File: {bucket_name}:{bucket_filename}'.format(
+            bucket_name=bucket_name,
+            bucket_filename=bucket_filename
+        ))
+
         self.__bucket_name__ = bucket_name
         self.__bucket_filename__ = bucket_filename
 
-    def exists(self) -> bool:
+    def file_exists(self) -> bool:
         """
         Return boolean flag indicating whether the file exists in S3 
         
         :return: bool 
         """
-        EasyLog.trace('Checking if file exists...')
+        EasyLog.trace('Checking EasyS3File Exists: {bucket_name}:{bucket_filename}'.format(
+            bucket_name=self.__bucket_name__,
+            bucket_filename=self.__bucket_filename__
+        ))
 
         return EasyS3.file_exists(
             bucket_name=self.__bucket_name__,
             bucket_filename=self.__bucket_filename__
         )
 
-    def delete(self) -> bool:
+    def delete_file(self) -> bool:
         """
         Delete the file from S3
 
         :return: bool
         """
-        EasyLog.trace('Deleting file...')
+        EasyLog.trace('Deleting EasyS3File: {bucket_name}:{bucket_filename}'.format(
+            bucket_name=self.__bucket_name__,
+            bucket_filename=self.__bucket_filename__
+        ))
 
         return EasyS3.delete_file(
             bucket_name=self.__bucket_name__,
             bucket_filename=self.__bucket_filename__
         )
 
-    def move(self, destination_bucket_name, destination_bucket_filename) -> None:
+    def file_move_in(self, source_bucket_name, source_bucket_filename) -> None:
         """
-        Move this file to another bucket/path
+        Move a file into this bucket
+
+        :type source_bucket_name: string
+        :param source_bucket_name: The bucket the file should be moved from
+
+        :type source_bucket_filename: string
+        :param source_bucket_filename: The filename in the source bucket
+
+        :return: None
+        """
+        EasyLog.trace('Moving EasyS3File In: {bucket_name}:{bucket_filename}'.format(
+            bucket_name=self.__bucket_name__,
+            bucket_filename=self.__bucket_filename__
+        ))
+
+        return EasyS3.move_file(
+            source_bucket_name=source_bucket_name,
+            source_bucket_filename=source_bucket_filename,
+            destination_bucket_name=self.__bucket_name__,
+            destination_bucket_filename=self.__bucket_filename__
+        )
+
+    def file_move_out(self, destination_bucket_name, destination_bucket_filename) -> None:
+        """
+        Move this file out of this bucket
 
         :type destination_bucket_name: string
         :param destination_bucket_name: The bucket the file should be moved to
@@ -54,8 +89,10 @@ class File:
 
         :return: None
         """
-        EasyLog.trace('Moving file...')
-
+        EasyLog.trace('Moving EasyS3File Out: {bucket_name}:{bucket_filename}'.format(
+            bucket_name=self.__bucket_name__,
+            bucket_filename=self.__bucket_filename__
+        ))
         return EasyS3.move_file(
             source_bucket_name=self.__bucket_name__,
             source_bucket_filename=self.__bucket_filename__,
@@ -63,9 +100,33 @@ class File:
             destination_bucket_filename=destination_bucket_filename
         )
 
-    def copy(self, destination_bucket_name, destination_bucket_filename) -> None:
+    def file_copy_in(self, source_bucket_name, source_bucket_filename) -> None:
         """
-        Copy this file to another bucket/path
+        Copy file into this bucket
+
+        :type source_bucket_name: string
+        :param source_bucket_name: The bucket the file should be copied to
+
+        :type source_bucket_filename: string
+        :param source_bucket_filename: The destination filename in the destination bucket
+
+        :return: None
+        """
+        EasyLog.trace('Copying EasyS3File File In: {bucket_name}:{bucket_filename}'.format(
+            bucket_name=self.__bucket_name__,
+            bucket_filename=self.__bucket_filename__
+        ))
+
+        return EasyS3.copy_file(
+            source_bucket_name=source_bucket_name,
+            source_bucket_filename=source_bucket_filename,
+            destination_bucket_name=self.__bucket_name__,
+            destination_bucket_filename=self.__bucket_filename__
+        )
+
+    def file_copy_out(self, destination_bucket_name, destination_bucket_filename) -> None:
+        """
+        Copy file out of this bucket
 
         :type destination_bucket_name: string
         :param destination_bucket_name: The bucket the file should be copied to
@@ -75,7 +136,10 @@ class File:
 
         :return: None
         """
-        EasyLog.trace('Copying file...')
+        EasyLog.trace('Copying EasyS3File File Out: {bucket_name}:{bucket_filename}'.format(
+            bucket_name=self.__bucket_name__,
+            bucket_filename=self.__bucket_filename__
+        ))
 
         return EasyS3.copy_file(
             source_bucket_name=self.__bucket_name__,
@@ -84,7 +148,7 @@ class File:
             destination_bucket_filename=destination_bucket_filename
         )
 
-    def download(self, local_filename) -> None:
+    def download_file(self, local_filename) -> None:
         """
         Download the file to local filesystem
 
@@ -93,7 +157,10 @@ class File:
 
         :return: None
         """
-        EasyLog.trace('Downloading file to local filesystem...')
+        EasyLog.trace('Downloading EasyS3File To File: {bucket_name}:{bucket_filename}'.format(
+            bucket_name=self.__bucket_name__,
+            bucket_filename=self.__bucket_filename__
+        ))
 
         EasyS3.download_file(
             bucket_name=self.__bucket_name__,
@@ -106,11 +173,14 @@ class File:
         Download the file and return it as a string
 
         :type encoding: string
-        :param encoding: The files encoding, defaults to UTF-8
+        :param encoding: The files content_encoding, defaults to UTF-8
 
         :return: str
         """
-        EasyLog.trace('Downloading file as string...')
+        EasyLog.trace('Downloading EasyS3File To String: {bucket_name}:{bucket_filename}'.format(
+            bucket_name=self.__bucket_name__,
+            bucket_filename=self.__bucket_filename__
+        ))
 
         return EasyS3.download_string(
             bucket_name=self.__bucket_name__,
@@ -118,7 +188,7 @@ class File:
             encoding=encoding
         )
 
-    def upload(self, local_filename) -> None:
+    def upload_file(self, local_filename) -> None:
         """
         Upload a local file over the current file
 
@@ -127,7 +197,10 @@ class File:
 
         :return: EasyS3File
         """
-        EasyLog.trace('Uploading file...')
+        EasyLog.trace('Uploading EasyS3File From File: {bucket_name}:{bucket_filename}'.format(
+            bucket_name=self.__bucket_name__,
+            bucket_filename=self.__bucket_filename__
+        ))
 
         return EasyS3.upload_file(
             bucket_name=self.__bucket_name__,
@@ -140,14 +213,17 @@ class File:
         Upload a string over the current file
 
         :type contents: string
-        :param contents: The contents to be uploaded to S3
+        :param contents: The content to be uploaded to S3
 
         :type encoding: string
-        :param encoding: The strings encoding, defaults to UTF-8
+        :param encoding: The strings content_encoding, defaults to UTF-8
 
         :return: None
         """
-        EasyLog.trace('Uploading string to file...')
+        EasyLog.trace('Uploading EasyS3File From String: {bucket_name}:{bucket_filename}'.format(
+            bucket_name=self.__bucket_name__,
+            bucket_filename=self.__bucket_filename__
+        ))
 
         return EasyS3.upload_string(
             bucket_name=self.__bucket_name__,
@@ -156,20 +232,23 @@ class File:
             encoding=encoding
         )
 
-    def get_tags(self) -> dict:
+    def file_get_tags(self) -> dict:
         """
         Return a list of this files tags
 
         :return: dict
         """
-        EasyLog.trace('Retrieving file tags...')
+        EasyLog.trace('Retrieving EasyS3File Tags: {bucket_name}:{bucket_filename}'.format(
+            bucket_name=self.__bucket_name__,
+            bucket_filename=self.__bucket_filename__
+        ))
 
         return EasyS3.get_file_tags(
             bucket_name=self.__bucket_name__,
             bucket_filename=self.__bucket_filename__
         )
 
-    def set_tags(self, tags) -> None:
+    def file_set_tags(self, tags) -> None:
         """
         Replace all tags on the file
 
@@ -178,8 +257,10 @@ class File:
 
         :return: None
         """
-        EasyLog.trace('Setting file tags...')
-
+        EasyLog.trace('Setting EasyS3File Tags: {bucket_name}:{bucket_filename}'.format(
+            bucket_name=self.__bucket_name__,
+            bucket_filename=self.__bucket_filename__
+        ))
         EasyS3.set_file_tags(
             bucket_name=self.__bucket_name__,
             bucket_filename=self.__bucket_filename__,
@@ -196,7 +277,7 @@ class File:
 
     def get_bucket_filename(self) -> str:
         """
-        Return the name of the the S3 bucket
+        Return the full path/filename this object relates to
 
         :return: str
         """
@@ -204,7 +285,7 @@ class File:
 
     def get_path(self) -> str:
         """
-        Return the path of the file
+        Return the path of the file this object relates to
 
         :return: str
         """
@@ -212,7 +293,7 @@ class File:
 
     def get_basename(self) -> str:
         """
-        Return the filename
+        Return the filename this object relates to
 
         :return: str
         """

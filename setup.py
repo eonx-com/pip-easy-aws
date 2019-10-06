@@ -14,6 +14,7 @@ setup(
         'boto',
         'boto3',
         'botocore',
-        'EasySftp @ git+ssh://git@github.com/loyaltycorp/easy_sftp.git@v2.0'
+        'pysftp',
+        'paramiko'
     ]
 )

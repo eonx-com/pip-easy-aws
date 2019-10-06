@@ -14,7 +14,7 @@ from io import BytesIO
 class EasyS3:
     # Error constants
     ERROR_LOCAL_FILE_NOT_FOUND = 'The file was not found on the local filesystem'
-    ERROR_LOCAL_FILE_UNREADABLE = 'The file was found on the local filesystem however its contents were not readable, please check file permissions'
+    ERROR_LOCAL_FILE_UNREADABLE = 'The file was found on the local filesystem however its content were not readable, please check file permissions'
     ERROR_LIST_BUCKETS_EXCEPTION = 'An unexpected error occurred during listing of S3 buckets'
     ERROR_LIST_FILES_EXCEPTION = 'An unexpected error occurred during listing of files in S3 bucket'
     ERROR_FILE_EXISTS_EXCEPTION = 'An unexpected error occurred during test of file existence in S3 bucket'
@@ -26,14 +26,14 @@ class EasyS3:
     ERROR_FILE_COPY_EXCEPTION = 'An unexpected error occurred while copying  S3 file'
     ERROR_FILE_MOVE_EXCEPTION = 'An unexpected error occurred while moving S3 file'
 
-    # Cache for Boto3 CloudWatch client
+    # Cache for CloudWatch client
     __client__ = None
     __uuid__ = None
 
     @staticmethod
     def get_s3_client():
         """
-        Setup Boto3 CloudWatch client
+        Setup CloudWatch client
         """
         # If we haven't gotten a client yet- create one now and cache it for future calls
         if EasyS3.__client__ is None:
@@ -79,7 +79,7 @@ class EasyS3:
     @staticmethod
     def list_files(bucket_name, bucket_path='', recursive=False) -> list:
         """
-        List the contents of a bucket/path
+        List the content of a bucket/path
 
         :type bucket_name: string
         :param bucket_name: The bucket from which the objects are to be listed
@@ -103,7 +103,7 @@ class EasyS3:
         EasyLog.debug('Bucket Path: {bucket_path}'.format(bucket_path=bucket_path))
         EasyLog.debug('Listing Recursively: {recursive_enabled}'.format(recursive_enabled=recursive_enabled))
 
-        # Get the contents of the specified bucket
+        # Get the content of the specified bucket
         try:
             files = []
 
@@ -116,7 +116,7 @@ class EasyS3:
 
             while True:
                 if 'Contents' in objects:
-                    # Iterate through the contents of the most recent search results
+                    # Iterate through the content of the most recent search results
                     for object_current in objects['Contents']:
                         if 'Size' in object_current:
                             if object_current['Size'] > 0:
@@ -359,7 +359,7 @@ class EasyS3:
         :param bucket_filename: Path of the S3 file to be retrieved
 
         :type encoding: string
-        :param encoding: The files encoding, defaults to UTF-8
+        :param encoding: The files content_encoding, defaults to UTF-8
 
         :return: str
         """
@@ -431,7 +431,7 @@ class EasyS3:
     @staticmethod
     def upload_string(bucket_name, bucket_filename, contents, encoding='utf-8') -> None:
         """
-        Upload the contents of a string to the specified S3 bucket
+        Upload the content of a string to the specified S3 bucket
 
         :type bucket_name: string
         :param bucket_name: Bucket where file should be uploaded
@@ -440,10 +440,10 @@ class EasyS3:
         :param bucket_filename: Destination filename in S3 bucket
 
         :type contents: string
-        :param contents: The contents to be uploaded to S3
+        :param contents: The content to be uploaded to S3
 
         :type encoding: string
-        :param encoding: The strings encoding, defaults to UTF-8
+        :param encoding: The strings content_encoding, defaults to UTF-8
 
         :return: EasyS3File
         """
@@ -546,7 +546,7 @@ class EasyS3:
     @staticmethod
     def test_path_permissions(bucket_name, bucket_path='') -> bool:
         """
-        Create a test file with known content, upload it to S3, download it again, and compare the contents
+        Create a test file with known content, upload it to S3, download it again, and compare the content
 
         :type bucket_name: str
         :param bucket_name: Bucket to test
@@ -630,9 +630,9 @@ class EasyS3:
 
         # Return the test result
         if test_result is True:
-            EasyLog.debug('File contents matched')
+            EasyLog.debug('File content matched')
         else:
-            EasyLog.error('File contents did not match during S3 permission test')
+            EasyLog.error('File content did not match during S3 permission test')
 
         return test_result
 
