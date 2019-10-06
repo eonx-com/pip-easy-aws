@@ -1,13 +1,14 @@
-from EasySftp.EasySftpServer import EasySftpServer
-from EasyLambda.Iterator.EasyIterator import EasyIterator
+from EasyLambda.EasySftpServer import EasySftpServer
+from EasyLambda.EasyIterator import EasyIterator
 from EasyLambda.EasyLog import EasyLog
 from EasyLambda.EasyValidator import EasyValidator
 
 # noinspection PyBroadException
+from EasyLambda.Filesystem.File import File
 from EasyLambda.Iterator.Destination import Destination
 
 
-class SftpFilesystem(EasyLog):
+class Sftp(EasyLog):
     # Error constants
     ERROR_INVALID_SFTP_CONFIGURATION = 'The supplied SFTP sources configuration was invalid'
     ERROR_USER_CALLBACK = 'An unexpected error occurred while executing the user callback function'
@@ -17,13 +18,7 @@ class SftpFilesystem(EasyLog):
     # Cache staked files
     staked_files = {}
 
-    def __init__(
-            self,
-            aws_event,
-            aws_context,
-            easy_aws,
-            configuration
-    ):
+    def __init__(self, aws_event, aws_context, easy_aws, configuration):
         """
         Configure SFTP filesystem object
 
@@ -41,55 +36,49 @@ class SftpFilesystem(EasyLog):
         :type configuration: dict
         :param configuration: The filesystems configuration
         """
-        # Initialize logging class
-        EasyLog.__init__(
-            self=self,
-            aws_event=aws_event,
-            aws_context=aws_context,
-            easy_aws=easy_aws
-        )
-
-        self.log_trace('Initializing SFTP filesystem...')
+        EasyLog.trace('Initializing SFTP filesystem...')
 
         # Validate supplied configuration
-        self.log_debug('Validating configuration...')
-        requirements = (
+        EasyLog.debug('Validating SFTP configuration...')
+        ruleset = [
             # Mandatory fields
             'address',
             'port',
             'username',
             'base_path',
             # Either a password or an RSA key must be supplied
-            {EasyValidator.RULE_OR: ('password', 'rsa_private_key')},
+            {EasyValidator.RULE_ANY: ('password', 'rsa_private_key')},
             # The fingerprint and type must be supplied, or nothing must be supplied (in which case known hosts file will be used)
             {EasyValidator.RULE_ALL_OR_NOTHING: ('fingerprint', 'fingerprint_type')}
-        )
-        if EasyValidator.validate_parameters(rules=requirements, data=configuration) is False:
-            raise Exception(SftpFilesystem.ERROR_INVALID_SFTP_CONFIGURATION)
-        self.log_debug('Validation completed successfully')
+        ]
+
+        if EasyValidator.validate(ruleset=ruleset, data=configuration) is False:
+            EasyLog.error(Sftp.ERROR_INVALID_SFTP_CONFIGURATION)
+            raise Exception(Sftp.ERROR_INVALID_SFTP_CONFIGURATION)
+
+        EasyLog.debug('Validation completed successfully')
 
         # Create SFTP server object
         password = None
         if configuration['password'] is not None:
-            self.log_debug('Password found')
+            EasyLog.debug('Using password authentication...')
             password = configuration['password']
 
         rsa_private_key = None
         if configuration['rsa_private_key'] is not None:
-            self.log_debug('RSA private key found')
+            EasyLog.debug('Using RSA private key authentication...')
             rsa_private_key = configuration['rsa_private_key']
 
         fingerprint = None
         if configuration['fingerprint'] is not None:
-            self.log_debug('Host fingerprint found')
+            EasyLog.debug('Adding host fingerprint...')
             fingerprint = configuration['fingerprint']
 
         fingerprint_type = None
         if configuration['fingerprint_type'] is not None:
-            self.log_debug('Host fingerprint type found')
             fingerprint_type = configuration['fingerprint_type']
 
-        self.log_debug('Creating SFTP server object...')
+        EasyLog.debug('Creating SFTP server object...')
         self.__easy_sftp_server__ = EasySftpServer(
             address=configuration['address'],
             port=int(configuration['port']),
@@ -121,6 +110,7 @@ class SftpFilesystem(EasyLog):
 
         :return: list List of files that were iterated over
         """
+        EasyLog.trace('Iterating files...')
         pass
 
     def stake(self, remote_filename) -> bool:
@@ -132,6 +122,7 @@ class SftpFilesystem(EasyLog):
 
         :return: bool
         """
+        EasyLog.trace('Staking file: {remote_filename}'.format(remote_filename=remote_filename))
         return self.__filesystem__.stake(
             remote_filename=remote_filename
         )
@@ -145,6 +136,8 @@ class SftpFilesystem(EasyLog):
 
         :return: bool
         """
+        EasyLog.trace('Checking exists: {remote_filename}'.format(remote_filename=remote_filename))
+
         return self.__easy_sftp_server__.exists(
             remote_filename=remote_filename
         )
@@ -197,8 +190,6 @@ class SftpFilesystem(EasyLog):
             confirm=False
         )
 
-
-
     def download(self, local_filename, remote_filename) -> File:
         """
         Download file from remote filesystem to local filesystem
@@ -236,7 +227,7 @@ class SftpFilesystem(EasyLog):
 
         :return: list List of files that were iterated over
         """
-        self.log_trace('Iterating SFTP filesystem...')
+        EasyLog.trace('Iterating SFTP filesystem...')
 
         # Stake files so that nobody else can claim them
         staked_files = self.__stake_files__(maximum_files=maximum_files)
@@ -244,11 +235,11 @@ class SftpFilesystem(EasyLog):
         try:
             for file in staked_files:
                 try:
-                    self.log_debug('Triggering user callback...')
+                    EasyLog.debug('Triggering user callback...')
                     callback(file=file)
-                    self.log_debug('User callback finished...')
+                    EasyLog.debug('User callback finished...')
                 except Exception as callback_exception:
-                    self.log_error(SftpFilesystem.ERROR_USER_CALLBACK)
+                    EasyLog.error(Sftp.ERROR_USER_CALLBACK)
 
                 try:
                     for destination in filesystems[EasyIterator.FILESYSTEM_SUCCESS_DESTINATIONS]:
@@ -258,13 +249,14 @@ class SftpFilesystem(EasyLog):
                                 destination_filename=file.get_filename(),
                                 allow_overwrite=destination.is_overwrite_allowed()
                             )
-                    except Exception as move_success_exception:
-                    raise Exception(SftpFilesystem.ERROR_MOVE_SUCCESS)
+                except Exception as move_success_exception:
+                    EasyLog.exception('Unexpected error during move on success', move_success_exception)
+                    raise Exception(Sftp.ERROR_MOVE_SUCCESS)
 
             # Check if there were success destinations defined
             if self.success_destinations is not None and len(self.success_destinations) > 0:
                 # Copy file to success destinations
-                self.log_trace('Copying to success destination(s)...')
+                EasyLog.trace('Copying to success destination(s)...')
 
                 for destination in self.success_destinations:
                     print(destination)
@@ -276,60 +268,60 @@ class SftpFilesystem(EasyLog):
                 )
             else:
                 # No success destinations were defined, issue a warning
-                self.log_warning('No success destination(s) were defined, files will remain in source folder...')
+                EasyLog.warning('No success destination(s) were defined, files will remain in source folder...')
 
             # Now that we have finished, delete the file from the source if we've been asked to
             if self.get_sftp_server_flag(sftp_server=source, flag='delete') is True:
                 # Connect to SFTP server and delete the file
                 remote_filename = self.__current_file__[len(self.__download_path__):]
-                self.log_debug('Deleting file from SFTP server: {remote_filename}'.format(remote_filename=remote_filename))
+                EasyLog.debug('Deleting file from SFTP server: {remote_filename}'.format(remote_filename=remote_filename))
 
-                self.log_trace('Connecting to SFTP server...')
+                EasyLog.trace('Connecting to SFTP server...')
                 source.connect()
 
-                self.log_trace('Checking if file exists...')
+                EasyLog.trace('Checking if file exists...')
                 if source.exists(remote_filename=self.__current_file__[len(self.__download_path__):]) is True:
-                    self.log_trace('Deleting file...')
+                    EasyLog.trace('Deleting file...')
                     source.delete(remote_filename=self.__current_file__[len(self.__download_path__):])
 
-                    self.log_trace('Disconnecting from SFTP server...')
+                    EasyLog.trace('Disconnecting from SFTP server...')
                     source.disconnect()
 
-                    self.log_trace('Delete completed successfully')
+                    EasyLog.trace('Delete completed successfully')
                 else:
-                    self.log_debug('File no longer exists, nothing to delete')
+                    EasyLog.debug('File no longer exists, nothing to delete')
                     source.disconnect()
         except Exception as file_exception:
             error = True
-            self.log_error(file_exception)
-            self.log_error('An unexpected exception error during iteration of current file...')
+            EasyLog.error(file_exception)
+            EasyLog.error('An unexpected exception error during iteration of current file...')
 
             # Check if there were error destinations defined
             if self.error_destinations is not None and len(self.error_destinations) > 0:
                 try:
-                    self.log_error('Attempting to copy current file to error destination(s)...')
+                    EasyLog.error('Attempting to copy current file to error destination(s)...')
                     self.__copy_file__(
                         source=source,
                         destinations=self.error_destinations,
                         file=self.__current_file__,
                         base_path=self.start_time
                     )
-                    self.log_error('Copy to error destinations completed successfully...')
+                    EasyLog.error('Copy to error destinations completed successfully...')
                 except Exception as cleanup_exception:
                     # The copy to the error destination failed, log an error message
-                    self.log_error(cleanup_exception)
-                    self.log_error('An unexpected exception error occurred during copy of files to error destination, failed file may remain in source folder...')
+                    EasyLog.error(cleanup_exception)
+                    EasyLog.error('An unexpected exception error occurred during copy of files to error destination, failed file may remain in source folder...')
 
             else:
                 # No error destinations were defined, issue a warning
-                self.log_warning('No error destination(s) were defined, failed files will remain in source folder...')
+                EasyLog.warning('No error destination(s) were defined, failed files will remain in source folder...')
 
 except Exception as final_exception:
-self.log_error(final_exception)
-self.log_error('An unexpected exception error during iteration of current file...')
+EasyLog.error(final_exception)
+EasyLog.error('An unexpected exception error during iteration of current file...')
 
 if error is True:
-    self.log_error('One or more errors occurred while attempting to iterate the current file, please review the log messages for more information, manual intervention may be required...')
+    EasyLog.error('One or more errors occurred while attempting to iterate the current file, please review the log messages for more information, manual intervention may be required...')
 
 # Return files we attempted to iterate
 return staked_files

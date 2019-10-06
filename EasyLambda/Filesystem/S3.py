@@ -2,7 +2,7 @@ from EasyLambda.EasyLog import EasyLog
 from EasyLambda.EasyValidator import EasyValidator
 
 
-class S3Filesystem(EasyLog):
+class S3(EasyLog):
     # Error constants
     ERROR_INVALID_S3_CONFIGURATION = 'The supplied S3 sources configuration was invalid'
 
@@ -39,7 +39,7 @@ class S3Filesystem(EasyLog):
             'base_path'
         )
         if EasyValidator.validate_parameters(rules=requirements, data=configuration) is False:
-            raise Exception(S3Filesystem.ERROR_INVALID_S3_CONFIGURATION)
+            raise Exception(S3.ERROR_INVALID_S3_CONFIGURATION)
 
         # Get S3 client
         self.__s3_client__ = easy_aws.get_s3_client()

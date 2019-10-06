@@ -1,12 +1,9 @@
-from EasyLambda.Iterator import Filesystem
+from EasyLambda.Filesystem.Filesystem import Filesystem
 
 
-class FilesystemFactory:
+class EasyFilesystem:
     @staticmethod
-    def create_s3_filesystem(
-            bucket_name,
-            base_path='/'
-    ):
+    def create_s3_filesystem(bucket_name, base_path='/') -> Filesystem:
         """
         Create a new AWS S3 file source
 
@@ -18,7 +15,7 @@ class FilesystemFactory:
 
         :return:
         """
-        source = Filesystem({
+        return Filesystem({
             'filesystem': Filesystem.FILESYSTEM_S3,
             'bucket_name': bucket_name,
             'base_path': base_path
@@ -34,7 +31,7 @@ class FilesystemFactory:
             fingerprint_type=None,
             port=22,
             base_path='/'
-    ):
+    ) -> Filesystem:
         """
         Create a new SFTP file source
 
@@ -62,9 +59,9 @@ class FilesystemFactory:
         :type base_path: str
         :param base_path: Base SFTP file path, files will be recursively iterated from this path
 
-        :return:
+        :return: Filesystem
         """
-        source = Filesystem({
+        return Filesystem({
             'type': Filesystem.FILESYSTEM_SFTP,
             'address': address,
             'port': port,

@@ -1,6 +1,6 @@
-from EasyLambda.Iterator.Filesystem.File import File
-from EasyLambda.Iterator.Filesystem.S3Filesystem import S3Filesystem
-from EasyLambda.Iterator.Filesystem.SftpFilesystem import SftpFilesystem
+from EasyLambda.Filesystem.File import File
+from EasyLambda.Filesystem.S3 import S3
+from EasyLambda.Filesystem.Sftp import Sftp
 
 
 class Filesystem:
@@ -19,9 +19,9 @@ class Filesystem:
         :param configuration: The filesystems configuration
         """
         if configuration['filesystem'] == Filesystem.FILESYSTEM_S3:
-            self.__filesystem__ = S3Filesystem(configuration=configuration)
+            self.__filesystem__ = S3(configuration=configuration)
         elif configuration['filesystem'] == Filesystem.FILESYSTEM_SFTP:
-            self.__filesystem__ = SftpFilesystem(configuration=configuration)
+            self.__filesystem__ = Sftp(configuration=configuration)
         else:
             raise Exception(Filesystem.ERROR_INVALID_FILESYSTEM)
 
