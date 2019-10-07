@@ -14,7 +14,7 @@ from pysftp import CnOpts
 class EasySftp:
     # Error constants
     ERROR_CONNECTION_FAILED = 'Failed to connect to SFTP server'
-    ERROR_UNKNOWN_FINGERPRINT_TYPE = 'The specified fingerprint type was not known'
+    ERROR_UNKNOWN_FINGERPRINT_TYPE = 'The specified sftp_fingerprint type was not known'
 
     def __init__(self):
         """
@@ -84,10 +84,10 @@ class EasySftp:
         :param username: Username to be used in connection
 
         :type address: str
-        :param address: SFTP server address/hostname
+        :param address: SFTP server sftp_address/hostname
 
         :type port: int
-        :param port: SFTP server port number (defaults to 22)
+        :param port: SFTP server sftp_port number (defaults to 22)
 
         :type rsa_private_key: str
         :param rsa_private_key: RSA private key to be used for authentication
@@ -96,10 +96,10 @@ class EasySftp:
         :param password: Optional password used for authentication
 
         :type fingerprint: str or None
-        :param fingerprint: SFTP server fingerprint used to validate server identity
+        :param fingerprint: SFTP server sftp_fingerprint used to validate server identity
 
         :type fingerprint_type: str or None
-        :param fingerprint_type: SFTP server fingerprint type
+        :param fingerprint_type: SFTP server sftp_fingerprint type
 
         :return: bool
         """
@@ -114,6 +114,7 @@ class EasySftp:
                 port=port,
                 username=username
             ))
+
             EasyLog.debug('RSA Key Length: {key_length} Bytes'.format(key_length=len(rsa_private_key)))
             if fingerprint is not None:
                 EasyLog.debug('Host Fingerprint: {fingerprint}'.format(fingerprint=fingerprint))
@@ -170,25 +171,25 @@ class EasySftp:
             fingerprint_type=None
     ):
         """
-        Connect to SFTP server using username and password
+        Connect to SFTP server using sftp_username and password
 
         :type username: str
         :param username: Username to be used in connection
 
         :type address: str
-        :param address: SFTP server address/hostname
+        :param address: SFTP server sftp_address/hostname
 
         :type port: int
-        :param port: SFTP server port number
+        :param port: SFTP server sftp_port number
 
         :type password: str
         :param password: Password for authentication
 
         :type fingerprint: str or None
-        :param fingerprint: SFTP server fingerprint used to validate server identity
+        :param fingerprint: SFTP server sftp_fingerprint used to validate server identity
 
         :type fingerprint_type: str or None
-        :param fingerprint_type: SFTP server fingerprint type
+        :param fingerprint_type: SFTP server sftp_fingerprint type
 
         :return: bool
         """
@@ -337,6 +338,7 @@ class EasySftp:
             files = []
 
             # List files in current remote path
+            EasyLog.debug('Path: {remote_path}'.format(remote_path=remote_path))
             current_path = self.__connection__.listdir(remote_path)
 
             # Iterate through all of the files
@@ -595,14 +597,14 @@ class EasySftp:
         Get connection settings for pysftp client
 
         :type address: str
-        :param address: SFTP server address/hostname
+        :param address: SFTP server sftp_address/hostname
 
         :type fingerprint: str/None
-        :param fingerprint: SFTP server fingerprint used to validate server identity. If not specified the known_hosts
+        :param fingerprint: SFTP server sftp_fingerprint used to validate server identity. If not specified the known_hosts
             file on the host machine will be used
 
         :type fingerprint_type: str/None
-        :param fingerprint_type: SFTP server fingerprint type (e.g. ssh-rsa, ssh-dss). This must be one of the
+        :param fingerprint_type: SFTP server sftp_fingerprint type (e.g. ssh-rsa, ssh-dss). This must be one of the
             key types supported by the underlying paramiko library
 
         :return: obj
@@ -611,13 +613,13 @@ class EasySftp:
         options = CnOpts()
 
         if self.__host_key_checking__ is False:
-            EasyLog.warning('Host fingerprint checking disabled, this may be a security risk...')
+            EasyLog.warning('Host sftp_fingerprint checking disabled, this may be a security risk...')
             options.hostkeys = None
         else:
-            # If a valid fingerprint and type were specified, add these to the known hosts, otherwise pysftp will use
+            # If a valid sftp_fingerprint and type were specified, add these to the known hosts, otherwise pysftp will use
             # the known_hosts file on the computer
             if fingerprint is not None and fingerprint_type is not None:
-                EasyLog.debug('Adding known host fingerprint to client...')
+                EasyLog.debug('Adding known host sftp_fingerprint to client...')
                 options.hostkeys.add(
                     hostname=address,
                     keytype=fingerprint_type,
@@ -666,32 +668,32 @@ class EasySftp:
         Convert and SFTP private key to key suitable for use by underlying paramiko library
 
         :type fingerprint: str
-        :param fingerprint: SFTP server fingerprint
+        :param fingerprint: SFTP server sftp_fingerprint
 
         :type fingerprint_type: str
-        :param fingerprint_type: SFTP server fingerprint type (e.g. ssh-rsa, ssh-dss)
+        :param fingerprint_type: SFTP server sftp_fingerprint type (e.g. ssh-rsa, ssh-dss)
 
         :return: paramiko.RSAKey or paramiko.DSSKey or paramiko/ECDSAKey
         """
-        EasyLog.trace('Converting fingerprint to paramiko key...')
+        EasyLog.trace('Converting sftp_fingerprint to paramiko key...')
 
         if fingerprint_type == 'ssh-rsa':
             # RSA Key
-            EasyLog.debug('Parsing SSH-RSA host fingerprint...')
+            EasyLog.debug('Parsing SSH-RSA host sftp_fingerprint...')
             key = paramiko.RSAKey(data=base64.b64decode(fingerprint))
         elif fingerprint_type == 'ssh-dss':
             # DSS Key
-            EasyLog.debug('Parsing SSH-DSS host fingerprint...')
+            EasyLog.debug('Parsing SSH-DSS host sftp_fingerprint...')
             key = paramiko.DSSKey(data=base64.b64decode(fingerprint))
         elif fingerprint_type in paramiko.ecdsakey.ECDSAKey.supported_key_format_identifiers():
             # ECDSA Key
-            EasyLog.debug('Parsing ECDSA ({fingerprint_type}) host fingerprint...'.format(
+            EasyLog.debug('Parsing ECDSA ({fingerprint_type}) host sftp_fingerprint...'.format(
                 fingerprint_type=fingerprint_type
             ))
             key = paramiko.ECDSAKey(data=base64.b64decode(fingerprint), validate_point=False)
         else:
             # Unknown key type specified
-            EasyLog.error('Unknown fingerprint type specified: {fingerprint_type}'.format(fingerprint_type=fingerprint_type))
+            EasyLog.error('Unknown sftp_fingerprint type specified: {fingerprint_type}'.format(fingerprint_type=fingerprint_type))
             raise Exception(EasySftp.ERROR_UNKNOWN_FINGERPRINT_TYPE)
 
         return key
@@ -699,97 +701,97 @@ class EasySftp:
     @staticmethod
     def validate_sftp_port(port):
         """
-        Validate that an acceptable port number was specified
+        Validate that an acceptable sftp_port number was specified
 
         :type port: int/str/None
-        :param port: SFTP server port number (must be in range of 0-65535)
+        :param port: SFTP server sftp_port number (must be in range of 0-65535)
 
         :return: int
         """
-        EasyLog.trace('Validating supplied SFTP port number...')
-        # If no port was specified generate an error
+        EasyLog.trace('Validating supplied SFTP sftp_port number...')
+        # If no sftp_port was specified generate an error
         if not port:
-            raise Exception('No SFTP port number was specified')
+            raise Exception('No SFTP sftp_port number was specified')
 
-        # If the port number was passed in as a string, make sure it contains digits
+        # If the sftp_port number was passed in as a string, make sure it contains digits
         if type(port) is str:
             if not port.isdigit():
-                raise Exception('SFTP port number was not a valid numeric value')
+                raise Exception('SFTP sftp_port number was not a valid numeric value')
 
         # Cast value to an integer
         try:
             port = int(port)
         except ValueError:
-            raise Exception('SFTP port number could not be converted to a valid integer value')
+            raise Exception('SFTP sftp_port number could not be converted to a valid integer value')
 
-        # Ensure port number is in valid range
+        # Ensure sftp_port number is in valid range
         if port < 0 or port > 65535:
             raise Exception(
-                'SFTP port number specified ({port}) was out of range (0-65535)'.format(
+                'SFTP sftp_port number specified ({port}) was out of range (0-65535)'.format(
                     port=port
                 )
             )
 
-        # Return the valid port number as an integer value
+        # Return the valid sftp_port number as an integer value
         return port
 
     @staticmethod
     def validate_sftp_fingerprint_type(fingerprint_type):
         """
-        Validate that the specified fingerprint type was valid
+        Validate that the specified sftp_fingerprint type was valid
 
         :type fingerprint_type: str/None
         :param fingerprint_type: SFTP server finger type (e.g. ssh-rsa)
 
         :return: str
         """
-        EasyLog.trace('Validating SFTP host fingerprint type...')
+        EasyLog.trace('Validating SFTP host sftp_fingerprint type...')
 
         # If no type was specified return None
         if not fingerprint_type:
             return None
 
-        # If the fingerprint type was not a string it cannot be valid
+        # If the sftp_fingerprint type was not a string it cannot be valid
         if type(fingerprint_type) is not str:
-            raise Exception('SFTP fingerprint type was not a valid string')
+            raise Exception('SFTP sftp_fingerprint type was not a valid string')
 
-        # Convert fingerprint type to lowercase
+        # Convert sftp_fingerprint type to lowercase
         fingerprint_type = fingerprint_type.lower()
 
         # Make sure the key type is one of the acceptable values
         if fingerprint_type not in ['ssh-rsa', 'ssh-dss']:
             if fingerprint_type not in paramiko.ecdsakey.ECDSAKey.supported_key_format_identifiers():
-                # If it is an unknown fingerprint type, generate an error
+                # If it is an unknown sftp_fingerprint type, generate an error
                 raise Exception(
-                    'SFTP fingerprint type ({fingerprint_type}) was not a valid type'.format(
+                    'SFTP sftp_fingerprint type ({fingerprint_type}) was not a valid type'.format(
                         fingerprint_type=fingerprint_type
                     )
                 )
 
-        # Return the fingerprint type
+        # Return the sftp_fingerprint type
         return fingerprint_type
 
     @staticmethod
     def validate_sftp_username(sftp_username):
         """
-        Validate an SFTP username was specified
+        Validate an SFTP sftp_username was specified
 
         :type sftp_username: str/None
-        :param sftp_username: SFTP username
+        :param sftp_username: SFTP sftp_username
 
         :return: str
         """
-        EasyLog.trace('Validating supplied SFTP server username...')
+        EasyLog.trace('Validating supplied SFTP server sftp_username...')
 
-        # If no username was specified generate an error
+        # If no sftp_username was specified generate an error
         if not sftp_username:
-            raise Exception('SFTP username not specified')
+            raise Exception('SFTP sftp_username not specified')
 
-        # If the fingerprint type was not a string it cannot be valid
+        # If the sftp_fingerprint type was not a string it cannot be valid
         if type(sftp_username) is not str:
-            raise Exception('SFTP username was not a valid string')
+            raise Exception('SFTP sftp_username was not a valid string')
 
-        # Return the username
+        # Return the sftp_username
         return sftp_username
 
     @staticmethod
@@ -820,55 +822,55 @@ class EasySftp:
     @staticmethod
     def validate_sftp_fingerprint(fingerprint):
         """
-        Validate the specified SFTP fingerprint was valid
+        Validate the specified SFTP sftp_fingerprint was valid
 
         :type fingerprint: str/None
-        :param fingerprint: SFTP username
+        :param fingerprint: SFTP sftp_username
 
         :return: str
         """
-        EasyLog.trace('Validating supplied SFTP host fingerprint...')
+        EasyLog.trace('Validating supplied SFTP host sftp_fingerprint...')
 
-        # If no fingerprint was specified return None
+        # If no sftp_fingerprint was specified return None
         if not fingerprint:
             return None
 
-        # If fingerprint is not a string it cannot be valid
+        # If sftp_fingerprint is not a string it cannot be valid
         if not fingerprint:
-            raise Exception('SFTP fingerprint not a valid string value')
+            raise Exception('SFTP sftp_fingerprint not a valid string value')
 
-        # Return the fingerprint
+        # Return the sftp_fingerprint
         return fingerprint
 
     @staticmethod
     def validate_sftp_address(address):
         """
-        Validate the specified SFTP server address is valid and can be resolved successfully
+        Validate the specified SFTP server sftp_address is valid and can be resolved successfully
 
         :type address: str/None
-        :param address: SFTP server hostname/address
+        :param address: SFTP server hostname/sftp_address
 
         :return: str
         """
-        EasyLog.trace('Validating supplied SFTP server address...')
+        EasyLog.trace('Validating supplied SFTP server sftp_address...')
 
-        # Validate host address was supplied
+        # Validate host sftp_address was supplied
         if not address:
-            raise Exception('SFTP server address was not specified')
+            raise Exception('SFTP server sftp_address was not specified')
 
-        # If address is not a string it cannot be valid
+        # If sftp_address is not a string it cannot be valid
         if not address:
-            raise Exception('SFTP server address not a valid string value')
+            raise Exception('SFTP server sftp_address not a valid string value')
 
-        # Validate host address can be resolved
+        # Validate host sftp_address can be resolved
         try:
-            EasyLog.debug('Attempting to resolve server IP address...')
+            EasyLog.debug('Attempting to resolve server IP sftp_address...')
             result = socket.gethostbyname(address)
             EasyLog.debug('Resolved Address: {result}'.format(result=result))
         except socket.error:
-            raise Exception('SFTP server address ({address}) could not be resolvable'.format(address=address))
+            raise Exception('SFTP server sftp_address ({address}) could not be resolvable'.format(address=address))
 
-        # Return the valid address
+        # Return the valid sftp_address
         return address
 
     @staticmethod

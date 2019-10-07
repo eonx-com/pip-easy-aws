@@ -19,10 +19,10 @@ class EasySftpServer:
         Setup SFTP server
 
         :type address: str
-        :param address: Host server address/IP address
+        :param address: Host server sftp_address/IP sftp_address
 
         :type port: int
-        :param port: SFTP port number
+        :param port: SFTP sftp_port number
 
         :type username: str
         :param username: Username for authentication
@@ -34,16 +34,16 @@ class EasySftpServer:
         :param password: Password for authentication
 
         :type fingerprint: str
-        :param fingerprint: Host fingerprint
+        :param fingerprint: Host sftp_fingerprint
 
         :type fingerprint_type: str
-        :param fingerprint_type: Host fingerprint type
+        :param fingerprint_type: Host sftp_fingerprint type
 
         :type base_path: str
         :param base_path: Base SFTP file path, all uploads/downloads will have this path prepended
 
         :type host_key_checking: bool
-        :param host_key_checking: Flag indicating whether the servers host fingerprint will be verified on connection
+        :param host_key_checking: Flag indicating whether the servers host sftp_fingerprint will be verified on connection
         """
         EasyLog.trace('Instantiating SFTP server class...')
 
@@ -65,11 +65,12 @@ class EasySftpServer:
         # Raise warning if host key checking is disabled
         if self.__host_key_checking__ is False:
             EasyLog.warning('Host key checking has been disabled, this may be a security risk...')
+
     # Functions to retrieve non-sensitive information
 
     def get_address(self) -> str:
         """
-        Get the server address
+        Get the server sftp_address
 
         :return: str
         """
@@ -77,7 +78,7 @@ class EasySftpServer:
 
     def get_username(self) -> str:
         """
-        Get the username used to connect
+        Get the sftp_username used to connect
 
         :return: str
         """
@@ -85,7 +86,7 @@ class EasySftpServer:
 
     def get_port(self) -> int:
         """
-        Get the server port
+        Get the server sftp_port
 
         :return: int
         """
@@ -120,7 +121,7 @@ class EasySftpServer:
                 fingerprint_type=self.__fingerprint_type__
             )
         else:
-            # Connect using username/password
+            # Connect using sftp_username/password
             return self.__sftp_client__.connect_password(
                 address=self.__address__,
                 port=self.__port__,
@@ -164,10 +165,17 @@ class EasySftpServer:
         """
         EasyLog.trace('Retrieving file list from SFTP server...')
 
-        return self.__sftp_client__.file_list(
-            remote_path=remote_path,
+        files = self.__sftp_client__.file_list(
+            remote_path=self.__get_relative_base_path__(remote_path),
             recursive=recursive
         )
+
+        returned_files = []
+
+        for file in files:
+            returned_files.append(file[len(self.__base_path__):])
+
+        return returned_files
 
     def file_exists(self, remote_filename) -> bool:
         """
@@ -181,7 +189,7 @@ class EasySftpServer:
         EasyLog.trace('Checking file exists on SFTP server...')
 
         return self.__sftp_client__.file_exists(
-            remote_filename=remote_filename
+            remote_filename=self.__get_relative_base_path__(remote_filename)
         )
 
     def file_delete(self, remote_filename) -> None:
@@ -195,7 +203,7 @@ class EasySftpServer:
         """
         EasyLog.trace('Deleting file from SFTP server...')
 
-        self.__sftp_client__.file_delete(remote_filename)
+        self.__sftp_client__.file_delete(self.__get_relative_base_path__(remote_filename))
 
     def file_download(self, local_filename, remote_filename) -> None:
         """
@@ -216,7 +224,7 @@ class EasySftpServer:
             remote_filename=self.__get_relative_base_path__(remote_filename)
         )
 
-    def file_download_recursive(self, remote_path, local_path, maximum_files=None, callback=None) -> None:
+    def file_download_recursive(self, remote_path, local_path, callback=None) -> None:
         """
         Recursively download all files found in the specified remote path to the specified local path
 
@@ -225,10 +233,6 @@ class EasySftpServer:
 
         :type local_path: str
         :param local_path: Path on local file system where contents are to be downloaded
-
-        :type maximum_files: int/None
-        :param maximum_files: Limit the maximum number of files to be downloaded. Process will return early once
-            this limit has been reached
 
         :type callback: function/None
         :param callback: Optional callback function to call after each file has downloaded, must accept a single
@@ -241,7 +245,6 @@ class EasySftpServer:
         self.__sftp_client__.file_download_recursive(
             remote_path=self.__get_relative_base_path__(remote_path),
             local_path=local_path,
-            maximum_files=maximum_files,
             callback=callback
         )
 

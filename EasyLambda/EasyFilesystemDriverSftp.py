@@ -25,10 +25,10 @@ class EasyFilesystemDriverSftp(EasyFilesystemDriver):
         Instantiate SFTP filesystem driver
 
         :type address: str
-        :param address: Host server address/IP address
+        :param address: Host server sftp_address/IP sftp_address
 
         :type port: int
-        :param port: SFTP port number
+        :param port: SFTP sftp_port number
 
         :type username: str
         :param username: Username for authentication
@@ -40,10 +40,10 @@ class EasyFilesystemDriverSftp(EasyFilesystemDriver):
         :param password: Password for authentication
 
         :type fingerprint: str
-        :param fingerprint: Host fingerprint
+        :param fingerprint: Host sftp_fingerprint
 
         :type fingerprint_type: str
-        :param fingerprint_type: Host fingerprint type
+        :param fingerprint_type: Host sftp_fingerprint type
 
         :type base_path: str
         :param base_path: Base SFTP file path, all uploads/downloads will have this path prepended
@@ -105,8 +105,18 @@ class EasyFilesystemDriverSftp(EasyFilesystemDriver):
 
         :return: int Number of files iterated
         """
+        EasyLog.trace('Iterating files in SFTP filesystem...')
+
+        EasyLog.debug('Checking connection status...')
+        if self.__sftp_server__.is_connected() is False:
+            EasyLog.debug('Not connected, opening connection...')
+            self.__sftp_server__.connect()
+
         files_iterated = 0
-        filenames = self.__sftp_server__.file_list(remote_path='/', recursive=recursive)
+        filenames = self.__sftp_server__.file_list(
+            remote_path='/',
+            recursive=recursive
+        )
 
         for filename in filenames:
             try:
@@ -204,9 +214,12 @@ class EasyFilesystemDriverSftp(EasyFilesystemDriver):
             # Download the file locally
             # Generate unique local filename
             local_temp_folder = EasyHelpers.create_unique_local_temp_path()
-            local_filename = EasySftp.sanitize_path('{local_temp_folder}/{filesystem_path}')
+            local_filename = EasySftp.sanitize_path('{local_temp_folder}/{filesystem_path}'.format(
+                local_temp_folder=local_temp_folder,
+                filesystem_path=filesystem_path
+            ))
 
-            EasyLog.debug('Downloading file: {local_filename}'.format(local_filename=local_filename))
+            EasyLog.debug('Downloading file: {filesystem_path}'.format(filesystem_path=filesystem_path))
             self.__sftp_server__.file_download(
                 local_filename=local_filename,
                 remote_filename=filesystem_path

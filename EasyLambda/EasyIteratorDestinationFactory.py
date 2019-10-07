@@ -62,10 +62,10 @@ class EasyIteratorDestinationFactory:
         Create a new SFTP file destination
 
         :type address: str
-        :param address: Host server address/IP address
+        :param address: Host server sftp_address/IP sftp_address
 
         :type port: int
-        :param port: SFTP port number
+        :param port: SFTP sftp_port number
 
         :type username: str
         :param username: Username for authentication
@@ -77,10 +77,10 @@ class EasyIteratorDestinationFactory:
         :param password: Password for authentication
 
         :type fingerprint: str
-        :param fingerprint: Host fingerprint
+        :param fingerprint: Host sftp_fingerprint
 
         :type fingerprint_type: str
-        :param fingerprint_type: Host fingerprint type
+        :param fingerprint_type: Host sftp_fingerprint type
 
         :type base_path: str
         :param base_path: Base SFTP file path, files will be recursively iterated from this path
