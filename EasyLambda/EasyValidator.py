@@ -103,6 +103,8 @@ class EasyValidator:
                     if rule_allow_none is False:
                         # Value was None but that is not allowed
                         return False
+                else:
+                    return False
 
         # None of the values were found, validation was successful
         EasyLog.debug('Validation successful')

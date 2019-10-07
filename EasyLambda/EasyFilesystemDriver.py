@@ -2,6 +2,42 @@ from abc import abstractmethod
 
 
 class EasyFilesystemDriver:
+    # Error constants
+    ERROR_ITERATION_FAILURE = 'An unexpected error occurred during iteration of the current file'
+
+    @abstractmethod
+    def iterate_files(self, callback, maximum_files, success_destinations, failure_destinations, delete_on_success, delete_on_failure, recursive, staking_strategy) -> int:
+        """
+        Iterate all files in the filesystem and return the number of files that were iterated
+
+        :type callback: function
+        :param callback: User callback function that is executed for each iterated file
+
+        :type maximum_files: int or None
+        :param maximum_files: The maximum number of files to iterate
+
+        :type success_destinations: list of EasyIteratorDestination or None
+        :param success_destinations: If defined, the destination filesystem where each files will be copied following their successful completion
+
+        :type failure_destinations: list of EasyIteratorDestination or None
+        :param failure_destinations: If defined, the destination filesystem where each files will be copied following their failure during iteration
+
+        :type delete_on_success: bool
+        :param delete_on_success: If True, files will be deleted from the source on successful iteration
+
+        :type delete_on_failure: bool
+        :param delete_on_failure: If True, files will be deleted from the source if an error occurs during iteration
+
+        :type recursive: bool
+        :param recursive: Flag indicating iteration should be performed recursively
+
+        :type staking_strategy: str
+        :param staking_strategy: The staking strategy to adopt
+
+        :return: int Number of files iterated
+        """
+        pass
+
     @abstractmethod
     def file_list(self, filesystem_path, recursive=False) -> list:
         """
@@ -56,7 +92,6 @@ class EasyFilesystemDriver:
         """
         pass
 
-
     @abstractmethod
     def file_upload(self, filesystem_filename, local_filename):
         """
@@ -71,4 +106,3 @@ class EasyFilesystemDriver:
         :return: None
         """
         pass
-

@@ -1,12 +1,10 @@
 import unittest
 
 from EasyLambda.EasyAction import EasyAction
-
-# noinspection PyMethodMayBeStatic
 from EasyLambda.EasyLog import EasyLog
 
 
-# noinspection DuplicatedCode
+# noinspection DuplicatedCode, PyMethodMayBeStatic
 class EasyActionTest(unittest.TestCase):
     def test_is_action_valid_success(self):
         """
