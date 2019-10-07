@@ -1,4 +1,4 @@
-from EasyLambda.Iterator.Filesystem import Filesystem
+from EasyLambda.EasyFilesystem import Filesystem
 
 
 class Destination:
@@ -60,7 +60,9 @@ class Destination:
         """
         return self.__allow_overwrite__
 
-    def upload(self, local_filename, destination_filename) -> File:
+
+
+    def file_upload(self, local_filename, destination_filename):
         """
         Upload file from local filesystem to destination
 
@@ -70,9 +72,9 @@ class Destination:
         :type destination_filename: str
         :param destination_filename: Path/filename in destination folder
 
-        :return: File
+        :return: None
         """
-        self.__filesystem__.Filesystem.upload(
+        self.__filesystem__.upload(
             local_filename=local_filename,
-            destination_filename=destination_filename
+            remote_filename=destination_filename
         )

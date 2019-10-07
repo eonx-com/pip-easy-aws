@@ -1,19 +1,8 @@
-from EasyLambda.EasyLog import EasyLog
+from abc import abstractmethod
 
 
-class EasyFilesystem:
-    def __init__(self, driver):
-        """
-        Setup filesystem
-
-        :type driver: EasyFilesystemDriverS3 or EasyFilesystemDriverSftp
-        :param driver: The underlying filesystem driver
-        """
-        EasyLog.trace('Instantiating filesystem...')
-
-        # Store the underlying driver
-        self.__driver__ = driver
-
+class EasyFilesystemDriver:
+    @abstractmethod
     def file_list(self, filesystem_path, recursive=False) -> list:
         """
         List files in the filesystem path
@@ -26,11 +15,9 @@ class EasyFilesystem:
 
         :return: list
         """
-        return self.__driver__.file_list(
-            path=filesystem_path,
-            recursive=recursive
-        )
+        pass
 
+    @abstractmethod
     def file_exists(self, filesystem_filename) -> bool:
         """
         Check if file exists in the filesystem
@@ -40,10 +27,9 @@ class EasyFilesystem:
 
         :return: bool
         """
-        return self.__driver__.file_exists(
-            filesystem_filename=filesystem_filename
-        )
+        pass
 
+    @abstractmethod
     def file_delete(self, filesystem_filename) -> None:
         """
         Delete a file from the filesystem
@@ -53,10 +39,9 @@ class EasyFilesystem:
 
         :return: None
         """
-        self.__driver__.file_delete(
-            filesystem_filename=filesystem_filename
-        )
+        pass
 
+    @abstractmethod
     def file_download(self, filesystem_filename, local_filename):
         """
         Download a file from the filesystem to local storage
@@ -69,11 +54,10 @@ class EasyFilesystem:
 
         :return:
         """
-        self.__driver__.file_download(
-            filesystem_filename=filesystem_filename,
-            local_filename=local_filename
-        )
+        pass
 
+
+    @abstractmethod
     def file_upload(self, filesystem_filename, local_filename):
         """
         Upload a file from local storage to the filesystem
@@ -86,7 +70,5 @@ class EasyFilesystem:
 
         :return: None
         """
-        self.__driver__.file_upload(
-            filesystem_filename=filesystem_filename,
-            local_filename=local_filename
-        )
+        pass
+

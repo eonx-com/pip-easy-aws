@@ -1,18 +1,29 @@
+from EasyLambda.EasyFilesystemDriver import EasyFilesystemDriver
 from EasyLambda.EasyLog import EasyLog
+from EasyLambda.EasyS3Bucket import EasyS3Bucket
 
 
-class EasyFilesystem:
-    def __init__(self, driver):
+class EasyFilesystemDriverS3(EasyFilesystemDriver):
+    def __init__(
+            self,
+            bucket_name,
+            base_path
+    ):
         """
-        Setup filesystem
+        Instantiate S3 filesystem driver
 
-        :type driver: EasyFilesystemDriverS3 or EasyFilesystemDriverSftp
-        :param driver: The underlying filesystem driver
+        :type bucket_name: str
+        :param bucket_name: The S3 bucket name
+
+        :type base_path: str
+        :param base_path: The base path in the S3 bucket
         """
-        EasyLog.trace('Instantiating filesystem...')
+        EasyLog.trace('Instantiating S3 filesystem driver...')
 
-        # Store the underlying driver
-        self.__driver__ = driver
+        self.__s3_bucket__ = EasyS3Bucket(
+            bucket_name=bucket_name,
+            base_path=base_path
+        )
 
     def file_list(self, filesystem_path, recursive=False) -> list:
         """
@@ -26,8 +37,8 @@ class EasyFilesystem:
 
         :return: list
         """
-        return self.__driver__.file_list(
-            path=filesystem_path,
+        return self.__s3_bucket__.file_list(
+            bucket_path=filesystem_path,
             recursive=recursive
         )
 
@@ -40,8 +51,8 @@ class EasyFilesystem:
 
         :return: bool
         """
-        return self.__driver__.file_exists(
-            filesystem_filename=filesystem_filename
+        return self.__s3_bucket__.file_exists(
+            bucket_filename=filesystem_filename
         )
 
     def file_delete(self, filesystem_filename) -> None:
@@ -53,8 +64,8 @@ class EasyFilesystem:
 
         :return: None
         """
-        self.__driver__.file_delete(
-            filesystem_filename=filesystem_filename
+        self.__s3_bucket__.file_delete(
+            bucket_filename=filesystem_filename
         )
 
     def file_download(self, filesystem_filename, local_filename):
@@ -69,8 +80,8 @@ class EasyFilesystem:
 
         :return:
         """
-        self.__driver__.file_download(
-            filesystem_filename=filesystem_filename,
+        self.__s3_bucket__.file_download(
+            bucket_filename=filesystem_filename,
             local_filename=local_filename
         )
 
@@ -86,7 +97,7 @@ class EasyFilesystem:
 
         :return: None
         """
-        self.__driver__.file_upload(
-            filesystem_filename=filesystem_filename,
+        self.__s3_bucket__.file_upload(
+            bucket_filename=filesystem_filename,
             local_filename=local_filename
         )

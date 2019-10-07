@@ -9,7 +9,8 @@ from time import strftime
 
 class EasyLog:
     # Logging level constants
-    LEVEL_EXCEPTION = -1
+    LEVEL_EXCEPTION = -2
+    LEVEL_TEST = -1
     LEVEL_ERROR = 0
     LEVEL_INFO = 1
     LEVEL_WARNING = 2
@@ -113,6 +114,25 @@ class EasyLog:
         )
 
     @staticmethod
+    def test(message) -> None:
+        """
+        Unit test level logging function
+
+        :param message: Message to print
+        :type message: str/Exception
+
+        :return: None
+        """
+        # This has to be the first line in the function otherwise this will return the wrong stack frame
+        stack_frame = inspect.stack()[1]
+
+        EasyLog.log(
+            level=EasyLog.LEVEL_TEST,
+            stack_frame=stack_frame,
+            message=message
+        )
+
+    @staticmethod
     def trace(message) -> None:
         """
         Trace level logging function
@@ -165,15 +185,17 @@ class EasyLog:
 
             if is_unit_test is True:
                 # Running unit tests, disable logging
-                print('Running unit tests, logging exceptions only...')
-                EasyLog.__level__ = -1
+                print('Running unit tests, logging test messages only...')
+                EasyLog.__level__ = EasyLog.LEVEL_TEST
             else:
                 # Not running unit tests, default to maximum logging level
                 print('No logging level has been defined, defaulting to maximum logging...')
-                EasyLog.__level__ = 4
+                EasyLog.__level__ = EasyLog.LEVEL_TRACE
 
         # Convert the log level to a human readable string
-        if level == EasyLog.LEVEL_ERROR:
+        if level == EasyLog.LEVEL_TEST:
+            level_name = 'TEST'
+        elif level == EasyLog.LEVEL_ERROR:
             level_name = 'ERROR'
         elif level == EasyLog.LEVEL_EXCEPTION:
             level_name = 'EXCEPTION'

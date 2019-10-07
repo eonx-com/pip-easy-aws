@@ -16,7 +16,7 @@ class EasyS3:
     ERROR_LOCAL_FILE_NOT_FOUND = 'The file was not found on the local filesystem'
     ERROR_LOCAL_FILE_UNREADABLE = 'The file was found on the local filesystem however its content were not readable, please check file permissions'
     ERROR_LIST_BUCKETS_EXCEPTION = 'An unexpected error occurred during listing of S3 buckets'
-    ERROR_LIST_FILES_EXCEPTION = 'An unexpected error occurred during listing of files in S3 bucket'
+    ERROR_file_list_EXCEPTION = 'An unexpected error occurred during listing of files in S3 bucket'
     ERROR_FILE_EXISTS_EXCEPTION = 'An unexpected error occurred during test of file existence in S3 bucket'
     ERROR_FILE_DELETE_EXCEPTION = 'An unexpected error occurred while deleting S3 file'
     ERROR_FILE_DOWNLOAD_EXCEPTION = 'An unexpected error occurred while downloading file from S3'
@@ -77,7 +77,7 @@ class EasyS3:
         return buckets
 
     @staticmethod
-    def list_files(bucket_name, bucket_path='', recursive=False) -> list:
+    def file_list(bucket_name, bucket_path='', recursive=False) -> list:
         """
         List the content of a bucket/path
 
@@ -146,7 +146,7 @@ class EasyS3:
                     NextMarker=objects['NextMarker']
                 )
         except Exception as list_exception:
-            EasyLog.exception(EasyS3.ERROR_LIST_FILES_EXCEPTION, list_exception)
+            EasyLog.exception(EasyS3.ERROR_file_list_EXCEPTION, list_exception)
             raise list_exception
 
         # Return files we found
@@ -171,7 +171,7 @@ class EasyS3:
 
         try:
             # Retrieve list of files in the bucket
-            files = EasyS3.list_files(bucket_name=bucket_name, bucket_path=bucket_filename)
+            files = EasyS3.file_list(bucket_name=bucket_name, bucket_path=bucket_filename)
 
             result = bucket_filename in files
 
@@ -186,7 +186,7 @@ class EasyS3:
         return result
 
     @staticmethod
-    def delete_file(bucket_name, bucket_filename) -> bool:
+    def file_delete(bucket_name, bucket_filename) -> bool:
         """
         Delete a file from S3 bucket
 
@@ -247,7 +247,7 @@ class EasyS3:
                 destination_bucket_name=destination_bucket_name,
                 destination_bucket_filename=destination_bucket_filename
             )
-            EasyS3.delete_file(
+            EasyS3.file_delete(
                 bucket_name=source_bucket_name,
                 bucket_filename=source_bucket_filename
             )
@@ -309,7 +309,7 @@ class EasyS3:
             raise copy_exception
 
     @staticmethod
-    def download_file(bucket_name, bucket_filename, local_filename) -> None:
+    def file_download(bucket_name, bucket_filename, local_filename) -> None:
         """
         Download a file from an S3 bucket to local disk
 
@@ -338,7 +338,7 @@ class EasyS3:
 
         try:
             EasyLog.debug('Downloading...')
-            EasyS3.get_s3_client().download_file(
+            EasyS3.get_s3_client().file_download(
                 Bucket=bucket_name,
                 Key=bucket_filename,
                 Filename=local_filename
@@ -348,7 +348,7 @@ class EasyS3:
             raise download_exception
 
     @staticmethod
-    def download_string(bucket_name, bucket_filename, encoding='utf-8') -> str:
+    def file_download_to_string(bucket_name, bucket_filename, encoding='utf-8') -> str:
         """
         Download a file from the bucket decoding it to a string
 
@@ -378,7 +378,7 @@ class EasyS3:
             raise download_exception
 
     @staticmethod
-    def upload_file(bucket_name, bucket_filename, local_filename) -> None:
+    def file_upload(bucket_name, bucket_filename, local_filename) -> None:
         """
         Upload a local file to an S3 bucket
 
@@ -394,7 +394,7 @@ class EasyS3:
         :return: None
         """
         EasyLog.trace('Uploading file from local filesystem to S3 bucket...')
-        EasyLog.debug('Uploading: {upload_filename}'.format(upload_filename=local_filename))
+        EasyLog.debug('Uploading: {file_uploadname}'.format(file_uploadname=local_filename))
         EasyLog.debug('Bucket Name: {bucket_name}'.format(bucket_name=bucket_name))
         EasyLog.debug('Bucket Filename: {bucket_filename}'.format(bucket_filename=bucket_filename))
 
@@ -419,7 +419,7 @@ class EasyS3:
 
         try:
             EasyLog.debug('Uploading...')
-            EasyS3.get_s3_client().upload_file(
+            EasyS3.get_s3_client().file_upload(
                 Bucket=bucket_name,
                 Key=bucket_filename,
                 Filename=local_filename
@@ -429,7 +429,7 @@ class EasyS3:
             raise upload_exception
 
     @staticmethod
-    def upload_string(bucket_name, bucket_filename, contents, encoding='utf-8') -> None:
+    def file_upload_from_string(bucket_name, bucket_filename, contents, encoding='utf-8') -> None:
         """
         Upload the content of a string to the specified S3 bucket
 
@@ -454,7 +454,7 @@ class EasyS3:
         EasyLog.trace('String Length: {string_length}'.format(string_length=len(contents)))
 
         try:
-            EasyS3.get_s3_client().upload_fileobj(
+            EasyS3.get_s3_client().file_uploadobj(
                 Fileobj=BytesIO(bytes(contents, encoding)),
                 Bucket=bucket_name,
                 Key=bucket_filename
@@ -598,14 +598,14 @@ class EasyS3:
 
         # Make that mother trucking file dance
         EasyLog.debug('Uploading test file to S3 bucket...')
-        EasyS3.upload_file(
+        EasyS3.file_upload(
             bucket_name=bucket_name,
             bucket_filename=bucket_filename,
             local_filename=original_filename
         )
 
         EasyLog.debug('Downloading test file from S3 bucket: downloaded_filename...'.format(downloaded_filename=downloaded_filename))
-        EasyS3.download_file(
+        EasyS3.file_download(
             bucket_name=bucket_name,
             bucket_filename=bucket_filename,
             local_filename=downloaded_filename
@@ -623,7 +623,7 @@ class EasyS3:
         os.unlink(downloaded_filename)
 
         EasyLog.debug('Deleting uploaded file...')
-        EasyS3.delete_file(
+        EasyS3.file_delete(
             bucket_name=bucket_name,
             bucket_filename=bucket_filename
         )

@@ -59,12 +59,18 @@ class ActionStringLaunch(BaseAction):
     """
 
     def execute(self):
+        next_action = 'action_success'
+
+        if self.has_input('next_action') is False:
+            next_action = self.get_input('next_action')
+
         if self.has_input('count') is False:
             self.set_output('count', 1)
         else:
             self.set_output('count', self.get_input('count') + 1)
         self.set_output('action_string_launch', self.get_output('count'))
-        return 'action_success'
+
+        return next_action
 
 
 class ActionFailure(BaseAction):

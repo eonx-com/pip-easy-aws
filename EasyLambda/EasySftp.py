@@ -4,8 +4,9 @@ import paramiko
 import socket
 import warnings
 
-from io import StringIO
+from EasyLambda.EasyHelpers import EasyHelpers
 from EasyLambda.EasyLog import EasyLog
+from io import StringIO
 from pysftp import Connection
 from pysftp import CnOpts
 
@@ -21,23 +22,31 @@ class EasySftp:
         """
         EasyLog.trace('Instantiating SFTP client class...')
 
-        self.connection = None
-        self.count_downloaded = 0
-        self.host_key_checking = True
+        # Creating variables we will be using later
+        self.__connection__ = None
+
+        # Used to enforce maximum number of files limit
+        self.__count_downloaded__ = 0
+
+        # No file download limit by default
+        self.__maximum_files__ = None
+
+        # Enable host key checking by default
+        self.__host_key_checking__ = True
 
     def __del__(self):
         """
-        Close any existing SFTP connection on deletion of this object. This is needed to prevent
-        Lambda function from generating an error
+        Close any existing SFTP connection on deletion of this object. This is needed to prevent Lambda function from generating an error on completion
         """
-        EasyLog.trace('Destroying SFTP client class...')
+        EasyLog.trace('Cleaning up SFTP client class...')
 
         if self.is_connected():
             # noinspection PyBroadException
             try:
-                self.connection.close()
+                EasyLog.debug('Closing connection to SFTP server...')
+                self.__connection__.close()
             except Exception:
-                # If an exception occurs during the close ignore it
+                # Ignore exceptions at this point
                 pass
 
     def enable_host_key_checking(self) -> None:
@@ -46,7 +55,7 @@ class EasySftp:
 
         :return: None
         """
-        self.host_key_checking = True
+        self.__host_key_checking__ = True
 
     def disable_host_key_checking(self) -> None:
         """
@@ -54,51 +63,43 @@ class EasySftp:
 
         :return: None
         """
-        self.host_key_checking = False
+        self.__host_key_checking__ = False
 
-    def get_connection(self) -> Connection:
-        """
-        Return the underlying connection object
-
-        :return: Connection
-        """
-        return self.connection
+    # Connection management functions
 
     def connect_rsa_private_key(
             self,
+            username,
             address,
             port,
-            username,
             rsa_private_key,
             password=None,
             fingerprint=None,
             fingerprint_type=None
     ) -> bool:
         """
-        Connect to an SFTP server using private key authentication
+        Connect to SFTP server using private key authentication
 
         :type username: str
         :param username: Username to be used in connection
-
-        :type password: str or None
-        :param password: Optional password
 
         :type address: str
         :param address: SFTP server address/hostname
 
         :type port: int
-        :param port: SFTP server port number
+        :param port: SFTP server port number (defaults to 22)
 
-        :type rsa_private_key: str/None
-        :param rsa_private_key: RSA private key to be used
+        :type rsa_private_key: str
+        :param rsa_private_key: RSA private key to be used for authentication
 
-        :type fingerprint: str/None
-        :param fingerprint: SFTP server fingerprint used to validate server identity. If not specified the known_hosts
-            file on the host machine will be used
+        :type password: str or None
+        :param password: Optional password used for authentication
 
-        :type fingerprint_type: str
-        :param fingerprint_type: SFTP server fingerprint type (e.g. ssh-rsa, ssh-dss). This must be one of the
-            key types supported by the underlying paramiko library
+        :type fingerprint: str or None
+        :param fingerprint: SFTP server fingerprint used to validate server identity
+
+        :type fingerprint_type: str or None
+        :param fingerprint_type: SFTP server fingerprint type
 
         :return: bool
         """
@@ -114,20 +115,34 @@ class EasySftp:
                 username=username
             ))
             EasyLog.debug('RSA Key Length: {key_length} Bytes'.format(key_length=len(rsa_private_key)))
-            EasyLog.debug('Host Fingerprint: {fingerprint} ({fingerprint_type})'.format(fingerprint=fingerprint, fingerprint_type=fingerprint_type))
+            if fingerprint is not None:
+                EasyLog.debug('Host Fingerprint: {fingerprint}'.format(fingerprint=fingerprint))
+            if fingerprint_type is not None:
+                EasyLog.debug('Host Fingerprint Type: {fingerprint_type}'.format(fingerprint_type=fingerprint_type))
 
             try:
-                self.connection = Connection(
-                    EasySftp.validate_sftp_address(address),
-                    port=EasySftp.validate_sftp_port(port),
-                    private_key=EasySftp.validate_sftp_private_key(rsa_private_key),
-                    username=EasySftp.validate_sftp_username(username),
+                # Validate connection details
+                address = EasySftp.validate_sftp_address(address)
+                port = EasySftp.validate_sftp_port(port)
+                rsa_private_key = EasySftp.validate_sftp_private_key(rsa_private_key)
+                username = EasySftp.validate_sftp_username(username)
+                fingerprint = EasySftp.validate_sftp_fingerprint(fingerprint)
+                fingerprint_type = EasySftp.validate_sftp_fingerprint_type(fingerprint_type)
+
+                # Get connection options for SFTP client
+                connection_options = self.__get_connection_options__(
+                    address=address,
+                    fingerprint=fingerprint,
+                    fingerprint_type=fingerprint_type
+                )
+
+                self.__connection__ = Connection(
+                    address,
+                    port=port,
+                    private_key=rsa_private_key,
+                    username=username,
                     password=password,
-                    cnopts=self.__get_connection_options__(
-                        address=EasySftp.validate_sftp_address(address),
-                        fingerprint=EasySftp.validate_sftp_fingerprint(fingerprint),
-                        fingerprint_type=EasySftp.validate_sftp_fingerprint_type(fingerprint_type)
-                    )
+                    cnopts=connection_options
                 )
             except Exception as connection_exception:
                 EasyLog.exception('Failed to connect to SFTP server', connection_exception)
@@ -155,7 +170,7 @@ class EasySftp:
             fingerprint_type=None
     ):
         """
-        Connect to an SFTP server using username and password
+        Connect to SFTP server using username and password
 
         :type username: str
         :param username: Username to be used in connection
@@ -169,13 +184,11 @@ class EasySftp:
         :type password: str
         :param password: Password for authentication
 
-        :type fingerprint: str/None
-        :param fingerprint: SFTP server fingerprint used to validate server identity. If not specified the known_hosts
-            file on the host machine will be used
+        :type fingerprint: str or None
+        :param fingerprint: SFTP server fingerprint used to validate server identity
 
-        :type fingerprint_type: str/None
-        :param fingerprint_type: SFTP server fingerprint type (e.g. ssh-rsa, ssh-dss). This must be one of the
-            key types supported by the underlying paramiko library
+        :type fingerprint_type: str or None
+        :param fingerprint_type: SFTP server fingerprint type
 
         :return: bool
         """
@@ -195,17 +208,31 @@ class EasySftp:
                 fingerprint_type=fingerprint_type
             ))
 
-            self.connection = Connection(
-                EasySftp.validate_sftp_address(address),
-                port=EasySftp.validate_sftp_port(port),
-                username=EasySftp.validate_sftp_username(username),
-                password=password,
-                cnopts=self.__get_connection_options__(
-                    address=EasySftp.validate_sftp_address(address),
-                    fingerprint=EasySftp.validate_sftp_fingerprint(fingerprint),
-                    fingerprint_type=EasySftp.validate_sftp_fingerprint_type(fingerprint_type)
-                )
+            # Validate connection details
+            address = EasySftp.validate_sftp_address(address)
+            port = EasySftp.validate_sftp_port(port)
+            username = EasySftp.validate_sftp_username(username)
+            fingerprint = EasySftp.validate_sftp_fingerprint(fingerprint)
+            fingerprint_type = EasySftp.validate_sftp_fingerprint_type(fingerprint_type)
+
+            # Get connection options for SFTP client
+            connection_options = self.__get_connection_options__(
+                address=address,
+                fingerprint=fingerprint,
+                fingerprint_type=fingerprint_type
             )
+
+            try:
+                self.__connection__ = Connection(
+                    address,
+                    port=port,
+                    username=username,
+                    password=password,
+                    cnopts=connection_options
+                )
+            except Exception as connection_exception:
+                EasyLog.exception('Failed to connect to SFTP server', connection_exception)
+                raise Exception(EasySftp.ERROR_CONNECTION_FAILED)
 
             # Assert we received the expected warning;
             if -1 in w:
@@ -219,38 +246,47 @@ class EasySftp:
         EasyLog.debug('Connection successful')
         return True
 
+    def disconnect(self):
+        """
+        Disconnect from SFTP server
+
+        :return: None
+        """
+        EasyLog.trace('Disconnecting from SFTP server...')
+        self.__connection__.close()
+
     def is_connected(self):
         """
         Check if we are still connected to the SFTP server
 
         :return: bool
         """
-        EasyLog.trace('Checking connection state...')
-        try:
+        EasyLog.trace('Checking SFTP server connection state...')
 
+        try:
             # If no connection has every been established return false
-            if self.connection is None:
+            if self.__connection__ is None:
                 EasyLog.debug('Not connected (connection not instantiated)')
                 return False
 
             # If there is no SFTP client inside the connection object, return false
-            if self.connection.sftp_client is None:
+            if self.__connection__.sftp_client is None:
                 EasyLog.debug('Not connected (client not instantiated)')
                 return False
 
             # If there is no SFTP channel inside the client object, return false
-            if self.connection.sftp_client.get_channel() is None:
+            if self.__connection__.sftp_client.get_channel() is None:
                 EasyLog.debug('Not connected (no transport channel found)')
                 return False
 
             # If there is no SFTP transport, return false
-            if self.connection.sftp_client.get_channel().get_transport() is None:
+            if self.__connection__.sftp_client.get_channel().get_transport() is None:
                 EasyLog.debug('Not connected (no transport object found)')
                 return False
 
             # Otherwise return the current state of the underlying transport layer
 
-            if self.connection.sftp_client.get_channel().get_transport().is_active() is True:
+            if self.__connection__.sftp_client.get_channel().get_transport().is_active() is True:
                 return True
 
             EasyLog.debug('Not connected (by process of elimination)')
@@ -262,47 +298,72 @@ class EasySftp:
             EasyLog.trace('Not connected (unable to determine connection state)')
             return False
 
-    def disconnect(self):
+    # File management functions
+
+    def reset_file_download_counter(self):
         """
-        Disconnect from SFTP server
+        Reset the file download counter used to track maximum number of allowed downloads
+
+        :return:
+        """
+        self.__count_downloaded__ = 0
+
+    def set_file_download_limit(self, maximum_files) -> None:
+        """
+        Set a limit on the maximum number of downloads allowed
+
+        :type maximum_files int
+        :param maximum_files: The maximum number of files that can be downloaded. Once reached any download requested will be skipped
 
         :return: None
         """
-        EasyLog.trace('Disconnecting from SFTP server...')
-        self.connection.close()
+        self.__maximum_files__ = maximum_files
 
-    def assert_remote_path_exists(self, remote_path) -> None:
+    def file_list(self, remote_path, recursive=False):
         """
-        Ensure a directory exists on the SFTP server, creating if it does not
+        List a list of all files accessible in the filesystem filesystem
 
         :type remote_path: str
-        :param remote_path: The path to test/create
+        :param remote_path: The path in the filesystem to list
 
-        :return: None
+        :type recursive: bool
+        :param recursive: If True the listing will proceed recursively down through all sub-folders
+
+        :return: list
         """
-        EasyLog.trace('Checking remote path exists: {remote_path}...'.format(remote_path=remote_path))
+        EasyLog.trace('Listing files on SFTP server...')
 
-        if self.connection.exists(remote_path) is False:
-            EasyLog.debug('Destination path not found, creating folder...')
-            self.connection.makedirs(remote_path)
+        try:
+            files = []
 
-    # noinspection PyMethodMayBeStatic
-    def assert_local_path_exists(self, local_path) -> None:
-        """
-        Ensure a directory exists on the local filesystem, creating if it doesn't exist
+            # List files in current remote path
+            current_path = self.__connection__.listdir(remote_path)
 
-        :type local_path: str
-        :param local_path: The path to test/create
+            # Iterate through all of the files
+            for current_remote_path in current_path:
+                EasyLog.debug('Current file: {current_remote_path}'.format(current_remote_path=current_remote_path))
 
-        :return: None
-        """
-        EasyLog.trace('Checking local path exists: {local_path}...'.format(local_path=local_path))
+                # Sanitize the path
+                current_remote_path = EasySftp.sanitize_path(remote_path + '/' + current_remote_path)
 
-        if os.path.exists(local_path) is False:
-            EasyLog.debug('Destination path not found, creating folder...')
-            os.makedirs(local_path)
+                # If the current path is a directory we may continue recursing down the folder structure
+                if self.__connection__.isdir(current_remote_path):
+                    # If we are performing a recursive list, iterate down further
+                    if recursive is True:
+                        # Down the rabbit hole
+                        EasyLog.debug('Recursing sub-folder: {current_remote_path}'.format(current_remote_path=current_remote_path))
+                        files.extend(self.file_list(remote_path=current_remote_path, recursive=recursive))
+                else:
+                    # Append the current file to the list of found files
+                    files.append(current_remote_path)
+        except Exception as file_list_exception:
+            EasyLog.exception('An unexpected error occurred during listing of files', file_list_exception)
+            raise file_list_exception
 
-    def upload_file(self, local_filename, remote_filename, callback=None, confirm=True) -> None:
+        # Return any files we found
+        return files
+
+    def file_upload(self, local_filename, remote_filename, callback=None, confirm=False) -> None:
         """
         Upload a file to SFTP server
 
@@ -322,26 +383,26 @@ class EasySftp:
 
         :return: None
         """
-        EasyLog.trace('Uploading file...')
+        EasyLog.trace('Uploading file to SFTP server...')
 
         # Ensure destination folder exists
         self.assert_remote_path_exists(os.path.dirname(remote_filename))
 
-        EasyLog.debug('Starting upload...')
+        EasyLog.debug('Uploading: {remote_filename}...'.format(remote_filename=remote_filename))
         try:
-            self.connection.put(
+            self.__connection__.put(
                 localpath=local_filename,
                 remotepath=remote_filename,
                 confirm=confirm,
                 callback=callback
             )
         except Exception as upload_exception:
-            EasyLog.exception('An unexpected error occurred during file upload', upload_exception)
+            EasyLog.exception('An unexpected error occurred during upload of file from local filesystem', upload_exception)
             raise upload_exception
 
         EasyLog.debug('Upload finished')
 
-    def upload_string(self, contents, remote_filename, callback=None, confirm=True) -> None:
+    def file_upload_from_string(self, contents, remote_filename, callback=None, confirm=False) -> None:
         """
         Upload the contents of a string variable to the SFTP server
 
@@ -361,25 +422,43 @@ class EasySftp:
 
         :return: None
         """
-        EasyLog.trace('Uploading string...')
+        EasyLog.trace('Uploading file (from string) to SFTP server...')
 
         # Ensure destination folder exists
         self.assert_remote_path_exists(os.path.dirname(remote_filename))
 
         try:
-            self.connection.putfo(
-                StringIO(contents),
-                remote_filename,
-                confirm=confirm,
-                callback=callback
+            EasyLog.debug('File size: {size}'.format(size=len(contents)))
+
+            # Save the string to the local disk in a temporary file
+            local_path = EasyHelpers.create_unique_local_temp_path()
+            local_temp_filename = '{local_path}/{filename}'.format(
+                local_path=local_path,
+                filename=os.path.basename(remote_filename)
             )
+            EasyLog.debug('Creating temporary file: {local_temp_filename}'.format(local_temp_filename=local_temp_filename))
+
+            local_temp_file = open(local_temp_filename, "wt")
+            local_temp_file.write(contents)
+            local_temp_file.close()
+
+            # Upload the file
+            EasyLog.debug('Uploading local temporary file to SFTP server...')
+            self.file_upload(
+                local_filename=local_temp_filename,
+                remote_filename=remote_filename
+            )
+
+            # Remove the local temporary file we created
+            EasyLog.debug('Deleting local temporary file...')
+            os.unlink(local_temp_filename)
         except Exception as upload_exception:
-            EasyLog.exception('An unexpected error occurred during string upload', upload_exception)
+            EasyLog.exception('An unexpected error occurred during upload of file from string', upload_exception)
             raise upload_exception
 
         EasyLog.debug('Upload finished')
 
-    def delete_file(self, remote_filename):
+    def file_delete(self, remote_filename):
         """
         Delete a file from SFTP server
 
@@ -388,17 +467,17 @@ class EasySftp:
 
         :return: None
         """
-        EasyLog.trace('Deleting file: {remote_filename}...'.format(remote_filename=remote_filename))
+        EasyLog.trace('Deleting file from SFTP server...')
 
         try:
-            self.connection.remove(remote_filename)
+            self.__connection__.remove(remote_filename)
         except Exception as delete_exception:
-            EasyLog.exception('An unexpected error occurred during file deletion', delete_exception)
+            EasyLog.exception('An unexpected error occurred during deletion of file', delete_exception)
             raise delete_exception
 
         EasyLog.debug('Deleting completed')
 
-    def exists(self, remote_filename):
+    def file_exists(self, remote_filename):
         """
         Check if file exists
 
@@ -407,11 +486,15 @@ class EasySftp:
 
         :return: None
         """
-        EasyLog.trace('Checking file exists: {remote_filename}...'.format(remote_filename=remote_filename))
+        EasyLog.trace('Checking file exists on SFTP server...')
 
-        return self.connection.exists(remote_filename)
+        try:
+            return self.__connection__.file_exists(remote_filename)
+        except Exception as exists_exception:
+            EasyLog.exception('An unexpected error occurred during check of file existence', exists_exception)
+            raise exists_exception
 
-    def download_file(self, local_filename, remote_filename) -> None:
+    def file_download(self, local_filename, remote_filename) -> bool:
         """
         Download a file from SFTP server
 
@@ -421,66 +504,35 @@ class EasySftp:
         :type remote_filename: str
         :param remote_filename: Filename/path of the file to download from the SFTP server
 
-        :return: None
+        :return: bool
         """
-        EasyLog.trace('Downloading file: {remote_filename}...'.format(remote_filename=remote_filename))
+        EasyLog.trace('Downloading file from SFTP server...')
 
         try:
-            # Make sure the path exists locally
-            self.assert_local_path_exists(os.path.dirname(local_filename))
+            # Restrict to maximum allowed files if applicable
+            if self.__maximum_files__ is not None and self.__count_downloaded__ >= int(self.__maximum_files__):
+                EasyLog.debug('Maximum downloaded file limit reached')
+                return False
 
-            self.connection.get(
+            # Make sure the path exists locally
+            EasySftp.assert_local_path_exists(os.path.dirname(local_filename))
+
+            self.__connection__.get(
                 remotepath=remote_filename,
                 localpath=local_filename,
                 preserve_mtime=True
             )
+
+            if self.__maximum_files__ is not None:
+                self.__count_downloaded__ = self.__count_downloaded__ + 1
         except Exception as download_exception:
-            EasyLog.exception('An unexpected error occurred during file download', download_exception)
+            EasyLog.exception('An unexpected error occurred during download of file to local filesystem', download_exception)
             raise download_exception
 
         EasyLog.debug('Download finished')
+        return True
 
-    def list_files(self, remote_path, recursive=False):
-        """
-        List a list of all files accessible in the filesystem filesystem
-
-        :type remote_path: str
-        :param remote_path: The path in the filesystem to list
-
-        :type recursive: bool
-        :param recursive: If True the listing will proceed recursively down through all sub-folders
-
-        :return: list
-        """
-        EasyLog.trace('Listing files: {remote_path}...'.format(remote_path=remote_path))
-        try:
-            files = []
-
-            # List files in current remote path
-            current_path = self.connection.listdir(remote_path)
-
-            # Iterate through all of the files
-            for current_remote_path in current_path:
-                current_remote_path = remote_path + '/' + current_remote_path
-                current_remote_path = EasySftp.sanitize_path(current_remote_path)
-
-                if self.connection.isdir(current_remote_path) and recursive is True:
-                    # If the current path is a directory, recurse down further
-                    files.append(self.list_files(
-                        remote_path=current_remote_path,
-                        recursive=recursive
-                    ))
-                else:
-                    # Append the current file to the list of found files
-                    EasyLog.debug('Found: {current_remote_path}'.format(current_remote_path=current_remote_path))
-                    files.append(current_remote_path)
-        except Exception as list_files_exception:
-            EasyLog.exception('An unexpected error occurred during listing of files', list_files_exception)
-            raise list_files_exception
-
-        return files
-
-    def download_recursive(self, remote_path, local_path, maximum_files=None, callback=None) -> bool:
+    def file_download_recursive(self, remote_path, local_path, callback=None) -> None:
         """
         Recursively download all files found in the specified remote path to the specified local path
 
@@ -490,75 +542,53 @@ class EasySftp:
         :type local_path: str
         :param local_path: Path on local file system where contents are to be downloaded
 
-        :type maximum_files: int/None
-        :param maximum_files: Limit the maximum number of files to be downloaded. Process will return early once
-            this limit has been reached
-
         :type callback: function/None
-        :param callback: Optional callback function to call after each file has downloaded, must accept a single
-            string parameter which contains the local filesystem filename
+        :param callback: Optional callback function to call after each file has downloaded successfully
 
-        :return: bool flag indicating whether to continue recursion
+        :return: None
         """
-        EasyLog.trace('Starting recursive download...')
+        EasyLog.trace('Starting recursive download from SFTP server...')
 
         try:
             # Restrict to maximum allowed files if applicable
-            if maximum_files is not None and self.count_downloaded >= int(maximum_files):
+            if self.__maximum_files__ is not None and self.__count_downloaded__ >= int(self.__maximum_files__):
                 EasyLog.debug('Maximum downloaded file limit reached, ending recursion...')
-                return False
-
-            EasyLog.debug('Downloading: {remote_path}...'.format(remote_path=remote_path))
+                return
 
             # List files in current path
-            current_path = self.connection.listdir(remote_path)
+            files_found = self.file_list(remote_path=remote_path, recursive=True)
 
             # Iterate these files
-            for current_remote_path in current_path:
-                current_remote_path = remote_path + '/' + current_remote_path
-                current_remote_path = EasySftp.sanitize_path(current_remote_path)
+            for file_found in files_found:
+                # Sanitize the full file path/filename
+                current_remote_filename = EasySftp.sanitize_path(remote_path + '/' + file_found)
 
-                if self.connection.isdir(current_remote_path):
-                    # If the current path is a directory, recurse down further
-                    if self.download_recursive(
-                            remote_path=current_remote_path,
-                            local_path=local_path,
-                            maximum_files=maximum_files,
-                            callback=callback
-                    ) is False:
-                        return False
-                else:
-                    # Make sure the path exists locally
-                    destination_path = EasySftp.sanitize_path(local_path + '/' + os.path.dirname(current_remote_path))
-                    self.assert_local_path_exists(destination_path)
+                # The local filename will stored in the same folder structure as on the SFTP server
+                current_local_path = EasySftp.sanitize_path(local_path + '/' + os.path.dirname(current_remote_filename))
 
-                    # Get the filename
-                    destination_filename = EasySftp.sanitize_path(destination_path + '/' + os.path.basename(current_remote_path))
+                # Make sure the file path exists locally before we download
+                EasySftp.assert_local_path_exists(current_local_path)
 
-                    EasyLog.debug('Downloading: {filename}'.format(filename=current_remote_path))
-                    self.connection.get(
-                        remotepath=current_remote_path,
-                        localpath=destination_filename,
-                        preserve_mtime=True
-                    )
+                # Get the filename
+                current_local_filename = EasySftp.sanitize_path(current_local_path + '/' + os.path.basename(current_remote_filename))
 
-                    # If a callback function was specified, pass it the filename of the downloaded file
-                    if callback is not None:
-                        EasyLog.debug('Triggering user callback function...')
-                        callback(filename=destination_filename)
+                EasyLog.debug('Downloading: {filename}'.format(filename=current_remote_filename))
+                try:
+                    if self.file_download(local_filename=current_local_filename, remote_filename=current_remote_filename) is True:
+                        # If a callback function was specified, pass it the filename of the downloaded file
+                        if callback is not None:
+                            EasyLog.debug('Triggering user callback function...')
+                            callback(filename=current_local_filename)
+                except Exception as download_exception:
+                    if self.file_exists(remote_filename=current_remote_filename) is True:
+                        EasyLog.exception('Failed to download file that exists on SFTP server: {current_remote_filename}', download_exception)
+                        raise download_exception
 
-                    self.count_downloaded = self.count_downloaded + 1
-
-                    # Restrict to maximum allowed files if applicable
-                    if maximum_files is not None and self.count_downloaded >= int(maximum_files):
-                        EasyLog.debug('Maximum downloaded file limit reached, ending recursion...')
-                        return False
+                    EasyLog.warning('Failed to download file from SFTP server, file no longer exists')
 
         except Exception as download_exception:
             EasyLog.exception('An unexpected error occurred during recursive download of files', download_exception)
             raise download_exception
-
-        return True
 
     def __get_connection_options__(self, address, fingerprint, fingerprint_type):
         """
@@ -580,7 +610,7 @@ class EasySftp:
         EasyLog.trace('Retrieving connection options...')
         options = CnOpts()
 
-        if self.host_key_checking is False:
+        if self.__host_key_checking__ is False:
             EasyLog.warning('Host fingerprint checking disabled, this may be a security risk...')
             options.hostkeys = None
         else:
@@ -597,6 +627,38 @@ class EasySftp:
                 EasyLog.warning('No host fingerprints added, relying on known_hosts file')
 
         return options
+
+    def assert_remote_path_exists(self, remote_path) -> None:
+        """
+        Ensure a directory exists on the SFTP server, creating if it does not
+
+        :type remote_path: str
+        :param remote_path: The path to test/create
+
+        :return: None
+        """
+        EasyLog.trace('Checking remote path exists: {remote_path}...'.format(remote_path=remote_path))
+
+        self.__connection__: Connection
+        if self.__connection__.exists(remote_path) is False:
+            EasyLog.debug('Destination path not found, creating folder...')
+            self.__connection__.makedirs(remote_path)
+
+    @staticmethod
+    def assert_local_path_exists(local_path) -> None:
+        """
+        Ensure a directory exists on the local filesystem, creating if it doesn't exist
+
+        :type local_path: str
+        :param local_path: The path to test/create
+
+        :return: None
+        """
+        EasyLog.trace('Checking local path exists: {local_path}...'.format(local_path=local_path))
+
+        if os.path.exists(local_path) is False:
+            EasyLog.debug('Destination path not found, creating folder...')
+            os.makedirs(local_path)
 
     @staticmethod
     def fingerprint_to_paramiko_key(fingerprint, fingerprint_type):

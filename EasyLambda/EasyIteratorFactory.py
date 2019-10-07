@@ -1,9 +1,10 @@
-from EasyLambda.Iterator.EasyFilesystem import EasyFilesystem
+from EasyLambda.EasyFilesystem import EasyFilesystem
 from EasyLambda.Iterator.Destination.Destination import Destination
 from EasyLambda.Iterator.Source.Source import Source
 
 
 class EasyIteratorFactory:
+    # Source creation methods
     @staticmethod
     def create_s3_source(
             bucket_name,
@@ -80,10 +81,10 @@ class EasyIteratorFactory:
         :param base_path: Base SFTP file path, files will be recursively iterated from this path
 
         :type delete_on_success: bool
-        :param delete_on_success:
+        :param delete_on_success: If True, files in this source will be deleted on successful iterator
 
         :type delete_on_error: bool
-        :param delete_on_error:
+        :param delete_on_error: If True, files in this source will be deleted after an error in iteration
 
         :return: Source
         """
@@ -104,12 +105,14 @@ class EasyIteratorFactory:
             delete_on_error=delete_on_error
         )
 
+    # Destination creation methods
     @staticmethod
     def create_s3_destination(
             bucket_name,
             base_path='/',
-            delete_on_success=False,
-            delete_on_error=False
+            create_timestamped_folder=False,
+            create_logfile_on_completion=False,
+            allow_overwrite=False
     ) -> Destination:
         """
         Create a new AWS S3 file destination
@@ -120,11 +123,14 @@ class EasyIteratorFactory:
         :type base_path: str
         :param base_path:
 
-        :type delete_on_success: bool
-        :param delete_on_success:
+        :type create_timestamped_folder: bool
+        :param create_timestamped_folder:
 
-        :type delete_on_error: bool
-        :param delete_on_error:
+        :type create_logfile_on_completion: bool
+        :param create_logfile_on_completion:
+
+        :type allow_overwrite: bool
+        :param allow_overwrite:
 
         :return: Destination
         """
@@ -135,8 +141,9 @@ class EasyIteratorFactory:
 
         return Destination(
             filesystem=filesystem,
-            delete_on_success=delete_on_success,
-            delete_on_error=delete_on_error
+            create_timestamped_folder=create_timestamped_folder,
+            create_logfile_on_completion=create_logfile_on_completion,
+            allow_overwrite=allow_overwrite
         )
 
     @staticmethod
@@ -149,8 +156,9 @@ class EasyIteratorFactory:
             fingerprint_type=None,
             port=22,
             base_path='/',
-            delete_on_success=False,
-            delete_on_error=False
+            create_timestamped_folder=False,
+            create_logfile_on_completion=False,
+            allow_overwrite=False
     ) -> Destination:
         """
         Create a new SFTP file destination
@@ -179,11 +187,14 @@ class EasyIteratorFactory:
         :type base_path: str
         :param base_path: Base SFTP file path, files will be recursively iterated from this path
 
-        :type delete_on_success: bool
-        :param delete_on_success:
+        :type create_timestamped_folder: bool
+        :param create_timestamped_folder:
 
-        :type delete_on_error: bool
-        :param delete_on_error:
+        :type create_logfile_on_completion: bool
+        :param create_logfile_on_completion:
+
+        :type allow_overwrite: bool
+        :param allow_overwrite:
 
         :return: Destination
         """
@@ -200,6 +211,7 @@ class EasyIteratorFactory:
 
         return Destination(
             filesystem=filesystem,
-            delete_on_success=delete_on_success,
-            delete_on_error=delete_on_error
+            create_timestamped_folder=create_timestamped_folder,
+            create_logfile_on_completion=create_logfile_on_completion,
+            allow_overwrite=allow_overwrite
         )

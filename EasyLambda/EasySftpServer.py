@@ -13,8 +13,7 @@ class EasySftpServer:
             fingerprint_type=None,
             port=22,
             base_path='',
-            host_key_checking=True,
-            log_level=1
+            host_key_checking=True
     ):
         """
         Setup SFTP server
@@ -43,29 +42,30 @@ class EasySftpServer:
         :type base_path: str
         :param base_path: Base SFTP file path, all uploads/downloads will have this path prepended
 
-        :type log_level: int
-        :param log_level: Debug logging level
+        :type host_key_checking: bool
+        :param host_key_checking: Flag indicating whether the servers host fingerprint will be verified on connection
         """
-        # Set logging level
-        EasyLog.level = log_level
+        EasyLog.trace('Instantiating SFTP server class...')
 
-        # Store server details for later user
-        self.address = address
-        self.port = port
-        self.base_path = base_path
-        self.host_key_checking = host_key_checking
-        self.username = username
-        self.password = password
-        self.rsa_private_key = rsa_private_key
-        self.fingerprint = fingerprint
-        self.fingerprint_type = fingerprint_type
+        # Store server details
+        self.__address__ = address
+        self.__port__ = port
+        self.__base_path__ = base_path
+        self.__host_key_checking__ = host_key_checking
+        self.__username__ = username
+        self.__password__ = password
+        self.__rsa_private_key__ = rsa_private_key
+        self.__fingerprint__ = fingerprint
+        self.__fingerprint_type__ = fingerprint_type
+        self.__host_key_checking__ = host_key_checking
 
-        # Get an SFTP client
-        self.sftp_client = EasySftp()
+        # Get an EasySftp client
+        self.__sftp_client__ = EasySftp()
 
         # Raise warning if host key checking is disabled
-        if self.host_key_checking is False:
+        if self.__host_key_checking__ is False:
             EasyLog.warning('Host key checking has been disabled, this may be a security risk...')
+    # Functions to retrieve non-sensitive information
 
     def get_address(self) -> str:
         """
@@ -73,7 +73,7 @@ class EasySftpServer:
 
         :return: str
         """
-        return self.address
+        return self.__address__
 
     def get_username(self) -> str:
         """
@@ -81,7 +81,7 @@ class EasySftpServer:
 
         :return: str
         """
-        return self.username
+        return self.__username__
 
     def get_port(self) -> int:
         """
@@ -89,15 +89,7 @@ class EasySftpServer:
 
         :return: int
         """
-        return self.port
-
-    def get_client(self):
-        """
-        Return the underlying SFTP client
-
-        :return:
-        """
-        return self.sftp_client
+        return self.__port__
 
     def get_base_path(self) -> str:
         """
@@ -105,54 +97,37 @@ class EasySftpServer:
 
         :return: str
         """
-        return self.base_path
+        return self.__base_path__
 
-    def set_base_path(self, base_path) -> None:
-        """
-        Modify the base path
+    # Connection handling functions
 
-        :type base_path: str
-        :param base_path: Base SFTP file path, all uploads/downloads will have this path prepended
-
-        :return: None
-        """
-        self.base_path = base_path
-
-    def is_connected(self) -> bool:
-        """
-        Check if we are still connected to the SFTP server
-
-        :return: bool
-        """
-        return self.sftp_client.is_connected()
-
-    def connect(self) -> None:
+    def connect(self) -> bool:
         """
         Connect to SFTP server
 
-        :return: None
+        :return: bool
         """
-        EasyLog.trace('Connecting to server...')
+        EasyLog.trace('Connecting to SFTP server...')
 
-        if self.rsa_private_key is not None:
+        if self.__rsa_private_key__ is not None:
             # Connect using RSA private key
-            self.sftp_client.connect_rsa_private_key(
-                address=self.address,
-                port=self.port,
-                username=self.username,
-                rsa_private_key=self.rsa_private_key,
-                fingerprint=self.fingerprint,
-                fingerprint_type=self.fingerprint_type
+            return self.__sftp_client__.connect_rsa_private_key(
+                address=self.__address__,
+                port=self.__port__,
+                username=self.__username__,
+                rsa_private_key=self.__rsa_private_key__,
+                fingerprint=self.__fingerprint__,
+                fingerprint_type=self.__fingerprint_type__
             )
         else:
             # Connect using username/password
-            return self.sftp_client.connect_password(
-                address=self.address,
-                port=self.port,
-                username=self.username,
-                password=self.password,
-                fingerprint=self.fingerprint,
-                fingerprint_type=self.fingerprint_type
+            return self.__sftp_client__.connect_password(
+                address=self.__address__,
+                port=self.__port__,
+                username=self.__username__,
+                password=self.__password__,
+                fingerprint=self.__fingerprint__,
+                fingerprint_type=self.__fingerprint_type__
             )
 
     def disconnect(self) -> None:
@@ -161,66 +136,21 @@ class EasySftpServer:
 
         :return: None
         """
-        EasyLog.trace('Disconnecting...')
-        self.sftp_client.disconnect()
+        EasyLog.trace('Disconnecting from SFTP server...')
 
-    def upload_file(self, local_filename, remote_filename, callback=None, confirm=True) -> None:
+        self.__sftp_client__.disconnect()
+
+    def is_connected(self) -> bool:
         """
-        Upload a file to SFTP server
+        Check if we are still connected to the SFTP server
 
-        :type local_filename: str
-        :param local_filename: Filename/path of file to be uploaded from local filesystem
-
-        :type remote_filename: str
-        :param remote_filename: Filename/path of the destination on the SFTP server
-
-        :type callback: function/None
-        :param callback: Optional callback function to report on progress of upload
-
-        :type confirm: bool
-        :param confirm: If True, will perform a 'stat' on the uploaded file after the transfer to completes to confirm
-            the upload was successful. Note: in situations such as Direct Link where files are removed immediately after
-            they have been uploaded, setting this to True will generate an error.
-
-        :return: None
+        :return: bool
         """
-        EasyLog.trace('Uploading file...')
-        self.sftp_client.upload_file(
-            local_filename=local_filename,
-            remote_filename=self.__get_relative_base_path__(remote_filename),
-            callback=callback,
-            confirm=confirm
-        )
+        return self.__sftp_client__.is_connected()
 
-    def upload_string(self, contents, remote_filename, callback=None, confirm=True) -> None:
-        """
-        Upload the contents of a string variable to the SFTP server
+    # File handling functions
 
-        :type contents: str
-        :param contents: File contents to be uploaded
-
-        :type remote_filename: str
-        :param remote_filename: Filename/path of the destination on the SFTP server
-
-        :type callback: function/None
-        :param callback: Optional callback function to report on progress of upload
-
-        :type confirm: bool
-        :param confirm: If True, will perform a 'stat' on the uploaded file after the transfer to completes to confirm
-            the upload was successful. Note: in situations such as Direct Link where files are removed immediately after
-            they have been uploaded, setting this to True will generate an error.
-
-        :return: None
-        """
-        EasyLog.trace('Uploading string...')
-        self.sftp_client.upload_string(
-            contents=contents,
-            remote_filename=self.__get_relative_base_path__(remote_filename),
-            callback=callback,
-            confirm=confirm
-        )
-
-    def list_files(self, remote_path, recursive=False) -> list:
+    def file_list(self, remote_path, recursive=False) -> list:
         """
         List a list of all files accessible in the filesystem filesystem
 
@@ -232,42 +162,11 @@ class EasySftpServer:
 
         :return: list
         """
-        EasyLog.trace('Listing files...')
-        return self.sftp_client.list_files(
+        EasyLog.trace('Retrieving file list from SFTP server...')
+
+        return self.__sftp_client__.file_list(
             remote_path=remote_path,
             recursive=recursive
-        )
-
-    def delete_file(self, remote_filename) -> None:
-        """
-        Delete a file from SFTP server
-
-        :type remote_filename: str
-        :param remote_filename: Filename/path of the file to download from the SFTP server
-
-        :return: None
-        """
-        EasyLog.trace('Deleting file...')
-
-        self.sftp_client.delete_file(remote_filename)
-
-    def download_file(self, local_filename, remote_filename) -> None:
-        """
-        Download a file from SFTP server
-
-        :type local_filename: str
-        :param local_filename: Filename/path of the destination on the local filesystem
-
-        :type remote_filename: str
-        :param remote_filename: Filename/path of the file to download from the SFTP server
-
-        :return: None
-        """
-        EasyLog.trace('Downloading file...')
-
-        self.sftp_client.download_file(
-            local_filename=local_filename,
-            remote_filename=self.__get_relative_base_path__(remote_filename)
         )
 
     def file_exists(self, remote_filename) -> bool:
@@ -279,11 +178,45 @@ class EasySftpServer:
 
         :return: bool
         """
-        return self.sftp_client.exists(
+        EasyLog.trace('Checking file exists on SFTP server...')
+
+        return self.__sftp_client__.file_exists(
             remote_filename=remote_filename
         )
 
-    def download_recursive(self, remote_path, local_path, maximum_files=None, callback=None) -> None:
+    def file_delete(self, remote_filename) -> None:
+        """
+        Delete a file from SFTP server
+
+        :type remote_filename: str
+        :param remote_filename: Filename/path of the file to download from the SFTP server
+
+        :return: None
+        """
+        EasyLog.trace('Deleting file from SFTP server...')
+
+        self.__sftp_client__.file_delete(remote_filename)
+
+    def file_download(self, local_filename, remote_filename) -> None:
+        """
+        Download a file from SFTP server
+
+        :type local_filename: str
+        :param local_filename: Filename/path of the destination on the local filesystem
+
+        :type remote_filename: str
+        :param remote_filename: Filename/path of the file to download from the SFTP server
+
+        :return: None
+        """
+        EasyLog.trace('Downloading file from SFTP server...')
+
+        self.__sftp_client__.file_download(
+            local_filename=local_filename,
+            remote_filename=self.__get_relative_base_path__(remote_filename)
+        )
+
+    def file_download_recursive(self, remote_path, local_path, maximum_files=None, callback=None) -> None:
         """
         Recursively download all files found in the specified remote path to the specified local path
 
@@ -303,14 +236,74 @@ class EasySftpServer:
 
         :return: None
         """
-        EasyLog.trace('Starting recursive download...')
+        EasyLog.trace('Starting recursive download from SFTP server...')
 
-        self.sftp_client.download_recursive(
+        self.__sftp_client__.file_download_recursive(
             remote_path=self.__get_relative_base_path__(remote_path),
             local_path=local_path,
             maximum_files=maximum_files,
             callback=callback
         )
+
+    def file_upload(self, local_filename, remote_filename, callback=None, confirm=False) -> None:
+        """
+        Upload a file to SFTP server
+
+        :type local_filename: str
+        :param local_filename: Filename/path of file to be uploaded from local filesystem
+
+        :type remote_filename: str
+        :param remote_filename: Filename/path of the destination on the SFTP server
+
+        :type callback: function/None
+        :param callback: Optional callback function to report on progress of upload
+
+        :type confirm: bool
+        :param confirm: If True, will perform a 'stat' on the uploaded file after the transfer to completes to confirm
+            the upload was successful. Note: in situations such as Direct Link where files are removed immediately after
+            they have been uploaded, setting this to True will generate an error.
+
+        :return: None
+        """
+        EasyLog.trace('Uploading file to SFTP server...')
+
+        self.__sftp_client__.file_upload(
+            local_filename=local_filename,
+            remote_filename=self.__get_relative_base_path__(remote_filename),
+            callback=callback,
+            confirm=confirm
+        )
+
+    def file_upload_from_string(self, contents, remote_filename, callback=None, confirm=False) -> None:
+        """
+        Upload the contents of a string variable to the SFTP server
+
+        :type contents: str
+        :param contents: File contents to be uploaded
+
+        :type remote_filename: str
+        :param remote_filename: Filename/path of the destination on the SFTP server
+
+        :type callback: function/None
+        :param callback: Optional callback function to report on progress of upload
+
+        :type confirm: bool
+        :param confirm: If True, will perform a 'stat' on the uploaded file after the transfer to completes to confirm
+            the upload was successful. Note: in situations such as Direct Link where files are removed immediately after
+            they have been uploaded, setting this to True will generate an error.
+
+        :return: None
+        """
+        EasyLog.trace('Uploading file (from string) to SFTP server...')
+
+        self.__sftp_client__.file_upload_from_string(
+            contents=contents,
+            remote_filename=self.__get_relative_base_path__(remote_filename),
+            callback=callback,
+            confirm=confirm
+        )
+
+    # Internal helper methods
 
     def __get_relative_base_path__(self, path) -> str:
         """
@@ -322,7 +315,7 @@ class EasySftpServer:
         :return: str
         """
         path = '{base_path}/{path}'.format(
-            base_path=self.base_path,
+            base_path=self.__base_path__,
             path=path
         )
 

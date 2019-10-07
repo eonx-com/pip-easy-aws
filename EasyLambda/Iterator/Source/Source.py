@@ -1,4 +1,4 @@
-from EasyLambda.Iterator.Filesystem.Filesystem import Filesystem
+from EasyLambda.Filesystem.Filesystem import Filesystem
 
 
 class Source:

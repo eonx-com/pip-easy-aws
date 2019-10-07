@@ -37,7 +37,7 @@ class EasyS3File:
             bucket_filename=self.__bucket_filename__
         )
 
-    def delete_file(self) -> bool:
+    def file_delete(self) -> bool:
         """
         Delete the file from S3
 
@@ -48,7 +48,7 @@ class EasyS3File:
             bucket_filename=self.__bucket_filename__
         ))
 
-        return EasyS3.delete_file(
+        return EasyS3.file_delete(
             bucket_name=self.__bucket_name__,
             bucket_filename=self.__bucket_filename__
         )
@@ -148,7 +148,7 @@ class EasyS3File:
             destination_bucket_filename=destination_bucket_filename
         )
 
-    def download_file(self, local_filename) -> None:
+    def file_download(self, local_filename) -> None:
         """
         Download the file to local filesystem
 
@@ -162,13 +162,13 @@ class EasyS3File:
             bucket_filename=self.__bucket_filename__
         ))
 
-        EasyS3.download_file(
+        EasyS3.file_download(
             bucket_name=self.__bucket_name__,
             bucket_filename=self.__bucket_filename__,
             local_filename=local_filename
         )
 
-    def download_string(self, encoding='utf-8') -> str:
+    def file_download_to_string(self, encoding='utf-8') -> str:
         """
         Download the file and return it as a string
 
@@ -182,13 +182,13 @@ class EasyS3File:
             bucket_filename=self.__bucket_filename__
         ))
 
-        return EasyS3.download_string(
+        return EasyS3.file_download_to_string(
             bucket_name=self.__bucket_name__,
             bucket_filename=self.__bucket_filename__,
             encoding=encoding
         )
 
-    def upload_file(self, local_filename) -> None:
+    def file_upload(self, local_filename) -> None:
         """
         Upload a local file over the current file
 
@@ -202,13 +202,13 @@ class EasyS3File:
             bucket_filename=self.__bucket_filename__
         ))
 
-        return EasyS3.upload_file(
+        return EasyS3.file_upload(
             bucket_name=self.__bucket_name__,
             bucket_filename=self.__bucket_filename__,
             local_filename=local_filename
         )
 
-    def upload_string(self, contents, encoding='utf-8') -> None:
+    def file_upload_from_string(self, contents, encoding='utf-8') -> None:
         """
         Upload a string over the current file
 
@@ -225,7 +225,7 @@ class EasyS3File:
             bucket_filename=self.__bucket_filename__
         ))
 
-        return EasyS3.upload_string(
+        return EasyS3.file_upload_from_string(
             bucket_name=self.__bucket_name__,
             bucket_filename=self.__bucket_filename__,
             contents=contents,

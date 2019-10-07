@@ -55,7 +55,7 @@ class EasyS3Bucket:
             bucket_path=bucket_filename
         ))
 
-    def list_files(self, bucket_path='', recursive=False) -> list:
+    def file_list(self, bucket_path='', recursive=False) -> list:
         """
         List the content of a path inside this bucket
 
@@ -77,7 +77,7 @@ class EasyS3Bucket:
         EasyLog.debug('Bucket Name: {bucket_name}'.format(bucket_name=self.__bucket_name__))
         EasyLog.debug('Bucket Path: {bucket_path}'.format(bucket_path=bucket_path))
 
-        return EasyS3.list_files(
+        return EasyS3.file_list(
             bucket_name=self.__bucket_name__,
             bucket_path=bucket_path,
             recursive=recursive
@@ -126,7 +126,7 @@ class EasyS3Bucket:
         EasyLog.trace('Bucket Name: {bucket_name}'.format(bucket_name=self.__bucket_name__))
         EasyLog.trace('Bucket Filename: {bucket_filename}'.format(bucket_filename=bucket_filename))
 
-        return EasyS3.delete_file(
+        return EasyS3.file_delete(
             bucket_name=self.__bucket_name__,
             bucket_filename=bucket_filename
         )
@@ -247,7 +247,7 @@ class EasyS3Bucket:
             destination_bucket_filename=destination_bucket_filename
         )
 
-    def download_file(self, bucket_filename, local_filename) -> None:
+    def file_download(self, bucket_filename, local_filename) -> None:
         """
         Download a file from this S3 bucket to local disk
 
@@ -266,13 +266,13 @@ class EasyS3Bucket:
 
         bucket_filename = self.get_path_relative_to_base_path(bucket_filename=bucket_filename)
 
-        EasyS3.download_file(
+        EasyS3.file_download(
             bucket_name=self.__bucket_name__,
             bucket_filename=bucket_filename,
             local_filename=local_filename
         )
 
-    def upload_file(self, bucket_filename, local_filename) -> None:
+    def file_upload(self, bucket_filename, local_filename) -> None:
         """
         Upload a local file to the bucket
 
@@ -291,13 +291,13 @@ class EasyS3Bucket:
 
         bucket_filename = self.get_path_relative_to_base_path(bucket_filename=bucket_filename)
 
-        return EasyS3.upload_file(
+        return EasyS3.file_upload(
             bucket_name=self.__bucket_name__,
             bucket_filename=bucket_filename,
             local_filename=local_filename
         )
 
-    def download_string(self, bucket_filename, content_encoding='utf-8') -> str:
+    def file_download_to_string(self, bucket_filename, content_encoding='utf-8') -> str:
         """
         Download a file from the bucket decoding it to a string
 
@@ -316,13 +316,13 @@ class EasyS3Bucket:
 
         bucket_filename = self.get_path_relative_to_base_path(bucket_filename=bucket_filename)
 
-        return EasyS3.download_string(
+        return EasyS3.file_download_to_string(
             bucket_name=self.__bucket_name__,
             bucket_filename=bucket_filename,
             encoding=content_encoding
         )
 
-    def upload_string(self, bucket_filename, content, content_encoding='utf-8') -> None:
+    def file_upload_from_string(self, bucket_filename, content, content_encoding='utf-8') -> None:
         """
         Upload the contents of a string to the bucket
 
@@ -344,7 +344,7 @@ class EasyS3Bucket:
 
         bucket_filename = self.get_path_relative_to_base_path(bucket_filename=bucket_filename)
 
-        return EasyS3.upload_string(
+        return EasyS3.file_upload_from_string(
             bucket_name=self.__bucket_name__,
             bucket_filename=bucket_filename,
             contents=content,

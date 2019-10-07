@@ -60,6 +60,15 @@ class EasyAction:
             )
         }
 
+        if 'inputs' in configuration:
+            if isinstance(configuration['inputs'], dict) is True:
+                for input_name in configuration['inputs'].keys():
+                    EasyLog.debug('Loading input value: {input_name}'.format(input_name=input_name))
+                    EasyAction.__actions__[reference]['callable'].set_input(
+                        name=input_name,
+                        value=configuration['inputs'][input_name]
+                    )
+
     @staticmethod
     def clear_actions() -> None:
         """
@@ -130,14 +139,32 @@ class EasyAction:
 
             # If inputs are defined, ensure they are in a dictionary
             if 'inputs' in action:
-                if isinstance(action['inputs'], dict) is False:
-                    EasyLog.error('The action contains an input value that is not a valid dictionary')
-                    error = True
+                if action['inputs'] is not None:
+                    if isinstance(action['inputs'], dict) is False:
+                        EasyLog.error('The action contains an input value that is not a valid dictionary')
+                        error = True
 
-            if 'next_action' in action:
-                if EasyAction.has_action(action['next_action']) is False:
-                    EasyLog.error('Required action specified in next_action does not exist: "{reference}"'.format(reference=action['next_action']))
-                    error = True
+            if 'failure_actions' in action:
+                if 'failure_actions' is not None:
+                    if isinstance(action['failure_actions'], list) is False:
+                        EasyLog.error('failure actions was not a valid list type')
+                        error = True
+                    else:
+                        for failure_action in action['failure_actions']:
+                            if EasyAction.has_action(failure_action) is False:
+                                EasyLog.error('Required action specified in next_action does not exist: "{reference}"'.format(reference=action['failure_actions']))
+                                error = True
+
+            if 'success_actions' in action:
+                if 'success_actions' is not None:
+                    if isinstance(action['success_actions'], list) is False:
+                        EasyLog.error('Success actions was not a valid list type')
+                        error = True
+                    else:
+                        for success_action in action['success_actions']:
+                            if EasyAction.has_action(success_action) is False:
+                                EasyLog.error('Required action specified in next_action does not exist: "{reference}"'.format(reference=action['success_actions']))
+                                error = True
 
         return error is False
 

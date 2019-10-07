@@ -1,4 +1,7 @@
 import importlib
+import os
+import tempfile
+import uuid
 
 from datetime import datetime
 from EasyLambda.EasyLog import EasyLog
@@ -110,3 +113,22 @@ class EasyHelpers:
 
         # Return the class
         return __class__
+
+    @staticmethod
+    def create_unique_local_temp_path() -> str:
+        """
+        Create a new local path inside the system temp folder that is guaranteed to be unique
+
+        :return: str
+        """
+        count = 0
+        temp_path = tempfile.gettempdir()
+        while True:
+            count = count + 1
+            local_path = '{temp_path}/{uuid}'.format(temp_path=temp_path, uuid=uuid.uuid4())
+            if os.path.exists(local_path) is False:
+                os.makedirs(local_path, exist_ok=False)
+                EasyLog.debug('Created unique local temporary path: {local_path}'.format(local_path=local_path))
+                return local_path
+            if count > 10:
+                raise Exception('Failed to create unique local filepath')

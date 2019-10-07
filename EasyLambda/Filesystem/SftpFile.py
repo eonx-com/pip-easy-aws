@@ -46,7 +46,7 @@ class SftpFile:
 
         :return: File
         """
-        return self.__filesystem__.download_file(
+        return self.__filesystem__.file_download(
             remote_filename=self.__filename__,
             local_filename=local_filename
         )
@@ -60,7 +60,7 @@ class SftpFile:
 
         :return: None
         """
-        self.__filesystem__.upload_file(
+        self.__filesystem__.file_upload(
             remote_filename=self.__filename__,
             local_filename=local_filename
         )
