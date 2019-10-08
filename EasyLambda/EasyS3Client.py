@@ -7,11 +7,12 @@ import os
 import tempfile
 import uuid
 
+from EasyLambda.EasyHelpers import EasyHelpers
 from EasyLambda.EasyLog import EasyLog
 from io import BytesIO
 
 
-class EasyS3:
+class EasyS3Client:
     # Error constants
     ERROR_LOCAL_FILE_NOT_FOUND = 'The file was not found on the local filesystem'
     ERROR_LOCAL_FILE_UNREADABLE = 'The file was found on the local filesystem however its content were not readable, please check file permissions'
@@ -36,12 +37,12 @@ class EasyS3:
         Setup CloudWatch client
         """
         # If we haven't gotten a client yet- create one now and cache it for future calls
-        if EasyS3.__client__ is None:
+        if EasyS3Client.__client__ is None:
             EasyLog.trace('Instantiating AWS S3 client...')
-            EasyS3.__client__ = boto3.session.Session().client('s3')
+            EasyS3Client.__client__ = boto3.session.Session().client('s3')
 
         # Return the cached client
-        return EasyS3.__client__
+        return EasyS3Client.__client__
 
     @staticmethod
     def get_uuid() -> str:
@@ -51,11 +52,11 @@ class EasyS3:
         :return: str
         """
         # If we haven't use a UUID yet, generate one and cache it
-        if EasyS3.__uuid__ is None:
-            EasyS3.__uuid__ = uuid.uuid4()
+        if EasyS3Client.__uuid__ is None:
+            EasyS3Client.__uuid__ = uuid.uuid4()
 
         # Return the cached UUID
-        return EasyS3.__uuid__
+        return EasyS3Client.__uuid__
 
     @staticmethod
     def list_buckets() -> list:
@@ -68,11 +69,11 @@ class EasyS3:
         buckets = []
 
         try:
-            for bucket in EasyS3.get_s3_client().list_buckets()['Buckets']:
+            for bucket in EasyS3Client.get_s3_client().list_buckets()['Buckets']:
                 EasyLog.debug('Found: {bucket}'.format(bucket=bucket['Name']))
                 buckets.append(bucket['Name'])
         except Exception as list_exception:
-            EasyLog.exception(EasyS3.ERROR_LIST_BUCKETS_EXCEPTION, list_exception)
+            EasyLog.exception(EasyS3Client.ERROR_LIST_BUCKETS_EXCEPTION, list_exception)
             raise list_exception
         return buckets
 
@@ -93,7 +94,7 @@ class EasyS3:
         :return: list
         """
         EasyLog.trace('Listing files in bucket...')
-        bucket_path = EasyS3.sanitize_path(bucket_path)
+        bucket_path = EasyS3Client.sanitize_path(bucket_path)
 
         recursive_enabled = 'No'
         if recursive is True:
@@ -108,7 +109,7 @@ class EasyS3:
             files = []
 
             EasyLog.debug('Retrieving file list...')
-            objects = EasyS3.get_s3_client().list_objects_v2(
+            objects = EasyS3Client.get_s3_client().list_objects_v2(
                 Bucket=bucket_name,
                 Prefix=bucket_path,
                 Delimiter='|'
@@ -140,13 +141,13 @@ class EasyS3:
 
                 # There were more results, rerun the search to get the next page of results
                 EasyLog.debug('Retrieving next page of results...')
-                objects = EasyS3.get_s3_client().list_objects_v2(
+                objects = EasyS3Client.get_s3_client().list_objects_v2(
                     Bucket=bucket_name,
                     Delimiter='|',
                     NextMarker=objects['NextMarker']
                 )
         except Exception as list_exception:
-            EasyLog.exception(EasyS3.ERROR_file_list_EXCEPTION, list_exception)
+            EasyLog.exception(EasyS3Client.ERROR_file_list_EXCEPTION, list_exception)
             raise list_exception
 
         # Return files we found
@@ -171,7 +172,7 @@ class EasyS3:
 
         try:
             # Retrieve list of files in the bucket
-            files = EasyS3.file_list(bucket_name=bucket_name, bucket_path=bucket_filename)
+            files = EasyS3Client.file_list(bucket_name=bucket_name, bucket_path=bucket_filename)
 
             result = bucket_filename in files
 
@@ -180,7 +181,7 @@ class EasyS3:
             else:
                 EasyLog.debug('The requested file could not be found')
         except Exception as exists_exception:
-            EasyLog.exception(EasyS3.ERROR_FILE_EXISTS_EXCEPTION, exists_exception)
+            EasyLog.exception(EasyS3Client.ERROR_FILE_EXISTS_EXCEPTION, exists_exception)
             raise exists_exception
 
         return result
@@ -205,16 +206,16 @@ class EasyS3:
         try:
             # Make sure the file exists
             EasyLog.trace('Checking if requested file exists...')
-            if EasyS3.file_exists(bucket_name=bucket_name, bucket_filename=bucket_filename) is False:
+            if EasyS3Client.file_exists(bucket_name=bucket_name, bucket_filename=bucket_filename) is False:
                 raise Exception('The requested file did not exist, deleting failed')
 
             EasyLog.trace('File found, deleting requested file...')
-            result = EasyS3.get_s3_client().delete_object(
+            result = EasyS3Client.get_s3_client().delete_object(
                 Bucket=bucket_name,
                 Key=bucket_filename
             )
         except Exception as delete_exception:
-            EasyLog.exception(EasyS3.ERROR_FILE_DELETE_EXCEPTION, delete_exception)
+            EasyLog.exception(EasyS3Client.ERROR_FILE_DELETE_EXCEPTION, delete_exception)
             raise delete_exception
 
         # Make sure the result is correctly formed and return boolean flag
@@ -241,18 +242,18 @@ class EasyS3:
         """
         try:
             EasyLog.trace('Moving S3 file...')
-            EasyS3.copy_file(
+            EasyS3Client.copy_file(
                 source_bucket_name=source_bucket_name,
                 source_bucket_filename=source_bucket_filename,
                 destination_bucket_name=destination_bucket_name,
                 destination_bucket_filename=destination_bucket_filename
             )
-            EasyS3.file_delete(
+            EasyS3Client.file_delete(
                 bucket_name=source_bucket_name,
                 bucket_filename=source_bucket_filename
             )
         except Exception as move_exception:
-            EasyLog.exception(EasyS3.ERROR_FILE_MOVE_EXCEPTION, move_exception)
+            EasyLog.exception(EasyS3Client.ERROR_FILE_MOVE_EXCEPTION, move_exception)
             raise move_exception
 
     @staticmethod
@@ -277,8 +278,8 @@ class EasyS3:
         EasyLog.trace('Copying S3 file...')
 
         # Sanitize supplied filenames
-        source_bucket_filename = EasyS3.sanitize_path(source_bucket_filename)
-        destination_bucket_filename = EasyS3.sanitize_path(destination_bucket_filename)
+        source_bucket_filename = EasyS3Client.sanitize_path(source_bucket_filename)
+        destination_bucket_filename = EasyS3Client.sanitize_path(destination_bucket_filename)
 
         EasyLog.debug('Source Bucket Name: {source_bucket_name}'.format(source_bucket_name=source_bucket_name))
         EasyLog.debug('Source Bucket Filename: {source_bucket_filename}'.format(source_bucket_filename=source_bucket_filename))
@@ -290,16 +291,16 @@ class EasyS3:
         if source_bucket_filename == destination_bucket_filename:
             raise Exception('The source and destination filenames cannot be the same')
 
-        if EasyS3.file_exists(bucket_name=source_bucket_name, bucket_filename=source_bucket_filename) is False:
+        if EasyS3Client.file_exists(bucket_name=source_bucket_name, bucket_filename=source_bucket_filename) is False:
             raise Exception('The requested file did not exist in the source bucket')
 
-        if EasyS3.file_exists(bucket_name=destination_bucket_name, bucket_filename=destination_bucket_filename) is False:
+        if EasyS3Client.file_exists(bucket_name=destination_bucket_name, bucket_filename=destination_bucket_filename) is False:
             raise Exception('The requested file did not exist in the destination bucket')
 
         try:
             # Copy the object to its destination
             EasyLog.debug('Copying file to destination...')
-            EasyS3.get_s3_client().copy(
+            EasyS3Client.get_s3_client().copy(
                 Bucket=destination_bucket_name,
                 CopySource={'Bucket': source_bucket_name, 'Key': source_bucket_filename},
                 Key=destination_bucket_filename
@@ -338,13 +339,13 @@ class EasyS3:
 
         try:
             EasyLog.debug('Downloading...')
-            EasyS3.get_s3_client().file_download(
+            EasyS3Client.get_s3_client().file_download(
                 Bucket=bucket_name,
                 Key=bucket_filename,
                 Filename=local_filename
             )
         except Exception as download_exception:
-            EasyLog.exception(EasyS3.ERROR_FILE_DOWNLOAD_EXCEPTION, download_exception)
+            EasyLog.exception(EasyS3Client.ERROR_FILE_DOWNLOAD_EXCEPTION, download_exception)
             raise download_exception
 
     @staticmethod
@@ -369,12 +370,12 @@ class EasyS3:
         EasyLog.trace('String Encoding: {encoding}'.format(encoding=encoding))
 
         try:
-            return EasyS3.get_s3_client().get_object(
+            return EasyS3Client.get_s3_client().get_object(
                 Bucket=bucket_name,
                 Key=bucket_filename
             ).get('Body').read().decode(encoding)
         except Exception as download_exception:
-            EasyLog.exception(EasyS3.ERROR_FILE_DOWNLOAD_EXCEPTION, download_exception)
+            EasyLog.exception(EasyS3Client.ERROR_FILE_DOWNLOAD_EXCEPTION, download_exception)
             raise download_exception
 
     @staticmethod
@@ -394,7 +395,7 @@ class EasyS3:
         :return: None
         """
         EasyLog.trace('Uploading file from local filesystem to S3 bucket...')
-        EasyLog.debug('Uploading: {file_uploadname}'.format(file_uploadname=local_filename))
+        EasyLog.debug('Uploading: {local_filename}'.format(local_filename=local_filename))
         EasyLog.debug('Bucket Name: {bucket_name}'.format(bucket_name=bucket_name))
         EasyLog.debug('Bucket Filename: {bucket_filename}'.format(bucket_filename=bucket_filename))
 
@@ -402,8 +403,8 @@ class EasyS3:
         EasyLog.debug('Checking local file exists...')
 
         if os.path.exists(path=local_filename) is False:
-            EasyLog.error(EasyS3.ERROR_LOCAL_FILE_NOT_FOUND)
-            raise Exception(EasyS3.ERROR_LOCAL_FILE_NOT_FOUND)
+            EasyLog.error(EasyS3Client.ERROR_LOCAL_FILE_NOT_FOUND)
+            raise Exception(EasyS3Client.ERROR_LOCAL_FILE_NOT_FOUND)
 
         # Make sure the file is readable
 
@@ -414,18 +415,18 @@ class EasyS3:
         local_file.close()
 
         if local_file_readable is False:
-            EasyLog.error(EasyS3.ERROR_LOCAL_FILE_UNREADABLE)
-            raise Exception(EasyS3.ERROR_LOCAL_FILE_UNREADABLE)
+            EasyLog.error(EasyS3Client.ERROR_LOCAL_FILE_UNREADABLE)
+            raise Exception(EasyS3Client.ERROR_LOCAL_FILE_UNREADABLE)
 
         try:
             EasyLog.debug('Uploading...')
-            EasyS3.get_s3_client().file_upload(
+            EasyS3Client.get_s3_client().file_upload(
                 Bucket=bucket_name,
                 Key=bucket_filename,
                 Filename=local_filename
             )
         except Exception as upload_exception:
-            EasyLog.exception(EasyS3.ERROR_FILE_UPLOAD_EXCEPTION, upload_exception)
+            EasyLog.exception(EasyS3Client.ERROR_FILE_UPLOAD_EXCEPTION, upload_exception)
             raise upload_exception
 
     @staticmethod
@@ -454,13 +455,13 @@ class EasyS3:
         EasyLog.trace('String Length: {string_length}'.format(string_length=len(contents)))
 
         try:
-            EasyS3.get_s3_client().file_uploadobj(
+            EasyS3Client.get_s3_client().file_uploadobj(
                 Fileobj=BytesIO(bytes(contents, encoding)),
                 Bucket=bucket_name,
                 Key=bucket_filename
             )
         except Exception as upload_exception:
-            EasyLog.exception(EasyS3.ERROR_FILE_UPLOAD_EXCEPTION, upload_exception)
+            EasyLog.exception(EasyS3Client.ERROR_FILE_UPLOAD_EXCEPTION, upload_exception)
             raise upload_exception
 
     @staticmethod
@@ -481,7 +482,7 @@ class EasyS3:
         EasyLog.debug('Bucket Filename: {bucket_filename}'.format(bucket_filename=bucket_filename))
 
         try:
-            object_tags = EasyS3.get_s3_client().get_object_tagging(
+            object_tags = EasyS3Client.get_s3_client().get_object_tagging(
                 Bucket=bucket_name,
                 Key=bucket_filename
             )
@@ -501,7 +502,7 @@ class EasyS3:
                 EasyLog.debug('No tags were found for specified file')
 
         except Exception as get_tag_exception:
-            EasyLog.exception(EasyS3.ERROR_FILE_GET_TAG_EXCEPTION, get_tag_exception)
+            EasyLog.exception(EasyS3Client.ERROR_FILE_GET_TAG_EXCEPTION, get_tag_exception)
             raise get_tag_exception
 
         return returned_tags
@@ -534,13 +535,13 @@ class EasyS3:
                 tag_set.append({'Key': key, 'Value': tags[key]})
 
             EasyLog.debug('Writing tags to S3 object...')
-            EasyS3.get_s3_client().put_object_tagging(
+            EasyS3Client.get_s3_client().put_object_tagging(
                 Bucket=bucket_name,
                 Key=bucket_filename,
                 Tagging={'TagSet': tag_set}
             )
         except Exception as put_tag_exception:
-            EasyLog.exception(EasyS3.ERROR_FILE_PUT_TAG_EXCEPTION, put_tag_exception)
+            EasyLog.exception(EasyS3Client.ERROR_FILE_PUT_TAG_EXCEPTION, put_tag_exception)
             raise put_tag_exception
 
     @staticmethod
@@ -561,15 +562,15 @@ class EasyS3:
         EasyLog.debug('Bucket Path: {bucket_path}'.format(bucket_path=bucket_path))
 
         # Generate test filenames
-        bucket_filename = EasyS3.sanitize_path('{path}/{bucket}.{uuid}.test.txt'.format(
+        bucket_filename = EasyS3Client.sanitize_path('{path}/{bucket}.{uuid}.test.txt'.format(
             path=bucket_path,
             bucket=bucket_name,
-            uuid=EasyS3.get_uuid()
+            uuid=EasyS3Client.get_uuid()
         ))
-        original_filename = EasyS3.sanitize_path('{temp_dir}/{bucket}.{uuid}.test.txt'.format(
+        original_filename = EasyS3Client.sanitize_path('{temp_dir}/{bucket}.{uuid}.test.txt'.format(
             temp_dir=tempfile.gettempdir(),
             bucket=bucket_name,
-            uuid=EasyS3.get_uuid()
+            uuid=EasyS3Client.get_uuid()
         ))
         downloaded_filename = '{original_filename}.downloaded'.format(original_filename=original_filename)
 
@@ -598,14 +599,14 @@ class EasyS3:
 
         # Make that mother trucking file dance
         EasyLog.debug('Uploading test file to S3 bucket...')
-        EasyS3.file_upload(
+        EasyS3Client.file_upload(
             bucket_name=bucket_name,
             bucket_filename=bucket_filename,
             local_filename=original_filename
         )
 
         EasyLog.debug('Downloading test file from S3 bucket: downloaded_filename...'.format(downloaded_filename=downloaded_filename))
-        EasyS3.file_download(
+        EasyS3Client.file_download(
             bucket_name=bucket_name,
             bucket_filename=bucket_filename,
             local_filename=downloaded_filename
@@ -623,7 +624,7 @@ class EasyS3:
         os.unlink(downloaded_filename)
 
         EasyLog.debug('Deleting uploaded file...')
-        EasyS3.file_delete(
+        EasyS3Client.file_delete(
             bucket_name=bucket_name,
             bucket_filename=bucket_filename
         )
@@ -639,8 +640,7 @@ class EasyS3:
     @staticmethod
     def sanitize_path(path) -> str:
         """
-        Sanitize an S3 path, ensuring it does not have duplicate slashes, and that it does not start with a slash (as this creates an unnamed folder
-        in the root of the bucket)
+        In addition to the standard sanitization of paths, S3 filenames should not start with a slash- otherwise the file will be placed into an unnamed folder
 
         :type path: str
         :param path: Path to sanitize
@@ -649,17 +649,10 @@ class EasyS3:
         """
         EasyLog.trace('Sanitizing user input path: {path}'.format(path=path))
 
-        # If there is no path, return an empty string
-        path = str(path)
-        if len(path) == 0:
-            return ''
+        path = EasyHelpers.sanitize_path(path)
 
         # Strip all leading slashes
         while path.startswith('/'):
             path = path[1:]
-
-        # Remove all duplicated slashes
-        while '//' in path:
-            path = path.replace('//', '/')
 
         return path

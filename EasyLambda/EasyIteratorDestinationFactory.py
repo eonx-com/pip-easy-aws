@@ -1,6 +1,9 @@
-from EasyLambda.EasyIteratorDestination import EasyIteratorDestination
-from EasyLambda.EasyFilesystemDriverS3 import EasyFilesystemDriverS3
-from EasyLambda.EasyFilesystemDriverSftp import EasyFilesystemDriverSftp
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from EasyLambda.Filesystem.S3 import S3
+from EasyLambda.Filesystem.Sftp import Sftp
+from EasyLambda.Iterator.Destination import Destination
 
 
 class EasyIteratorDestinationFactory:
@@ -11,7 +14,7 @@ class EasyIteratorDestinationFactory:
             create_timestamped_folder=False,
             create_logfile_on_completion=False,
             allow_overwrite=False
-    ) -> EasyIteratorDestination:
+    ) -> Destination:
         """
         Create a new AWS S3 file destination
 
@@ -32,12 +35,12 @@ class EasyIteratorDestinationFactory:
 
         :return: EasyIteratorDestination
         """
-        filesystem_driver = EasyFilesystemDriverS3(
+        filesystem_driver = S3(
             bucket_name=bucket_name,
             base_path=base_path
         )
 
-        return EasyIteratorDestination(
+        return Destination(
             filesystem_driver=filesystem_driver,
             create_timestamped_folder=create_timestamped_folder,
             create_logfile_on_completion=create_logfile_on_completion,
@@ -52,12 +55,13 @@ class EasyIteratorDestinationFactory:
             rsa_private_key=None,
             fingerprint=None,
             fingerprint_type=None,
+            validate_fingerprint=True,
             port=22,
             base_path='/',
             create_timestamped_folder=False,
             create_logfile_on_completion=False,
             allow_overwrite=False
-    ) -> EasyIteratorDestination:
+    ) -> Destination:
         """
         Create a new SFTP file destination
 
@@ -82,6 +86,9 @@ class EasyIteratorDestinationFactory:
         :type fingerprint_type: str
         :param fingerprint_type: Host sftp_fingerprint type
 
+        :type validate_fingerprint: bool
+        :param validate_fingerprint: Flag indicating SFTP server fingerprint should be validated
+
         :type base_path: str
         :param base_path: Base SFTP file path, files will be recursively iterated from this path
 
@@ -96,18 +103,19 @@ class EasyIteratorDestinationFactory:
 
         :return: EasyIteratorDestination
         """
-        filesystem_driver = EasyFilesystemDriverSftp(
+        filesystem_driver = Sftp(
             address=address,
             username=username,
             password=password,
             rsa_private_key=rsa_private_key,
             fingerprint=fingerprint,
             fingerprint_type=fingerprint_type,
+            validate_fingerprint=validate_fingerprint,
             port=port,
             base_path=base_path
         )
 
-        return EasyIteratorDestination(
+        return Destination(
             filesystem_driver=filesystem_driver,
             create_timestamped_folder=create_timestamped_folder,
             create_logfile_on_completion=create_logfile_on_completion,

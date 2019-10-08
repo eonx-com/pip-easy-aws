@@ -1,5 +1,9 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from EasyLambda.EasyHelpers import EasyHelpers
 from EasyLambda.EasyLog import EasyLog
-from EasyLambda.EasySftp import EasySftp
+from EasyLambda.EasySftpClient import EasySftpClient
 
 
 class EasySftpServer:
@@ -11,6 +15,7 @@ class EasySftpServer:
             rsa_private_key=None,
             fingerprint=None,
             fingerprint_type=None,
+            validate_fingerprint=True,
             port=22,
             base_path='',
             host_key_checking=True
@@ -39,6 +44,9 @@ class EasySftpServer:
         :type fingerprint_type: str
         :param fingerprint_type: Host sftp_fingerprint type
 
+        :type validate_fingerprint: bool
+        :param validate_fingerprint: Flag indicating SFTP server fingerprint should be validated
+
         :type base_path: str
         :param base_path: Base SFTP file path, all uploads/downloads will have this path prepended
 
@@ -50,7 +58,7 @@ class EasySftpServer:
         # Store server details
         self.__address__ = address
         self.__port__ = port
-        self.__base_path__ = base_path
+        self.__base_path__ = EasyHelpers.sanitize_path(base_path)
         self.__host_key_checking__ = host_key_checking
         self.__username__ = username
         self.__password__ = password
@@ -60,7 +68,11 @@ class EasySftpServer:
         self.__host_key_checking__ = host_key_checking
 
         # Get an EasySftp client
-        self.__sftp_client__ = EasySftp()
+        self.__sftp_client__ = EasySftpClient()
+
+        # Disable fingerprint validation if requested
+        if validate_fingerprint is False:
+            self.__sftp_client__.disable_host_key_checking()
 
         # Raise warning if host key checking is disabled
         if self.__host_key_checking__ is False:
@@ -317,12 +329,7 @@ class EasySftpServer:
 
         :return: str
         """
-        path = '{base_path}/{path}'.format(
+        return EasyHelpers.sanitize_path('{base_path}/{path}'.format(
             base_path=self.__base_path__,
             path=path
-        )
-
-        while '//' in path:
-            path = path.replace('//', '/')
-
-        return path
+        ))

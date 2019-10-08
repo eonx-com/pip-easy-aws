@@ -1,9 +1,12 @@
-from EasyLambda.EasyFilesystem import EasyFilesystem
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from EasyLambda.Filesystem.BaseFilesystem import BaseFilesystem
 from EasyLambda.EasyHelpers import EasyHelpers
 from EasyLambda.EasyLog import EasyLog
 
 
-class EasyIteratorDestination:
+class Destination:
     def __init__(
             self,
             filesystem_driver,
@@ -14,7 +17,7 @@ class EasyIteratorDestination:
         """
         Setup source filesystem
 
-        :type filesystem_driver: EasyFilesystem
+        :type filesystem_driver: BaseFilesystem
         :param filesystem_driver: The underlying filesystem this destination is using
 
         :type create_timestamped_folder: bool
@@ -75,14 +78,14 @@ class EasyIteratorDestination:
 
         # If allow overwrite is disabled, make sure the file does not already exist
         if self.is_allow_overwrite_enabled() is False:
-            if self.__filesystem_driver__.file_exists(filesystem_filename=destination_filename):
+            if self.__filesystem_driver__.file_exists(filename=destination_filename):
                 EasyLog.error('The file already exists at the destination and allow overwrite is disabled')
                 return False
 
         try:
             self.__filesystem_driver__.file_upload(
                 local_filename=local_filename,
-                filesystem_filename=destination_filename
+                filename=destination_filename
             )
             return True
         except Exception as upload_exception:

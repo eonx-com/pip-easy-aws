@@ -1,5 +1,8 @@
-from EasyLambda.EasyIteratorDestination import EasyIteratorDestination
-from EasyLambda.EasyIteratorSource import EasyIteratorSource
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from EasyLambda.Iterator.Destination import Destination
+from EasyLambda.Iterator.Source import Source
 from EasyLambda.EasyLog import EasyLog
 
 
@@ -46,14 +49,14 @@ class EasyIterator:
         """
         Add source filesystem
 
-        :type source: EasyIteratorSource
+        :type source: Source
         :param source: Source filesystem to add
 
         :return: None  
         """
         EasyLog.trace('Adding source filesystem...')
 
-        if isinstance(source, EasyIteratorSource) is False:
+        if isinstance(source, Source) is False:
             raise Exception(EasyIterator.ERROR_INVALID_ITERATOR_SOURCE)
 
         self.__sources__.append(source)
@@ -62,14 +65,14 @@ class EasyIterator:
         """
         Add destination filesystem for successfully iterated files
 
-        :type destination: EasyIteratorDestination
+        :type destination: Destination
         :param destination: Destination filesystem to add
 
         :return: None  
         """
         EasyLog.trace('Adding success destination filesystem...')
 
-        if isinstance(destination, EasyIteratorDestination) is False:
+        if isinstance(destination, Destination) is False:
             raise Exception(EasyIterator.ERROR_INVALID_ITERATOR_DESTINATION)
 
         self.__success_destinations__.append(destination)
@@ -78,19 +81,19 @@ class EasyIterator:
         """
         Add destination filesystem for files that fail during iteration
 
-        :type destination: EasyIteratorDestination
+        :type destination: Destination
         :param destination: Destination filesystem to add
 
         :return: None
         """
         EasyLog.trace('Adding failure destination filesystem...')
 
-        if isinstance(destination, EasyIteratorDestination) is False:
+        if isinstance(destination, Destination) is False:
             raise Exception('Unknown destination type added, expecting an EasyIteratorDestination type')
 
         self.__failure_destinations__.append(destination)
 
-    def iterate_sources(self, callback, maximum_files=None) -> None:
+    def iterate_sources(self, callback, maximum_files=None) -> list:
         """
         Iterate over all files in the sources
 
@@ -100,34 +103,33 @@ class EasyIterator:
         :type maximum_files: int or None
         :param maximum_files: The maximum number of files to iterate
 
-        :return: None
+        :return: list[EasyIteratorStakedFile]
         """
         EasyLog.trace('Iterating all available file sources...')
 
         if len(self.__sources__) == 0:
             raise Exception(EasyIterator.ERROR_NO_SOURCES_DEFINED)
 
-        count_files_iterated = 0
+        staked_files = []
 
-        source: EasyIteratorSource
+        source: Source
         for source in self.__sources__:
             EasyLog.debug('Iterating next file source...')
 
             # Sanity check the source type before we try to iterate
-            if isinstance(source, EasyIteratorSource) is False:
+            if isinstance(source, Source) is False:
                 raise Exception(EasyIterator.ERROR_INVALID_ITERATOR_SOURCE)
 
             # Work out how many files we can iterate
             if maximum_files is not None:
-                remaining_files = maximum_files - count_files_iterated
-                if remaining_files == 0:
-                    EasyLog.debug('Maximum file limit reached, iteration terminated early...')
-                    break
+                remaining_files = maximum_files - len(staked_files)
             else:
                 remaining_files = None
 
             # Iterate files in the current source
-            count_files_iterated = count_files_iterated + source.iterate_files(
+            staked_files.extend(source.iterate_files(
                 callback=callback,
                 maximum_files=remaining_files
-            )
+            ))
+
+        return staked_files

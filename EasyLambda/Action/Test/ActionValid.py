@@ -1,8 +1,7 @@
 """
 This file contains actions used in unit tests
 """
-
-from EasyLambda.EasyAction import BaseAction
+from EasyLambda.Action.BaseAction import BaseAction
 
 
 class Action(BaseAction):

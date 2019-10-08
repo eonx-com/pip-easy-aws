@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from EasyLambda.EasyLog import EasyLog
-from EasyLambda.EasyS3 import EasyS3
+from EasyLambda.EasyS3Client import EasyS3Client
 
 
 class EasyS3Bucket:
@@ -15,7 +15,7 @@ class EasyS3Bucket:
         :param base_path: Base path inside the the bucket
         """
         self.__bucket_name__ = bucket_name
-        self.__base_path__ = EasyS3.sanitize_path(path=base_path)
+        self.__base_path__ = EasyS3Client.sanitize_path(path=base_path)
 
         EasyLog.trace('Instantiating EasyS3Bucket: {bucket_name}:{base_path}'.format(
             bucket_name=self.__bucket_name__,
@@ -50,7 +50,7 @@ class EasyS3Bucket:
 
         :return: str
         """
-        return EasyS3.sanitize_path('{base_path}/{bucket_path}'.format(
+        return EasyS3Client.sanitize_path('{base_path}/{bucket_path}'.format(
             base_path=self.__base_path__,
             bucket_path=bucket_filename
         ))
@@ -77,7 +77,7 @@ class EasyS3Bucket:
         EasyLog.debug('Bucket Name: {bucket_name}'.format(bucket_name=self.__bucket_name__))
         EasyLog.debug('Bucket Path: {bucket_path}'.format(bucket_path=bucket_path))
 
-        return EasyS3.file_list(
+        return EasyS3Client.file_list(
             bucket_name=self.__bucket_name__,
             bucket_path=bucket_path,
             recursive=recursive
@@ -102,7 +102,7 @@ class EasyS3Bucket:
         EasyLog.debug('Bucket Name: {bucket_name}'.format(bucket_name=self.__bucket_name__))
         EasyLog.debug('Bucket Filename: {bucket_filename}'.format(bucket_filename=bucket_filename))
 
-        return EasyS3.file_exists(
+        return EasyS3Client.file_exists(
             bucket_name=self.__bucket_name__,
             bucket_filename=bucket_filename
         )
@@ -126,7 +126,7 @@ class EasyS3Bucket:
         EasyLog.trace('Bucket Name: {bucket_name}'.format(bucket_name=self.__bucket_name__))
         EasyLog.trace('Bucket Filename: {bucket_filename}'.format(bucket_filename=bucket_filename))
 
-        return EasyS3.file_delete(
+        return EasyS3Client.file_delete(
             bucket_name=self.__bucket_name__,
             bucket_filename=bucket_filename
         )
@@ -153,7 +153,7 @@ class EasyS3Bucket:
 
         destination_bucket_filename = self.get_path_relative_to_base_path(bucket_filename=destination_bucket_filename)
 
-        return EasyS3.move_file(
+        return EasyS3Client.move_file(
             source_bucket_name=source_bucket_name,
             source_bucket_filename=source_bucket_filename,
             destination_bucket_name=self.__bucket_name__,
@@ -182,7 +182,7 @@ class EasyS3Bucket:
 
         source_bucket_filename = self.get_path_relative_to_base_path(bucket_filename=source_bucket_filename)
 
-        return EasyS3.move_file(
+        return EasyS3Client.move_file(
             source_bucket_name=self.__bucket_name__,
             source_bucket_filename=source_bucket_filename,
             destination_bucket_name=destination_bucket_name,
@@ -211,7 +211,7 @@ class EasyS3Bucket:
 
         source_bucket_filename = self.get_path_relative_to_base_path(bucket_filename=source_bucket_filename)
 
-        return EasyS3.copy_file(
+        return EasyS3Client.copy_file(
             source_bucket_name=self.__bucket_name__,
             source_bucket_filename=source_bucket_filename,
             destination_bucket_name=destination_bucket_name,
@@ -240,7 +240,7 @@ class EasyS3Bucket:
 
         destination_bucket_filename = self.get_path_relative_to_base_path(bucket_filename=destination_bucket_filename)
 
-        return EasyS3.copy_file(
+        return EasyS3Client.copy_file(
             source_bucket_name=source_bucket_name,
             source_bucket_filename=source_bucket_filename,
             destination_bucket_name=self.__bucket_name__,
@@ -266,7 +266,7 @@ class EasyS3Bucket:
 
         bucket_filename = self.get_path_relative_to_base_path(bucket_filename=bucket_filename)
 
-        EasyS3.file_download(
+        EasyS3Client.file_download(
             bucket_name=self.__bucket_name__,
             bucket_filename=bucket_filename,
             local_filename=local_filename
@@ -291,7 +291,7 @@ class EasyS3Bucket:
 
         bucket_filename = self.get_path_relative_to_base_path(bucket_filename=bucket_filename)
 
-        return EasyS3.file_upload(
+        return EasyS3Client.file_upload(
             bucket_name=self.__bucket_name__,
             bucket_filename=bucket_filename,
             local_filename=local_filename
@@ -316,7 +316,7 @@ class EasyS3Bucket:
 
         bucket_filename = self.get_path_relative_to_base_path(bucket_filename=bucket_filename)
 
-        return EasyS3.file_download_to_string(
+        return EasyS3Client.file_download_to_string(
             bucket_name=self.__bucket_name__,
             bucket_filename=bucket_filename,
             encoding=content_encoding
@@ -344,7 +344,7 @@ class EasyS3Bucket:
 
         bucket_filename = self.get_path_relative_to_base_path(bucket_filename=bucket_filename)
 
-        return EasyS3.file_upload_from_string(
+        return EasyS3Client.file_upload_from_string(
             bucket_name=self.__bucket_name__,
             bucket_filename=bucket_filename,
             contents=content,
@@ -367,7 +367,7 @@ class EasyS3Bucket:
 
         bucket_filename = self.get_path_relative_to_base_path(bucket_filename=bucket_filename)
 
-        return EasyS3.get_file_tags(
+        return EasyS3Client.get_file_tags(
             bucket_name=self.__bucket_name__,
             bucket_filename=bucket_filename
         )
@@ -391,7 +391,7 @@ class EasyS3Bucket:
 
         bucket_filename = self.get_path_relative_to_base_path(bucket_filename=bucket_filename)
 
-        EasyS3.set_file_tags(
+        EasyS3Client.set_file_tags(
             bucket_name=self.__bucket_name__,
             bucket_filename=bucket_filename,
             tags=tags
@@ -411,7 +411,7 @@ class EasyS3Bucket:
             base_path=self.__base_path__
         ))
 
-        return EasyS3.test_path_permissions(
+        return EasyS3Client.test_path_permissions(
             bucket_name=self.__bucket_name__,
             bucket_path=bucket_path
         )

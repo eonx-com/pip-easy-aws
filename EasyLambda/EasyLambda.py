@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 from abc import abstractmethod
-
 from EasyLambda.EasyCloudWatch import EasyCloudWatch
 from EasyLambda.EasyLog import EasyLog
 

@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import boto3
-from botocore.exceptions import ClientError
 
+from botocore.exceptions import ClientError
 from EasyLambda.EasyLog import EasyLog
 from time import sleep
 

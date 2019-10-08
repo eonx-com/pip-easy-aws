@@ -1,8 +1,11 @@
-from EasyLambda.EasyFilesystemDriver import EasyFilesystemDriver
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from EasyLambda.Filesystem.BaseFilesystem import BaseFilesystem
 from EasyLambda.EasyLog import EasyLog
 
 
-class EasyIteratorSource:
+class Source:
     # Error constants
     ERROR_STAKING_STRATEGY_INVALID = 'The requested staking strategy was invalid'
     ERROR_STAKING_STRATEGY_UNSUPPORTED = 'The selected staking strategy is not supported by the filesystem'
@@ -28,7 +31,7 @@ class EasyIteratorSource:
         """
         This should not be called directly, use the SourceFactory methods to create a source filesystem
 
-        :type filesystem_driver: Filesystem
+        :type filesystem_driver: BaseFilesystem
         :param filesystem_driver: The underlying filesystem this destination is using
 
         :type staking_strategy: str
@@ -53,11 +56,11 @@ class EasyIteratorSource:
 
         if staking_strategy is None:
             # If no staking strategy is selected, ignoring unique staking and just assume downloaded files are staked
-            staking_strategy = EasyIteratorSource.STRATEGY_IGNORE
-        elif staking_strategy not in (EasyIteratorSource.STRATEGY_IGNORE, EasyIteratorSource.STRATEGY_RENAME, EasyIteratorSource.STRATEGY_PROPERTY):
+            staking_strategy = Source.STRATEGY_IGNORE
+        elif staking_strategy not in (Source.STRATEGY_IGNORE, Source.STRATEGY_RENAME, Source.STRATEGY_PROPERTY):
             # Otherwise ensure we received a known strategy
             EasyLog.error('Unknown staking strategy requested: {staking_strategy}'.format(staking_strategy=staking_strategy))
-            raise Exception(EasyIteratorSource.ERROR_STAKING_STRATEGY_INVALID)
+            raise Exception(Source.ERROR_STAKING_STRATEGY_INVALID)
 
         self.__filesystem_driver__ = filesystem_driver
         self.__recursive__ = recursive
@@ -67,7 +70,7 @@ class EasyIteratorSource:
         self.__delete_on_failure__ = delete_on_failure
         self.__staking_strategy__ = staking_strategy
 
-    def iterate_files(self, callback, maximum_files=None) -> int:
+    def iterate_files(self, callback, maximum_files=None) -> list:
         """
         Iterate files from the current source
 
@@ -77,11 +80,11 @@ class EasyIteratorSource:
         :type maximum_files: int or None
         :param maximum_files: The maximum number of files to iterate
 
-
-        :return: int The number of files iterated
+        :return: list[EasyIteratorStakedFile]
         """
         # Pass iteration down to the specific driver class
-        self.__filesystem_driver__: EasyFilesystemDriver
+        self.__filesystem_driver__: BaseFilesystem
+
         return self.__filesystem_driver__.iterate_files(
             callback=callback,
             maximum_files=maximum_files,

@@ -1,16 +1,19 @@
-from EasyLambda.EasyFilesystemDriver import EasyFilesystemDriver
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from EasyLambda.Filesystem.BaseFilesystem import BaseFilesystem
 from EasyLambda.EasyLog import EasyLog
 from EasyLambda.EasyS3Bucket import EasyS3Bucket
 
 
-class EasyFilesystemDriverS3(EasyFilesystemDriver):
+class S3(BaseFilesystem):
     def __init__(
             self,
             bucket_name,
             base_path
     ):
         """
-        Instantiate S3 filesystem driver
+        Instantiate S3 filesystem
 
         :type bucket_name: str
         :param bucket_name: The S3 bucket name
@@ -18,14 +21,14 @@ class EasyFilesystemDriverS3(EasyFilesystemDriver):
         :type base_path: str
         :param base_path: The base path in the S3 bucket
         """
-        EasyLog.trace('Instantiating S3 filesystem driver...')
+        EasyLog.trace('Instantiating S3 filesystem...')
 
         self.__s3_bucket__ = EasyS3Bucket(
             bucket_name=bucket_name,
             base_path=base_path
         )
 
-    def iterate_files(self, callback, maximum_files, success_destinations, failure_destinations, delete_on_success, delete_on_failure, recursive, staking_strategy) -> int:
+    def iterate_files(self, callback, maximum_files, success_destinations, failure_destinations, delete_on_success, delete_on_failure, recursive, staking_strategy) -> list:
         """
         Iterate all files in the filesystem and return the number of files that were iterated
 
@@ -53,16 +56,16 @@ class EasyFilesystemDriverS3(EasyFilesystemDriver):
         :type staking_strategy: str
         :param staking_strategy: The staking strategy to adopt
 
-        :return: int Number of files iterated
+        :return: list[EasyIteratorStakedFile]
         """
         pass
 
-    def file_list(self, filesystem_path, recursive=False) -> list:
+    def file_list(self, path, recursive=False) -> list:
         """
         List files in the filesystem path
 
-        :type filesystem_path: str
-        :param filesystem_path: Path in the filesystem to list (relative to whatever base path may be defined)
+        :type path: str
+        :param path: Path in the filesystem to list (relative to whatever base path may be defined)
 
         :type recursive: bool
         :param recursive: Flag indicating the listing should be recursive. If False, sub-folder contents will not be returned
@@ -70,42 +73,42 @@ class EasyFilesystemDriverS3(EasyFilesystemDriver):
         :return: list
         """
         return self.__s3_bucket__.file_list(
-            bucket_path=filesystem_path,
+            bucket_path=path,
             recursive=recursive
         )
 
-    def file_exists(self, filesystem_filename) -> bool:
+    def file_exists(self, filename) -> bool:
         """
         Check if file exists in the filesystem
 
-        :type filesystem_filename: str
-        :param filesystem_filename: The name of the file to check in the filesystem (relative to whatever base path may be defined)
+        :type filename: str
+        :param filename: The name of the file to check in the filesystem (relative to whatever base path may be defined)
 
         :return: bool
         """
         return self.__s3_bucket__.file_exists(
-            bucket_filename=filesystem_filename
+            bucket_filename=filename
         )
 
-    def file_delete(self, filesystem_filename) -> None:
+    def file_delete(self, filename) -> None:
         """
         Delete a file from the filesystem
 
-        :type filesystem_filename: str
-        :param filesystem_filename: The name of the file to be deleted from the filesystem (relative to whatever base path may be defined)
+        :type filename: str
+        :param filename: The name of the file to be deleted from the filesystem (relative to whatever base path may be defined)
 
         :return: None
         """
         self.__s3_bucket__.file_delete(
-            bucket_filename=filesystem_filename
+            bucket_filename=filename
         )
 
-    def file_download(self, filesystem_filename, local_filename):
+    def file_download(self, filename, local_filename):
         """
         Download a file from the filesystem to local storage
 
-        :type filesystem_filename: str
-        :param filesystem_filename: The name of the file in the filesystem to download (relative to whatever base path may be defined)
+        :type filename: str
+        :param filename: The name of the file in the filesystem to download (relative to whatever base path may be defined)
 
         :type local_filename: str
         :param local_filename: The destination on the local filesystem where the file will be downloaded to
@@ -113,16 +116,16 @@ class EasyFilesystemDriverS3(EasyFilesystemDriver):
         :return:
         """
         self.__s3_bucket__.file_download(
-            bucket_filename=filesystem_filename,
+            bucket_filename=filename,
             local_filename=local_filename
         )
 
-    def file_upload(self, filesystem_filename, local_filename):
+    def file_upload(self, filename, local_filename):
         """
         Upload a file from local storage to the filesystem
 
-        :type filesystem_filename: str
-        :param filesystem_filename: The destination on the filesystem where the file will be uploaded to  (relative to whatever base path may be defined)
+        :type filename: str
+        :param filename: The destination on the filesystem where the file will be uploaded to  (relative to whatever base path may be defined)
 
         :type local_filename: str
         :param local_filename: The name of the local filesystem file that will be uploaded
@@ -130,6 +133,6 @@ class EasyFilesystemDriverS3(EasyFilesystemDriver):
         :return: None
         """
         self.__s3_bucket__.file_upload(
-            bucket_filename=filesystem_filename,
+            bucket_filename=filename,
             local_filename=local_filename
         )

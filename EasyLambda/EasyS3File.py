@@ -1,7 +1,10 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import os
 
 from EasyLambda.EasyLog import EasyLog
-from EasyLambda.EasyS3 import EasyS3
+from EasyLambda.EasyS3Client import EasyS3Client
 
 
 class EasyS3File:
@@ -32,7 +35,7 @@ class EasyS3File:
             bucket_filename=self.__bucket_filename__
         ))
 
-        return EasyS3.file_exists(
+        return EasyS3Client.file_exists(
             bucket_name=self.__bucket_name__,
             bucket_filename=self.__bucket_filename__
         )
@@ -48,7 +51,7 @@ class EasyS3File:
             bucket_filename=self.__bucket_filename__
         ))
 
-        return EasyS3.file_delete(
+        return EasyS3Client.file_delete(
             bucket_name=self.__bucket_name__,
             bucket_filename=self.__bucket_filename__
         )
@@ -70,7 +73,7 @@ class EasyS3File:
             bucket_filename=self.__bucket_filename__
         ))
 
-        return EasyS3.move_file(
+        return EasyS3Client.move_file(
             source_bucket_name=source_bucket_name,
             source_bucket_filename=source_bucket_filename,
             destination_bucket_name=self.__bucket_name__,
@@ -93,7 +96,7 @@ class EasyS3File:
             bucket_name=self.__bucket_name__,
             bucket_filename=self.__bucket_filename__
         ))
-        return EasyS3.move_file(
+        return EasyS3Client.move_file(
             source_bucket_name=self.__bucket_name__,
             source_bucket_filename=self.__bucket_filename__,
             destination_bucket_name=destination_bucket_name,
@@ -117,7 +120,7 @@ class EasyS3File:
             bucket_filename=self.__bucket_filename__
         ))
 
-        return EasyS3.copy_file(
+        return EasyS3Client.copy_file(
             source_bucket_name=source_bucket_name,
             source_bucket_filename=source_bucket_filename,
             destination_bucket_name=self.__bucket_name__,
@@ -141,7 +144,7 @@ class EasyS3File:
             bucket_filename=self.__bucket_filename__
         ))
 
-        return EasyS3.copy_file(
+        return EasyS3Client.copy_file(
             source_bucket_name=self.__bucket_name__,
             source_bucket_filename=self.__bucket_filename__,
             destination_bucket_name=destination_bucket_name,
@@ -162,7 +165,7 @@ class EasyS3File:
             bucket_filename=self.__bucket_filename__
         ))
 
-        EasyS3.file_download(
+        EasyS3Client.file_download(
             bucket_name=self.__bucket_name__,
             bucket_filename=self.__bucket_filename__,
             local_filename=local_filename
@@ -182,7 +185,7 @@ class EasyS3File:
             bucket_filename=self.__bucket_filename__
         ))
 
-        return EasyS3.file_download_to_string(
+        return EasyS3Client.file_download_to_string(
             bucket_name=self.__bucket_name__,
             bucket_filename=self.__bucket_filename__,
             encoding=encoding
@@ -202,7 +205,7 @@ class EasyS3File:
             bucket_filename=self.__bucket_filename__
         ))
 
-        return EasyS3.file_upload(
+        return EasyS3Client.file_upload(
             bucket_name=self.__bucket_name__,
             bucket_filename=self.__bucket_filename__,
             local_filename=local_filename
@@ -225,7 +228,7 @@ class EasyS3File:
             bucket_filename=self.__bucket_filename__
         ))
 
-        return EasyS3.file_upload_from_string(
+        return EasyS3Client.file_upload_from_string(
             bucket_name=self.__bucket_name__,
             bucket_filename=self.__bucket_filename__,
             contents=contents,
@@ -243,7 +246,7 @@ class EasyS3File:
             bucket_filename=self.__bucket_filename__
         ))
 
-        return EasyS3.get_file_tags(
+        return EasyS3Client.get_file_tags(
             bucket_name=self.__bucket_name__,
             bucket_filename=self.__bucket_filename__
         )
@@ -261,7 +264,7 @@ class EasyS3File:
             bucket_name=self.__bucket_name__,
             bucket_filename=self.__bucket_filename__
         ))
-        EasyS3.set_file_tags(
+        EasyS3Client.set_file_tags(
             bucket_name=self.__bucket_name__,
             bucket_filename=self.__bucket_filename__,
             tags=tags

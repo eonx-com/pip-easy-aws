@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import base64
 import os
 import paramiko
@@ -11,10 +14,12 @@ from pysftp import Connection
 from pysftp import CnOpts
 
 
-class EasySftp:
+class EasySftpClient:
     # Error constants
     ERROR_CONNECTION_FAILED = 'Failed to connect to SFTP server'
+    ERROR_INVALID_FINGERPRINT = 'Failed to validate the SFTP server host key/fingerprint'
     ERROR_UNKNOWN_FINGERPRINT_TYPE = 'The specified sftp_fingerprint type was not known'
+    ERROR_DOWNLOAD_FILE_EXISTS = 'The file download failed as the file already exists and allow overwrite was not enabled'
 
     def __init__(self):
         """
@@ -123,12 +128,12 @@ class EasySftp:
 
             try:
                 # Validate connection details
-                address = EasySftp.validate_sftp_address(address)
-                port = EasySftp.validate_sftp_port(port)
-                rsa_private_key = EasySftp.validate_sftp_private_key(rsa_private_key)
-                username = EasySftp.validate_sftp_username(username)
-                fingerprint = EasySftp.validate_sftp_fingerprint(fingerprint)
-                fingerprint_type = EasySftp.validate_sftp_fingerprint_type(fingerprint_type)
+                address = EasySftpClient.validate_sftp_address(address)
+                port = EasySftpClient.validate_sftp_port(port)
+                rsa_private_key = EasySftpClient.validate_sftp_private_key(rsa_private_key)
+                username = EasySftpClient.validate_sftp_username(username)
+                fingerprint = EasySftpClient.validate_sftp_fingerprint(fingerprint)
+                fingerprint_type = EasySftpClient.validate_sftp_fingerprint_type(fingerprint_type)
 
                 # Get connection options for SFTP client
                 connection_options = self.__get_connection_options__(
@@ -147,7 +152,11 @@ class EasySftp:
                 )
             except Exception as connection_exception:
                 EasyLog.exception('Failed to connect to SFTP server', connection_exception)
-                raise Exception(EasySftp.ERROR_CONNECTION_FAILED)
+
+                if 'no hostkey for host' in str(connection_exception).lower():
+                    raise Exception(EasySftpClient.ERROR_INVALID_FINGERPRINT)
+
+                raise Exception(EasySftpClient.ERROR_CONNECTION_FAILED)
 
             # Assert we received the expected warning;
             if -1 in w:
@@ -210,11 +219,11 @@ class EasySftp:
             ))
 
             # Validate connection details
-            address = EasySftp.validate_sftp_address(address)
-            port = EasySftp.validate_sftp_port(port)
-            username = EasySftp.validate_sftp_username(username)
-            fingerprint = EasySftp.validate_sftp_fingerprint(fingerprint)
-            fingerprint_type = EasySftp.validate_sftp_fingerprint_type(fingerprint_type)
+            address = EasySftpClient.validate_sftp_address(address)
+            port = EasySftpClient.validate_sftp_port(port)
+            username = EasySftpClient.validate_sftp_username(username)
+            fingerprint = EasySftpClient.validate_sftp_fingerprint(fingerprint)
+            fingerprint_type = EasySftpClient.validate_sftp_fingerprint_type(fingerprint_type)
 
             # Get connection options for SFTP client
             connection_options = self.__get_connection_options__(
@@ -233,7 +242,11 @@ class EasySftp:
                 )
             except Exception as connection_exception:
                 EasyLog.exception('Failed to connect to SFTP server', connection_exception)
-                raise Exception(EasySftp.ERROR_CONNECTION_FAILED)
+
+                if 'no hostkey for host' in str(connection_exception).lower():
+                    raise Exception(EasySftpClient.ERROR_INVALID_FINGERPRINT)
+
+                raise Exception(EasySftpClient.ERROR_CONNECTION_FAILED)
 
             # Assert we received the expected warning;
             if -1 in w:
@@ -346,7 +359,7 @@ class EasySftp:
                 EasyLog.debug('Current file: {current_remote_path}'.format(current_remote_path=current_remote_path))
 
                 # Sanitize the path
-                current_remote_path = EasySftp.sanitize_path(remote_path + '/' + current_remote_path)
+                current_remote_path = EasyHelpers.sanitize_path(remote_path + '/' + current_remote_path)
 
                 # If the current path is a directory we may continue recursing down the folder structure
                 if self.__connection__.isdir(current_remote_path):
@@ -448,12 +461,18 @@ class EasySftp:
             EasyLog.debug('Uploading local temporary file to SFTP server...')
             self.file_upload(
                 local_filename=local_temp_filename,
-                remote_filename=remote_filename
+                remote_filename=remote_filename,
+                confirm=confirm
             )
 
             # Remove the local temporary file we created
             EasyLog.debug('Deleting local temporary file...')
             os.unlink(local_temp_filename)
+
+            if callback is not None:
+                EasyLog.debug('Triggering user callback function...')
+                callback(remote_filename=remote_filename, contents=contents)
+
         except Exception as upload_exception:
             EasyLog.exception('An unexpected error occurred during upload of file from string', upload_exception)
             raise upload_exception
@@ -491,12 +510,12 @@ class EasySftp:
         EasyLog.trace('Checking file exists on SFTP server...')
 
         try:
-            return self.__connection__.file_exists(remote_filename)
+            return self.__connection__.exists(remotepath=remote_filename)
         except Exception as exists_exception:
             EasyLog.exception('An unexpected error occurred during check of file existence', exists_exception)
             raise exists_exception
 
-    def file_download(self, local_filename, remote_filename) -> bool:
+    def file_download(self, local_filename, remote_filename, allow_overwrite=True) -> bool:
         """
         Download a file from SFTP server
 
@@ -506,9 +525,12 @@ class EasySftp:
         :type remote_filename: str
         :param remote_filename: Filename/path of the file to download from the SFTP server
 
+        :type allow_overwrite: bool
+        :param allow_overwrite: Boolean flag to allow overwriting of local files
+
         :return: bool
         """
-        EasyLog.trace('Downloading file from SFTP server...')
+        EasyLog.trace('Downloading file from SFTP server: {remote_filename}...'.format(remote_filename=remote_filename))
 
         try:
             # Restrict to maximum allowed files if applicable
@@ -517,7 +539,13 @@ class EasySftp:
                 return False
 
             # Make sure the path exists locally
-            EasySftp.assert_local_path_exists(os.path.dirname(local_filename))
+            EasySftpClient.assert_local_path_exists(os.path.dirname(local_filename))
+
+            # If allow overwrite is disabled, make sure the file doesn't already exist
+            if allow_overwrite is False:
+                if os.path.exists(local_filename) is True:
+                    EasyLog.error(EasySftpClient.ERROR_DOWNLOAD_FILE_EXISTS)
+                    raise Exception(EasySftpClient.ERROR_DOWNLOAD_FILE_EXISTS)
 
             self.__connection__.get(
                 remotepath=remote_filename,
@@ -561,18 +589,15 @@ class EasySftp:
             files_found = self.file_list(remote_path=remote_path, recursive=True)
 
             # Iterate these files
-            for file_found in files_found:
-                # Sanitize the full file path/filename
-                current_remote_filename = EasySftp.sanitize_path(remote_path + '/' + file_found)
-
+            for current_remote_filename in files_found:
                 # The local filename will stored in the same folder structure as on the SFTP server
-                current_local_path = EasySftp.sanitize_path(local_path + '/' + os.path.dirname(current_remote_filename))
+                current_local_path = EasyHelpers.sanitize_path(local_path + '/' + os.path.dirname(current_remote_filename))
 
                 # Make sure the file path exists locally before we download
-                EasySftp.assert_local_path_exists(current_local_path)
+                EasySftpClient.assert_local_path_exists(current_local_path)
 
                 # Get the filename
-                current_local_filename = EasySftp.sanitize_path(current_local_path + '/' + os.path.basename(current_remote_filename))
+                current_local_filename = EasyHelpers.sanitize_path(current_local_path + '/' + os.path.basename(current_remote_filename))
 
                 EasyLog.debug('Downloading: {filename}'.format(filename=current_remote_filename))
                 try:
@@ -580,10 +605,10 @@ class EasySftp:
                         # If a callback function was specified, pass it the filename of the downloaded file
                         if callback is not None:
                             EasyLog.debug('Triggering user callback function...')
-                            callback(filename=current_local_filename)
+                            callback(local_filename=current_local_filename, remote_filename=current_remote_filename)
                 except Exception as download_exception:
                     if self.file_exists(remote_filename=current_remote_filename) is True:
-                        EasyLog.exception('Failed to download file that exists on SFTP server: {current_remote_filename}', download_exception)
+                        EasyLog.exception('Failed to download file that exists on SFTP server: {current_remote_filename}'.format(current_remote_filename=current_remote_filename), download_exception)
                         raise download_exception
 
                     EasyLog.warning('Failed to download file from SFTP server, file no longer exists')
@@ -694,7 +719,7 @@ class EasySftp:
         else:
             # Unknown key type specified
             EasyLog.error('Unknown sftp_fingerprint type specified: {fingerprint_type}'.format(fingerprint_type=fingerprint_type))
-            raise Exception(EasySftp.ERROR_UNKNOWN_FINGERPRINT_TYPE)
+            raise Exception(EasySftpClient.ERROR_UNKNOWN_FINGERPRINT_TYPE)
 
         return key
 
@@ -872,20 +897,3 @@ class EasySftp:
 
         # Return the valid sftp_address
         return address
-
-    @staticmethod
-    def sanitize_path(value):
-        """
-        Remove all duplicate slashes from paths
-
-        :param value: Path to be cleaned
-        :type value: str
-
-        :return: str
-        """
-        value = str(value)
-
-        while '//' in value:
-            value = value.replace('//', '/')
-
-        return value

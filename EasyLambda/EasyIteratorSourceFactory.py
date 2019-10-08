@@ -1,6 +1,9 @@
-from EasyLambda.EasyFilesystemDriverS3 import EasyFilesystemDriverS3
-from EasyLambda.EasyFilesystemDriverSftp import EasyFilesystemDriverSftp
-from EasyLambda.EasyIteratorSource import EasyIteratorSource
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from EasyLambda.Filesystem.S3 import S3
+from EasyLambda.Filesystem.Sftp import Sftp
+from EasyLambda.Iterator.Source import Source
 
 
 class EasyIteratorSourceFactory:
@@ -13,7 +16,7 @@ class EasyIteratorSourceFactory:
             failure_destinations=None,
             delete_on_success=False,
             delete_on_failure=False
-    ) -> EasyIteratorSource:
+    ) -> Source:
         """
         Create a new S3 file source
 
@@ -40,12 +43,12 @@ class EasyIteratorSourceFactory:
 
         :return: Source
         """
-        filesystem_driver = EasyFilesystemDriverS3(
+        filesystem_driver = S3(
             bucket_name=bucket_name,
             base_path=base_path
         )
 
-        return EasyIteratorSource(
+        return Source(
             filesystem_driver=filesystem_driver,
             recursive=recursive,
             success_destinations=success_destinations,
@@ -61,6 +64,7 @@ class EasyIteratorSourceFactory:
             delete_on_success,
             delete_on_failure,
             recursive,
+            validate_fingerprint=True,
             password=None,
             rsa_private_key=None,
             fingerprint=None,
@@ -69,7 +73,7 @@ class EasyIteratorSourceFactory:
             base_path='/',
             success_destinations=None,
             failure_destinations=None
-    ) -> EasyIteratorSource:
+    ) -> Source:
         """
         Create a new SFTP file source
 
@@ -100,6 +104,9 @@ class EasyIteratorSourceFactory:
         :type recursive: bool
         :param recursive: Flag indicating iteration should be performed recursively
 
+        :type validate_fingerprint: bool
+        :param validate_fingerprint: Flag indicating SFTP server fingerprint should be validated
+
         :type delete_on_success: bool
         :param delete_on_success: If True, files in this source will be deleted on successful iterator
 
@@ -114,18 +121,19 @@ class EasyIteratorSourceFactory:
 
         :return: EasyIteratorSource
         """
-        filesystem_driver = EasyFilesystemDriverSftp(
+        filesystem_driver = Sftp(
             address=address,
             username=username,
             password=password,
             rsa_private_key=rsa_private_key,
             fingerprint=fingerprint,
             fingerprint_type=fingerprint_type,
+            validate_fingerprint=validate_fingerprint,
             port=port,
             base_path=base_path
         )
 
-        return EasyIteratorSource(
+        return Source(
             filesystem_driver=filesystem_driver,
             recursive=recursive,
             success_destinations=success_destinations,

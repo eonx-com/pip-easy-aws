@@ -1,81 +1,65 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from EasyLambda.Filesystem.BaseFilesystem import BaseFilesystem
+from EasyLambda.Filesystem.Stake import Stake
+
+
 class File:
-    def __init__(self):
+    def __init__(self, filesystem, filename, stake=None):
         """
-        This class should not be instantiated directly, instances should be created by using the relevant filesystems class methods
+        :type filesystem: BaseFilesystem
+        :param filesystem: The filesystem that contains this file
+
+        :type filename: str
+        :param filename: The path/filename to the file on the filesystem
+
+        :type stake: Stake or None
+        :param stake: The staking details if applicable
         """
-        self.filesystem = None
-        self.configuration = {}
+        self.__filesystem__ = filesystem
+        self.__filename__ = filename
+        self.__stake__ = stake
 
-    def copy(
-            self,
-            destination,
-            destination_filename,
-            allow_overwrite=False
-    ):
+    def get_filesystem(self) -> BaseFilesystem:
         """
-        Copy the file to a new destination
+        Return the underlying filesystem
 
-        :type destination: Destination
-        :param destination: The destination to which the file should be copied
-
-        :type destination_filename: str
-        :param destination_filename: The path/filename on the destination filesystem where this should be copied
-
-        :type allow_overwrite: bool
-        :param allow_overwrite: If False an exception will be raised if the copy would overwrite an existing file
-
-        :return: File The corresponding file object in the destination filesystem
+        :return: str
         """
-        pass
+        return self.__filesystem__
 
-    def move(
-            self,
-            destination,
-            destination_filename,
-            allow_overwrite=False
-    ):
+    def get_filename(self) -> str:
         """
-        Move the file to a new destination
+        Return the filename/path to the file in the underlying filesystem
 
-        :type destination: Destination
-        :param destination: The destination to which the file should be copied
-
-        :type destination_filename: str
-        :param destination_filename: The path/filename on the destination filesystem where this should be copied
-
-        :type allow_overwrite: bool
-        :param allow_overwrite: If False an exception will be raised if the copy would overwrite an existing file
-
-        :return: File The corresponding file object in the destination filesystem
+        :return: str
         """
-        pass
+        return self.__filename__
 
-    def download(self, destination_filename) -> int:
+    def is_staked(self) -> bool:
         """
-        Download the file to the local filesystem
-
-        :type destination_filename: str
-        :param destination_filename: The path/filename on the local filesystem where this
-
-        :return: int The size of the downloaded file
-        """
-        pass
-
-    def replace(self, file):
-        """
-        Replace the content of the file with the content of the other file. The file passed to the function will not be affected by this action
-
-        :type file: File
-        :param file: The file which should overwrite the existing files content
-
-        :return: None
-        """
-        pass
-
-    def delete(self) -> bool:
-        """
-        Delete the file from its filesystem
+        Check if there is staking information for this file
 
         :return: bool
         """
-        pass
+        return self.__stake__ is not None
+
+    def get_stake(self) -> Stake:
+        """
+        Return staking information
+
+        :return: Stake
+        """
+        return self.__stake__
+
+    def set_stake(self, stake) -> None:
+        """
+        Set staking strategy for the file
+
+        :type stake: Stake
+        :param stake: The staking details
+
+        :return:
+        """
+        self.__stake__ = stake

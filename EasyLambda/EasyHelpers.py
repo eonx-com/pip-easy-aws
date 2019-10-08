@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import importlib
 import os
 import tempfile
@@ -115,6 +118,66 @@ class EasyHelpers:
         return __class__
 
     @staticmethod
+    def create_local_test_file(prefix='test') -> str:
+        """
+        Create a dummy local file filled with 100 UUIDs
+
+        :type prefix: str
+        :param prefix: Filename prefix (defaults to 'test')
+
+        :return: str The filename
+        """
+        contents = ''
+        for i in range(1, 100):
+            contents += str(uuid.uuid4())
+
+        filename = EasyHelpers.create_unique_local_filename(prefix=prefix)
+        file = open(filename, 'wt')
+        file.write(contents)
+        file.close()
+
+        # Make sure the file exists
+
+        if os.path.exists(filename) is False:
+            raise Exception('Failed to create test file, the file could not be found')
+
+        # Make sure the file can be opened and read
+
+        file = open(filename, 'r')
+        file_readable = file.readable()
+        file.close()
+
+        if file_readable is False:
+            raise Exception('Failed to create test file, the resulting file is not readable')
+
+        # Return the filename
+
+        return filename
+
+    @staticmethod
+    def create_unique_local_filename(prefix='test') -> str:
+        """
+        Create a unique local filename
+
+        :type prefix: str
+        :param prefix: Optional filename prefix
+
+        :return: str
+        """
+        temp_folder = EasyHelpers.create_unique_local_temp_path()
+
+        while True:
+            filename = '{temp_folder}/{prefix}.{uuid}.txt'.format(
+                temp_folder=temp_folder,
+                prefix=prefix,
+                uuid=uuid.uuid4()
+            )
+            if os.path.exists(filename) is False:
+                break
+
+        return filename
+
+    @staticmethod
     def create_unique_local_temp_path() -> str:
         """
         Create a new local path inside the system temp folder that is guaranteed to be unique
@@ -123,6 +186,7 @@ class EasyHelpers:
         """
         count = 0
         temp_path = tempfile.gettempdir()
+
         while True:
             count = count + 1
             local_path = '{temp_path}/{uuid}'.format(temp_path=temp_path, uuid=uuid.uuid4())
@@ -132,3 +196,20 @@ class EasyHelpers:
                 return local_path
             if count > 10:
                 raise Exception('Failed to create unique local filepath')
+
+    @staticmethod
+    def sanitize_path(path) -> str:
+        """
+        Remove all duplicate slashes from paths
+
+        :param path: Path to be cleaned
+        :type path: str
+
+        :return: str
+        """
+        path = str(path)
+
+        while '//' in path:
+            path = path.replace('//', '/')
+
+        return path.strip()

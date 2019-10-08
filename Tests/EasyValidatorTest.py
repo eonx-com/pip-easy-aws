@@ -5,9 +5,11 @@ from EasyLambda.EasyValidator import EasyValidator
 
 
 class EasyValidatorTest(unittest.TestCase):
-    def test_validate_type_bool_failure(self):
+    def test_validate_type_bool_failure(self) -> None:
         """
         Assert non-boolean values are not detected as boolean
+
+        :return: None
         """
         EasyLog.test('Asserting integer 1 is not a valid bool...')
         self.assertFalse(EasyValidator.validate_type(
@@ -33,9 +35,11 @@ class EasyValidatorTest(unittest.TestCase):
             data={'bool_test': 'False'})
         )
 
-    def test_validate_type_bool_success(self):
+    def test_validate_type_bool_success(self) -> None:
         """
         Assert boolean values are detected as boolean
+
+        :return: None
         """
         EasyLog.test('Asserting boolean False is a valid bool...')
         self.assertTrue(EasyValidator.validate_type(
@@ -49,9 +53,11 @@ class EasyValidatorTest(unittest.TestCase):
             data={'bool_test': True})
         )
 
-    def test_validate_type_float_failure(self):
+    def test_validate_type_float_failure(self) -> None:
         """
         Assert non-float values are not detected as float
+
+        :return: None
         """
         EasyLog.test('Asserting integer 1 is not a valid float...')
         self.assertFalse(EasyValidator.validate_type(
@@ -89,9 +95,11 @@ class EasyValidatorTest(unittest.TestCase):
             data={'float_test': '-1.0'})
         )
 
-    def test_validate_type_float_success(self):
+    def test_validate_type_float_success(self) -> None:
         """
         Assert float values are detected as float
+
+        :return: None
         """
         EasyLog.test('Asserting float 1.0 is a valid float...')
         self.assertTrue(EasyValidator.validate_type(
@@ -111,9 +119,11 @@ class EasyValidatorTest(unittest.TestCase):
             data={'float_test': -1.0})
         )
 
-    def test_validate_type_int_failure(self):
+    def test_validate_type_int_failure(self) -> None:
         """
         Assert non-integer values are not detected as integer
+
+        :return: None
         """
         EasyLog.test('Asserting boolean True is not a valid integer...')
         self.assertFalse(EasyValidator.validate_type(
@@ -163,9 +173,11 @@ class EasyValidatorTest(unittest.TestCase):
             data={'int_test': 1.0})
         )
 
-    def test_validate_type_int_success(self):
+    def test_validate_type_int_success(self) -> None:
         """
         Assert integer values are detected as integer
+
+        :return: None
         """
         EasyLog.test('Asserting int 1 is a valid int...')
         self.assertTrue(EasyValidator.validate_type(
@@ -185,9 +197,11 @@ class EasyValidatorTest(unittest.TestCase):
             data={'int_test': -1})
         )
 
-    def test_validate_type_str_failure(self):
+    def test_validate_type_str_failure(self) -> None:
         """
         Assert non-string values are not detected as string
+
+        :return: None
         """
         EasyLog.test('Asserting boolean False is not a valid string...')
         self.assertFalse(EasyValidator.validate_type(
@@ -213,9 +227,11 @@ class EasyValidatorTest(unittest.TestCase):
             data={'str_test': 1})
         )
 
-    def test_validate_type_str_success(self):
+    def test_validate_type_str_success(self) -> None:
         """
         Assert string values are detected as string
+
+        :return: None
         """
         EasyLog.test('Asserting string is a valid string...')
         self.assertTrue(EasyValidator.validate_type(
