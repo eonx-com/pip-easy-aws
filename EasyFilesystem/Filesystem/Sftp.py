@@ -9,6 +9,7 @@ from EasyFilesystem.Iterator import Destination
 from EasyLog.Log import Log
 
 
+# noinspection DuplicatedCode
 class Sftp(FilesystemAbstract):
     def __init__(
             self,

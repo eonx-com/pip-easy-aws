@@ -181,7 +181,7 @@ class Server:
         returned_files = []
 
         for file in files:
-            returned_files.append(file[len(self.__base_path__):])
+            returned_files.append(file[len(self.__base_path__)-1:])
 
         return returned_files
 

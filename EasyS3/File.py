@@ -16,7 +16,7 @@ class File:
         :type bucket_filename: str
         :param bucket_filename: Path/filename of the file inside the bucket
         """
-        Log.trace('Instantiating EasyS3File: {bucket_name}:{bucket_filename}'.format(
+        Log.trace('Instantiating EasyS3.File: {bucket_name}:{bucket_filename}'.format(
             bucket_name=bucket_name,
             bucket_filename=bucket_filename
         ))
@@ -30,7 +30,7 @@ class File:
         
         :return: bool 
         """
-        Log.trace('Checking EasyS3File Exists: {bucket_name}:{bucket_filename}'.format(
+        Log.trace('Checking EasyS3.File Exists: {bucket_name}:{bucket_filename}'.format(
             bucket_name=self.__bucket_name__,
             bucket_filename=self.__bucket_filename__
         ))
@@ -46,7 +46,7 @@ class File:
 
         :return: bool
         """
-        Log.trace('Deleting EasyS3File: {bucket_name}:{bucket_filename}'.format(
+        Log.trace('Deleting EasyS3.File: {bucket_name}:{bucket_filename}'.format(
             bucket_name=self.__bucket_name__,
             bucket_filename=self.__bucket_filename__
         ))
@@ -68,7 +68,7 @@ class File:
 
         :return: None
         """
-        Log.trace('Moving EasyS3File In: {bucket_name}:{bucket_filename}'.format(
+        Log.trace('Moving EasyS3.File In: {bucket_name}:{bucket_filename}'.format(
             bucket_name=self.__bucket_name__,
             bucket_filename=self.__bucket_filename__
         ))
@@ -92,7 +92,7 @@ class File:
 
         :return: None
         """
-        Log.trace('Moving EasyS3File Out: {bucket_name}:{bucket_filename}'.format(
+        Log.trace('Moving EasyS3.File Out: {bucket_name}:{bucket_filename}'.format(
             bucket_name=self.__bucket_name__,
             bucket_filename=self.__bucket_filename__
         ))
@@ -115,7 +115,7 @@ class File:
 
         :return: None
         """
-        Log.trace('Copying EasyS3File File In: {bucket_name}:{bucket_filename}'.format(
+        Log.trace('Copying EasyS3.File File In: {bucket_name}:{bucket_filename}'.format(
             bucket_name=self.__bucket_name__,
             bucket_filename=self.__bucket_filename__
         ))
@@ -139,7 +139,7 @@ class File:
 
         :return: None
         """
-        Log.trace('Copying EasyS3File File Out: {bucket_name}:{bucket_filename}'.format(
+        Log.trace('Copying EasyS3.File File Out: {bucket_name}:{bucket_filename}'.format(
             bucket_name=self.__bucket_name__,
             bucket_filename=self.__bucket_filename__
         ))
@@ -160,7 +160,7 @@ class File:
 
         :return: None
         """
-        Log.trace('Downloading EasyS3File To File: {bucket_name}:{bucket_filename}'.format(
+        Log.trace('Downloading EasyS3.File To File: {bucket_name}:{bucket_filename}'.format(
             bucket_name=self.__bucket_name__,
             bucket_filename=self.__bucket_filename__
         ))
@@ -180,7 +180,7 @@ class File:
 
         :return: str
         """
-        Log.trace('Downloading EasyS3File To String: {bucket_name}:{bucket_filename}'.format(
+        Log.trace('Downloading EasyS3.File To String: {bucket_name}:{bucket_filename}'.format(
             bucket_name=self.__bucket_name__,
             bucket_filename=self.__bucket_filename__
         ))
@@ -198,9 +198,9 @@ class File:
         :type local_filename: str
         :param local_filename: File on local filesystem to be uploaded
 
-        :return: EasyS3File
+        :return: EasyS3.File
         """
-        Log.trace('Uploading EasyS3File From File: {bucket_name}:{bucket_filename}'.format(
+        Log.trace('Uploading EasyS3.File From File: {bucket_name}:{bucket_filename}'.format(
             bucket_name=self.__bucket_name__,
             bucket_filename=self.__bucket_filename__
         ))
@@ -223,7 +223,7 @@ class File:
 
         :return: None
         """
-        Log.trace('Uploading EasyS3File From String: {bucket_name}:{bucket_filename}'.format(
+        Log.trace('Uploading EasyS3.File From String: {bucket_name}:{bucket_filename}'.format(
             bucket_name=self.__bucket_name__,
             bucket_filename=self.__bucket_filename__
         ))
@@ -241,7 +241,7 @@ class File:
 
         :return: dict
         """
-        Log.trace('Retrieving EasyS3File Tags: {bucket_name}:{bucket_filename}'.format(
+        Log.trace('Retrieving EasyS3.File Tags: {bucket_name}:{bucket_filename}'.format(
             bucket_name=self.__bucket_name__,
             bucket_filename=self.__bucket_filename__
         ))
@@ -260,7 +260,7 @@ class File:
 
         :return: None
         """
-        Log.trace('Setting EasyS3File Tags: {bucket_name}:{bucket_filename}'.format(
+        Log.trace('Setting "EasyS3.File" Tags...'.format(
             bucket_name=self.__bucket_name__,
             bucket_filename=self.__bucket_filename__
         ))

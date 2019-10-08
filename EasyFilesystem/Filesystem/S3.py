@@ -1,30 +1,36 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from EasyFilesystem.Filesystem import FilesystemAbstract
-from EasyLog.Log import Log
+from EasyFilesystem.Filesystem.FilesystemAbstract import FilesystemAbstract
+from EasyFilesystem.File import File
 from EasyS3.Client import Client
+from EasyS3.Bucket import Bucket
+from EasyFilesystem.Iterator import Destination
+from EasyLog.Log import Log
 
 
-class S3(FilesystemAbstract.FilesystemAbstract):
+# noinspection DuplicatedCode
+class S3(FilesystemAbstract):
     def __init__(
             self,
             bucket_name,
-            base_path=''
+            base_path='/'
     ):
         """
         :type bucket_name: str
-        :param bucket_name: The name of the S3 bucket
+        :param bucket_name: S3 bucket name
 
         :type base_path: str
-        :param base_path: The path inside the folder from which files will be referenced relatively
+        :param base_path: Base S3 file path, all uploads/downloads will have this path prepended
         """
         Log.trace('Instantiating S3 filesystem...')
 
-        self.__bucket_name__ = bucket_name
-        self.__base_path__ = base_path
+        self.__s3_bucket__ = Bucket(
+            bucket_name=bucket_name,
+            base_path=base_path
+        )
 
-    def iterate_files(self, callback, maximum_files, success_destinations, failure_destinations, delete_on_success, delete_on_failure, recursive, staking_strategy) -> list:
+    def iterate_files(self, callback, maximum_files, delete_on_success, delete_on_failure, recursive, staking_strategy, success_destinations=None, failure_destinations=None) -> list:
         """
         Iterate all files in the filesystem and return the number of files that were iterated
 
@@ -34,10 +40,10 @@ class S3(FilesystemAbstract.FilesystemAbstract):
         :type maximum_files: int or None
         :param maximum_files: The maximum number of files to iterate
 
-        :type success_destinations: list of Destination or None
+        :type success_destinations: list[Destination] or None
         :param success_destinations: If defined, the destination filesystem where each files will be copied following their successful completion
 
-        :type failure_destinations: list of EasyIteratorDestination or None
+        :type failure_destinations: list[Destination] or None
         :param failure_destinations: If defined, the destination filesystem where each files will be copied following their failure during iteration
 
         :type delete_on_success: bool
@@ -54,9 +60,69 @@ class S3(FilesystemAbstract.FilesystemAbstract):
 
         :return: list[File]
         """
-        pass
+        Log.trace('Iterating files in S3 filesystem...')
 
-    def file_list(self, path, recursive=False) -> list:
+        failure_destinations = failure_destinations or []
+        success_destinations = success_destinations or []
+
+        filesystem_files = self.file_list(recursive=recursive)
+        filesystem_files_iterated = []
+        filesystem_files_remaining = maximum_files
+
+        Log.debug('Iterator located {count_files} file(s)...'.format(count_files=len(filesystem_files)))
+        if maximum_files is not None:
+            Log.debug('Iterating maximum of {maximum_files} files'.format(maximum_files=maximum_files))
+
+        filesystem_file: File
+        for filesystem_file in filesystem_files:
+            # If we have reached the iteration limit, exit out of the loop
+            if filesystem_files_remaining <= 0:
+                Log.debug('Iteration limit reached, ending iteration early...')
+                break
+
+            # Attempt to stake the current file
+            try:
+                Log.debug('Attempting to stake file: {filename}...'.format(filename=filesystem_file.get_filename()))
+                filesystem_file.stake(staking_strategy)
+                filesystem_files_iterated.append(filesystem_file)
+            except Exception as staking_exception:
+                # If something goes wrong during staking we will continue on as if nothing happened, presumably another process staked it before us
+                Log.warning('Staking Failed: {staking_exception}'.format(staking_exception=staking_exception))
+                filesystem_files_remaining -= 1
+                continue
+
+            # If the file was successfully staked, trigger the user callback
+            try:
+                Log.debug('Triggering user callback...')
+                iteration_success = callback(filesystem_file=filesystem_file)
+            except Exception as callback_exception:
+                # The user callback generated an exception error, report an exception error- but allow fallthrough so it gets cleaned up
+                Log.exception(FilesystemAbstract.ERROR_ITERATION_CALLBACK_EXCEPTION, callback_exception)
+                iteration_success = False
+
+            try:
+                # Cleanup the current file
+                if iteration_success is True and success_destinations is not None:
+                    # The user callback failed- move to failure destinations (if any)
+                    if len(success_destinations) > 0:
+                        Log.debug('Moving failed file to success destination(s)...')
+                        filesystem_file.copy_staked_file_to_destinations(destinations=success_destinations)
+                elif iteration_success is False and failure_destinations is not None:
+                    # The user callback failed- move to failure destinations (if any)
+                    if len(failure_destinations) > 0:
+                        Log.debug('Moving failed file to failure destination(s)...')
+                        filesystem_file.copy_staked_file_to_destinations(destinations=failure_destinations)
+            except Exception as cleanup_exception:
+                Log.exception(FilesystemAbstract.ERROR_ITERATION_CLEANUP_EXCEPTION, cleanup_exception)
+                raise Exception(FilesystemAbstract.ERROR_ITERATION_CLEANUP_EXCEPTION)
+
+            # If all went well, count down the number of files we are allowed to iterate and continue on our way
+            filesystem_files_remaining -= 1
+
+        # Return list of all files we iterated
+        return filesystem_files_iterated
+
+    def file_list(self, path='/', recursive=False) -> list:
         """
         List files in the filesystem path
 
@@ -68,7 +134,20 @@ class S3(FilesystemAbstract.FilesystemAbstract):
 
         :return: list[File]
         """
-        pass
+        filenames = self.__s3_bucket__.file_list(
+            bucket_path=path,
+            recursive=recursive
+        )
+
+        filesystem_files = []
+
+        for filename in filenames:
+            filesystem_files.append(File(
+                filesystem=self,
+                filename=filename
+            ))
+
+        return filesystem_files
 
     def file_exists(self, filename) -> bool:
         """
@@ -79,7 +158,9 @@ class S3(FilesystemAbstract.FilesystemAbstract):
 
         :return: bool
         """
-        pass
+        return self.__s3_bucket__.file_exists(
+            bucket_filename=filename
+        )
 
     def file_delete(self, filename) -> None:
         """
@@ -90,7 +171,9 @@ class S3(FilesystemAbstract.FilesystemAbstract):
 
         :return: None
         """
-        pass
+        self.__s3_bucket__.file_delete(
+            bucket_filename=filename
+        )
 
     def file_download(self, filename, local_filename, allow_overwrite=True) -> None:
         """
@@ -107,9 +190,13 @@ class S3(FilesystemAbstract.FilesystemAbstract):
 
         :return: None
         """
-        pass
+        self.__s3_bucket__.file_download(
+            bucket_filename=filename,
+            local_filename=local_filename,
+            allow_overwrite=allow_overwrite
+        )
 
-    def file_upload(self, filename, local_filename, allow_overwrite=True):
+    def file_upload(self, filename, local_filename, allow_overwrite=True) -> File:
         """
         Upload a file from local storage to the filesystem
 
@@ -122,9 +209,18 @@ class S3(FilesystemAbstract.FilesystemAbstract):
         :type allow_overwrite: bool
         :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be thrown
 
-        :return: None
+        :return: File
         """
-        pass
+        self.__s3_bucket__.file_upload(
+            bucket_filename=filename,
+            local_filename=local_filename,
+            allow_overwrite=allow_overwrite
+        )
+
+        return File(
+            filesystem=self,
+            filename=filename
+        )
 
     def sanitize_path(self, path) -> str:
         """
@@ -136,3 +232,39 @@ class S3(FilesystemAbstract.FilesystemAbstract):
         :return: str
         """
         return Client.sanitize_path(path)
+
+    def file_stake(self, filename, staking_strategy) -> File:
+        """
+        Attempt to stake (obtain an exclusive lock) on a file in this filesystem
+
+        :type filename: str
+        :param filename: The path/filename to be staked
+
+        :type staking_strategy: str
+        :param staking_strategy: The staking strategy to adopt
+
+        :return: File
+        """
+        # Make sure the staking strategy is known
+        if staking_strategy not in (
+                FilesystemAbstract.STRATEGY_IGNORE,
+                FilesystemAbstract.STRATEGY_PROPERTY,
+                FilesystemAbstract.STRATEGY_RENAME
+        ):
+            # Unknown staking strategy
+            Log.error(FilesystemAbstract.ERROR_STAKING_STRATEGY_INVALID)
+            raise Exception(FilesystemAbstract.ERROR_STAKING_STRATEGY_INVALID)
+
+        # Make sure the file exists
+        if self.file_exists(filename) is False:
+            Log.error(FilesystemAbstract.ERROR_STAKING_FILE_NOT_FOUND)
+            raise Exception(FilesystemAbstract.ERROR_STAKING_FILE_NOT_FOUND)
+
+        # Create a file object
+        filesystem_file = File(filesystem=self, filename=filename)
+
+        # Stake the file
+        filesystem_file.stake(staking_strategy=staking_strategy)
+
+        # Return it
+        return filesystem_file

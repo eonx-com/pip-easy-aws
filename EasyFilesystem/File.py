@@ -5,7 +5,7 @@
 
 import os
 
-from EasyFilesystem.Filesystem import FilesystemAbstract
+from EasyFilesystem.Filesystem.FilesystemAbstract import FilesystemAbstract
 from EasyLog.Log import Log
 from EasyFilesystem.Helpers import Helpers
 
@@ -21,7 +21,7 @@ class File:
 
     def __init__(self, filesystem, filename):
         """
-        :type filesystem: FilesystemAbstract
+        :type filesystem: FilesystemAbstract or S3 or Sftp
         :param filesystem: The filesystem that contains this file
 
         :type filename: str
@@ -156,7 +156,7 @@ class File:
         Log.debug('Staking Filename: {staking_filename}'.format(staking_filename=staking_filename))
 
         # Store the staking information
-        self.__staking_strategy__ = FilesystemAbstract.STRATEGY_IGNORE,
+        self.__staking_strategy__ = FilesystemAbstract.STRATEGY_IGNORE
         self.__staking_filename__ = staking_filename
         self.__staking_filename_remote__ = staking_filename
 

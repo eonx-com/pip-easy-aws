@@ -13,6 +13,9 @@ class FilesystemAbstract:
     ERROR_ITERATION_CALLBACK_EXCEPTION = 'The user callback function generated an exception error'
     ERROR_ITERATION_CLEANUP_EXCEPTION = 'An unhandled exception occurred while attempting to cleanup an iterated file'
 
+    ERROR_STAKING_STRATEGY_INVALID = 'The requested staking strategy was not valid'
+    ERROR_STAKING_FILE_NOT_FOUND = 'An unexpected error occurred, the file could not be found'
+
     # Staking strategies
     STRATEGY_IGNORE = 'IGNORE'
     STRATEGY_RENAME = 'RENAME'
