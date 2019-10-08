@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 from abc import abstractmethod
-from EasyLambda.EasyCloudWatch import EasyCloudWatch
-from EasyLambda.EasyLog import EasyLog
+from EasyCloudWatch.EasyCloudWatch import EasyCloudWatch
+from EasyLog.Log import Log
 
 
 class EasyLambda:
@@ -19,24 +19,24 @@ class EasyLambda:
         self.__aws_context__ = aws_context
 
         try:
-            EasyLog.trace('Executing user initialization function...')
+            Log.trace('Executing user initialization function...')
             self.init()
         except Exception as init_exception:
             # Something went wrong inside the users init function- log the error
-            EasyLog.exception('Unhandled exception during execution of user initialization function', init_exception)
+            Log.exception('Unhandled exception during execution of user initialization function', init_exception)
             raise init_exception
 
         try:
-            EasyLog.trace('Executing user run function...')
+            Log.trace('Executing user run function...')
             self.run()
         except Exception as run_exception:
             # Something went wrong inside the users run function- log the error
-            EasyLog.error('Unhandled exception during execution of user run function:\n{run_exception}'.format(run_exception=run_exception))
+            Log.error('Unhandled exception during execution of user run function:\n{run_exception}'.format(run_exception=run_exception))
             raise run_exception
 
         # Execution completed, log out the time remaining- this may be useful for tracking bloat/performance degradation over the life of the Lambda function
         time_remaining = self.get_aws_time_remaining()
-        EasyLog.info('Execution completed with {time_remaining} milliseconds remaining'.format(time_remaining=time_remaining))
+        Log.info('Execution completed with {time_remaining} milliseconds remaining'.format(time_remaining=time_remaining))
         EasyCloudWatch.put_metric('lambda_time_remaining', time_remaining, 'Milliseconds')
 
     @abstractmethod
