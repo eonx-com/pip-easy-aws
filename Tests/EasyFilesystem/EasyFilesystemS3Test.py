@@ -10,8 +10,8 @@ from Tests.Helpers import Helpers
 
 # noinspection DuplicatedCode
 class EasyFilesystemS3Test(unittest.TestCase):
-    s3_bucket_name = 'easy-filesystem.test.eonx.com'
-    s3_base_path = 'test'
+    s3_bucket_name = 'easy-lambda.test.eonx.com'
+    s3_base_path = 'easy-filesystem-s3-test'
 
     def test_filesystem(self) -> None:
         """

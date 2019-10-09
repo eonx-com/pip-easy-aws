@@ -5,7 +5,6 @@
 
 import os
 
-from EasyFilesystem.Filesystem.FilesystemAbstract import FilesystemAbstract
 from EasyLog.Log import Log
 from EasyFilesystem.Helpers import Helpers
 
@@ -14,10 +13,16 @@ class File:
     # Error constants
     ERROR_COPY_STAKED_FILE_NO_DESTINATIONS = 'Unable to copy staked file, no destinations were specified'
     ERROR_COPY_STAKED_FILE_NOT_STAKED = 'Unable to copy staked file to destination, the file is not staked'
+
     ERROR_STAKING_FILE_NOT_FOUND = 'The file you were attempting to stake could not be found in the filesystem'
     ERROR_STAKING_FILE_UNREADABLE = 'The file had been previously staked, however the local copy of the file is no longer accessible'
     ERROR_STAKING_STRATEGY_INVALID = 'The requested staking strategy was invalid'
     ERROR_STAKING_STRATEGY_UNSUPPORTED = 'The requested staking strategy is not supported by this filesystem'
+
+    # Staking strategies
+    STRATEGY_IGNORE = 'IGNORE'
+    STRATEGY_RENAME = 'RENAME'
+    STRATEGY_PROPERTY = 'PROPERTY'
 
     def __init__(self, filesystem, filename):
         """
@@ -121,7 +126,7 @@ class File:
         Log.trace('Staking file with {staking_strategy} strategy...'.format(staking_strategy=staking_strategy))
 
         # Stake the file using the nominated strategy
-        if staking_strategy == FilesystemAbstract.STRATEGY_IGNORE:
+        if staking_strategy == File.STRATEGY_IGNORE:
             self.stake_ignore_strategy()
             return
 
@@ -156,15 +161,15 @@ class File:
         Log.debug('Staking Filename: {staking_filename}'.format(staking_filename=staking_filename))
 
         # Store the staking information
-        self.__staking_strategy__ = FilesystemAbstract.STRATEGY_IGNORE
+        self.__staking_strategy__ = File.STRATEGY_IGNORE
         self.__staking_filename__ = staking_filename
         self.__staking_filename_remote__ = staking_filename
 
-    def get_filesystem(self) -> FilesystemAbstract:
+    def get_filesystem(self):
         """
         Return the underlying filesystem object
 
-        :return: FilesystemAbstract
+        :return: FilesystemAbstract or S3 or Sftp
         """
         return self.__filesystem__
 

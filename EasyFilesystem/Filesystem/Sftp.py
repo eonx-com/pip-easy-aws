@@ -285,18 +285,18 @@ class Sftp(FilesystemAbstract):
         """
         # Make sure the staking strategy is known
         if staking_strategy not in (
-                FilesystemAbstract.STRATEGY_IGNORE,
-                FilesystemAbstract.STRATEGY_PROPERTY,
-                FilesystemAbstract.STRATEGY_RENAME
+                File.STRATEGY_IGNORE,
+                File.STRATEGY_PROPERTY,
+                File.STRATEGY_RENAME
         ):
             # Unknown staking strategy
-            Log.error(FilesystemAbstract.ERROR_STAKING_STRATEGY_INVALID)
-            raise Exception(FilesystemAbstract.ERROR_STAKING_STRATEGY_INVALID)
+            Log.error(File.ERROR_STAKING_STRATEGY_INVALID)
+            raise Exception(File.ERROR_STAKING_STRATEGY_INVALID)
 
         # Make sure the file exists
         if self.file_exists(filename) is False:
-            Log.error(FilesystemAbstract.ERROR_STAKING_FILE_NOT_FOUND)
-            raise Exception(FilesystemAbstract.ERROR_STAKING_FILE_NOT_FOUND)
+            Log.error(File.ERROR_STAKING_FILE_NOT_FOUND)
+            raise Exception(File.ERROR_STAKING_FILE_NOT_FOUND)
 
         # Create a file object
         filesystem_file = File(filesystem=self, filename=filename)

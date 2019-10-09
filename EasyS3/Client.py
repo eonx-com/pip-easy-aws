@@ -16,7 +16,7 @@ class Client:
     ERROR_LOCAL_FILE_NOT_FOUND = 'The file was not found on the local filesystem'
     ERROR_LOCAL_FILE_UNREADABLE = 'The file was found on the local filesystem however its content were not readable, please check file permissions'
     ERROR_LIST_BUCKETS_EXCEPTION = 'An unexpected error occurred during listing of S3 buckets'
-    ERROR_file_list_EXCEPTION = 'An unexpected error occurred during listing of files in S3 bucket'
+    ERROR_FILE_LIST_EXCEPTION = 'An unexpected error occurred during listing of files in S3 bucket'
     ERROR_FILE_EXISTS_EXCEPTION = 'An unexpected error occurred during test of file existence in S3 bucket'
     ERROR_FILE_DELETE_EXCEPTION = 'An unexpected error occurred while deleting S3 file'
     ERROR_FILE_DOWNLOAD_EXCEPTION = 'An unexpected error occurred while downloading file from S3'
@@ -25,15 +25,17 @@ class Client:
     ERROR_FILE_PUT_TAG_EXCEPTION = 'An unexpected error occurred while attempting to update tags on file in S3'
     ERROR_FILE_COPY_EXCEPTION = 'An unexpected error occurred while copying  S3 file'
     ERROR_FILE_MOVE_EXCEPTION = 'An unexpected error occurred while moving S3 file'
+    ERROR_FILE_DOWNLOAD_EXISTS = 'The file download failed as the file already exists and allow overwrite was not enabled'
+    ERROR_FILE_UPLOAD_EXISTS = 'The file upload failed as the file already exists and allow overwrite was not enabled'
 
-    # Cache for CloudWatch client
+    # Cache for S3 client
     __client__ = None
     __uuid__ = None
 
     @staticmethod
     def get_s3_client():
         """
-        Setup CloudWatch client
+        Setup S3 client
         """
         # If we haven't gotten a client yet- create one now and cache it for future calls
         if Client.__client__ is None:
@@ -41,6 +43,7 @@ class Client:
             Client.__client__ = boto3.session.Session().client('s3')
 
         # Return the cached client
+        Log.trace('Returning S3 client...')
         return Client.__client__
 
     @staticmethod
@@ -146,7 +149,7 @@ class Client:
                     NextMarker=objects['NextMarker']
                 )
         except Exception as list_exception:
-            Log.exception(Client.ERROR_file_list_EXCEPTION, list_exception)
+            Log.exception(Client.ERROR_FILE_LIST_EXCEPTION, list_exception)
             raise list_exception
 
         # Return files we found
@@ -309,7 +312,7 @@ class Client:
             raise copy_exception
 
     @staticmethod
-    def file_download(bucket_name, bucket_filename, local_filename) -> None:
+    def file_download(bucket_name, bucket_filename, local_filename, allow_overwrite=True) -> None:
         """
         Download a file from an S3 bucket to local disk
 
@@ -321,6 +324,9 @@ class Client:
 
         :type local_filename: str
         :param local_filename: Download filename on local filesystem
+
+        :type allow_overwrite: bool
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be thrown
 
         :return: None
         """
@@ -337,8 +343,13 @@ class Client:
             os.makedirs(destination_path)
 
         try:
+            if allow_overwrite is False:
+                if os.path.exists(local_filename) is True:
+                    Log.error(Client.ERROR_FILE_DOWNLOAD_EXISTS)
+                    raise Exception(Client.ERROR_FILE_DOWNLOAD_EXISTS)
+
             Log.debug('Downloading...')
-            Client.get_s3_client().file_download(
+            Client.get_s3_client().download_file(
                 Bucket=bucket_name,
                 Key=bucket_filename,
                 Filename=local_filename
@@ -378,7 +389,7 @@ class Client:
             raise download_exception
 
     @staticmethod
-    def file_upload(bucket_name, bucket_filename, local_filename) -> None:
+    def file_upload(bucket_name, bucket_filename, local_filename, allow_overwrite=True) -> None:
         """
         Upload a local file to an S3 bucket
 
@@ -391,6 +402,9 @@ class Client:
         :type local_filename: str
         :param local_filename: File on local filesystem to be uploaded
 
+        :type allow_overwrite: bool
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be thrown
+
         :return: None
         """
         Log.trace('Uploading file from local filesystem to S3 bucket...')
@@ -400,15 +414,12 @@ class Client:
 
         # Make sure the local file exists
         Log.debug('Checking local file exists...')
-
         if os.path.exists(path=local_filename) is False:
             Log.error(Client.ERROR_LOCAL_FILE_NOT_FOUND)
             raise Exception(Client.ERROR_LOCAL_FILE_NOT_FOUND)
 
         # Make sure the file is readable
-
         Log.debug('Checking local file is readable...')
-
         local_file = open(local_filename, "r")
         local_file_readable = local_file.readable()
         local_file.close()
@@ -418,8 +429,16 @@ class Client:
             raise Exception(Client.ERROR_LOCAL_FILE_UNREADABLE)
 
         try:
+            if allow_overwrite is False:
+                if Client.file_exists(
+                    bucket_name=bucket_name,
+                    bucket_filename=bucket_filename
+                ) is True:
+                    Log.error(Client.ERROR_FILE_DOWNLOAD_EXISTS)
+                    raise Exception(Client.ERROR_FILE_DOWNLOAD_EXISTS)
+
             Log.debug('Uploading...')
-            Client.get_s3_client().file_upload(
+            Client.get_s3_client().upload_file(
                 Bucket=bucket_name,
                 Key=bucket_filename,
                 Filename=local_filename
@@ -429,7 +448,7 @@ class Client:
             raise upload_exception
 
     @staticmethod
-    def file_upload_from_string(bucket_name, bucket_filename, contents, encoding='utf-8') -> None:
+    def file_upload_from_string(bucket_name, bucket_filename, contents, encoding='utf-8', allow_overwrite=True) -> None:
         """
         Upload the content of a string to the specified S3 bucket
 
@@ -445,6 +464,9 @@ class Client:
         :type encoding: string
         :param encoding: The strings content_encoding, defaults to UTF-8
 
+        :type allow_overwrite: bool
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be thrown
+
         :return: EasyS3File
         """
         Log.trace('Uploading string to S3 bucket...')
@@ -454,7 +476,16 @@ class Client:
         Log.trace('String Length: {string_length}'.format(string_length=len(contents)))
 
         try:
-            Client.get_s3_client().file_uploadobj(
+            if allow_overwrite is False:
+                if Client.file_exists(
+                        bucket_name=bucket_name,
+                        bucket_filename=bucket_filename
+                ) is True:
+                    Log.error(Client.ERROR_FILE_DOWNLOAD_EXISTS)
+                    raise Exception(Client.ERROR_FILE_DOWNLOAD_EXISTS)
+
+            Log.debug('Uploading...')
+            Client.get_s3_client().upload_fileobj(
                 Fileobj=BytesIO(bytes(contents, encoding)),
                 Bucket=bucket_name,
                 Key=bucket_filename
@@ -598,17 +629,17 @@ class Client:
 
         # Make that mother trucking file dance
         Log.debug('Uploading test file to S3 bucket...')
-        Client.file_upload(
-            bucket_name=bucket_name,
-            bucket_filename=bucket_filename,
-            local_filename=original_filename
+        Client.get_s3_client().upload_file(
+            Bucket=bucket_name,
+            Key=bucket_filename,
+            Filename=original_filename
         )
 
         Log.debug('Downloading test file from S3 bucket: downloaded_filename...'.format(downloaded_filename=downloaded_filename))
-        Client.file_download(
-            bucket_name=bucket_name,
-            bucket_filename=bucket_filename,
-            local_filename=downloaded_filename
+        Client.get_s3_client().download_file(
+            Bucket=bucket_name,
+            Key=bucket_filename,
+            Filename=downloaded_filename
         )
 
         # Compare the two files
