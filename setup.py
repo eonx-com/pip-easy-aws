@@ -8,7 +8,19 @@ setup(
     author='Damian Sloane',
     author_email='damian.sloane@loyaltycorp.com.au',
     license='proprietary',
-    packages=['EasyLambda'],
+    packages=[
+        'EasyCloudFormation',
+        'EasyCloudWatch',
+        'EasyFilesystem',
+        'EasyLambda',
+        'EasyLocalDisk',
+        'EasyLog',
+        'EasyPipeline',
+        'EasyS3',
+        'EasySecretsManager',
+        'EasySftp',
+        'EasyValidator'
+    ],
     zip_safe=False,
     install_requires=[
         'boto',
