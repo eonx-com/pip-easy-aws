@@ -134,7 +134,7 @@ class Sftp(FilesystemAbstract):
                 Log.debug('Triggering user callback...')
                 iteration_success = callback(filesystem_file=filesystem_file)
             except Exception as callback_exception:
-                # The user callback generated an exception error, report an exception error- but allow fallthrough so it gets cleaned up
+                # The user callback generated an base_exception error, report an base_exception error- but allow fallthrough so it gets cleaned up
                 Log.exception(FilesystemAbstract.ERROR_ITERATION_CALLBACK_EXCEPTION, callback_exception)
                 iteration_success = False
 
@@ -224,7 +224,7 @@ class Sftp(FilesystemAbstract):
         :param local_filename: The destination on the local filesystem where the file will be downloaded to
 
         :type allow_overwrite: bool
-        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be thrown
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an base_exception will be thrown
 
         :return: None
         """
@@ -245,7 +245,7 @@ class Sftp(FilesystemAbstract):
         :param local_filename: The name of the local filesystem file that will be uploaded
 
         :type allow_overwrite: bool
-        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be thrown
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an base_exception will be thrown
 
         :return: File
         """

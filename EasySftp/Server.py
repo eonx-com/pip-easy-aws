@@ -224,7 +224,7 @@ class Server:
         :param remote_filename: Filename/path of the file to download from the SFTP server
 
         :type allow_overwrite: bool
-        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be thrown
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an base_exception will be thrown
 
         :return: None
         """
@@ -251,7 +251,7 @@ class Server:
             string parameter which contains the local filesystem filename
 
         :type allow_overwrite: bool
-        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be thrown
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an base_exception will be thrown
 
         :return: None
         """
@@ -283,7 +283,7 @@ class Server:
             they have been uploaded, setting this to True will generate an error.
 
         :type allow_overwrite: bool
-        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be thrown
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an base_exception will be thrown
 
         :return: None
         """
@@ -316,7 +316,7 @@ class Server:
             they have been uploaded, setting this to True will generate an error.
 
         :type allow_overwrite: bool
-        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be thrown
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an base_exception will be thrown
 
         :return: None
         """

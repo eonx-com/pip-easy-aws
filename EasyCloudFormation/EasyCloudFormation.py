@@ -181,7 +181,7 @@ class EasyCloudFormation:
                         Log.debug('Returning cached request ID: {request_id}'.format(request_id=EasyCloudFormation.__drift_request_ids__[stack_name]))
                         return EasyCloudFormation.__drift_request_ids__[stack_name]
 
-                # Otherwise another process must be performing the check- raise an exception as this is a potential conflict of interest
+                # Otherwise another process must be performing the check- raise an base_exception as this is a potential conflict of interest
                 Log.error('Drift detection was already initiated by external process')
                 raise Exception(EasyCloudFormation.ERROR_DRIFT_DETECTION_CONFLICT)
 

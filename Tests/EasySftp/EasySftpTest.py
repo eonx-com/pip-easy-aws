@@ -1,9 +1,10 @@
 import os
 import unittest
 
-from TestHelpers.LazyHelpers import LazyHelpers
+from EasySftp.ClientError import ClientError
+from Tests.Helpers import Helpers
 from EasyLog.Log import Log
-from EasyLambda.EasySftp import EasySftp
+from EasySftp.Client import Client
 
 
 # noinspection PyBroadException,DuplicatedCode
@@ -15,6 +16,8 @@ class EasySftpTest(unittest.TestCase):
     sftp_base_path = '/home/sftp/'
     sftp_address = 'localhost'
 
+    callback_results = []
+
     def test_host_fingerprint(self) -> None:
         """
         Attempt to connect to the SFTP server with host key checking enable- but no valid host key supplied. Connection should fail.
@@ -24,9 +27,9 @@ class EasySftpTest(unittest.TestCase):
         Log.test('Testing SFTP server host key validation...')
 
         # Get SFTP client (there is no need to explicitly enable host key checking as it should be on by default)
-        sftp_client = EasySftp()
+        sftp_client = Client()
 
-        # Connect with username/password and assert we receive an exception error
+        # Connect with username/password and assert we receive an base_exception error
         exception = None
 
         try:
@@ -38,12 +41,10 @@ class EasySftpTest(unittest.TestCase):
                 port=EasySftpTest.sftp_port
             )
         except Exception as connect_exception:
-            Log.test('Received exception error: {connect_exception}'.format(connect_exception=connect_exception))
-            exception = connect_exception
+            Log.test('Received base_exception error: {connect_exception}'.format(connect_exception=connect_exception))
+            exception = str(connect_exception)
 
-        # Assert we received the expect exception error
-        Log.test('Asserting expected fingerprint exception received...')
-        self.assertTrue(str(exception) == EasySftp.ERROR_INVALID_FINGERPRINT)
+        self.assertTrue(exception == 'No hostkey for host localhost found.')
 
         # Disable host key checking and ensure it works
         Log.test('Disabling host key checks...')
@@ -71,7 +72,7 @@ class EasySftpTest(unittest.TestCase):
         Log.test('Testing list files...')
 
         Log.test('Connecting to SFTP server...')
-        sftp_client = EasySftp()
+        sftp_client = Client()
         sftp_client.disable_fingerprint_validation()
         sftp_client.connect_password(
             username=EasySftpTest.sftp_username,
@@ -90,12 +91,12 @@ class EasySftpTest(unittest.TestCase):
         self.assertTrue(isinstance(files, list))
 
         Log.test('Creating local test file...')
-        local_test_filename = LazyHelpers.create_local_test_file()
+        local_test_filename = Helpers.create_local_test_file()
 
         Log.test('Uploading test files to SFTP server...')
         remote_filenames = {}
         for i in range(0, test_file_count):
-            remote_filenames[i] = EasySftp.sanitize_path('{base_path}/test_sftp_file_list_success/{i}/{local_filename}'.format(
+            remote_filenames[i] = Client.sanitize_path('{base_path}/test_sftp_file_list_success/{i}/{local_filename}'.format(
                 i=i,
                 base_path=EasySftpTest.sftp_base_path,
                 local_filename=local_test_filename
@@ -164,7 +165,7 @@ class EasySftpTest(unittest.TestCase):
         Log.test('Testing SFTP download...')
 
         Log.test('Connecting to SFTP server...')
-        sftp_client = EasySftp()
+        sftp_client = Client()
         sftp_client.disable_fingerprint_validation()
         sftp_client.connect_password(
             username=EasySftpTest.sftp_username,
@@ -174,11 +175,11 @@ class EasySftpTest(unittest.TestCase):
         )
 
         Log.test('Creating local test file...')
-        local_test_filename = LazyHelpers.create_local_test_file()
+        local_test_filename = Helpers.create_local_test_file()
 
         remote_filenames = {}
         for i in range(0, test_file_count):
-            remote_filenames[i] = EasySftp.sanitize_path('{base_path}/test_sftp_download_overwrite/{i}/{local_filename}'.format(
+            remote_filenames[i] = Client.sanitize_path('{base_path}/test_sftp_download_overwrite/{i}/{local_filename}'.format(
                 i=i,
                 base_path=EasySftpTest.sftp_base_path,
                 local_filename=local_test_filename
@@ -190,8 +191,8 @@ class EasySftpTest(unittest.TestCase):
             )
 
         for i in range(0, test_file_count):
-            local_download_filename = LazyHelpers.create_unique_local_filename()
-            remote_filename = EasySftp.sanitize_path('{base_path}/test_sftp_download_overwrite/{i}/{local_filename}'.format(
+            local_download_filename = Helpers.create_unique_local_filename()
+            remote_filename = Client.sanitize_path('{base_path}/test_sftp_download_overwrite/{i}/{local_filename}'.format(
                 i=i,
                 base_path=EasySftpTest.sftp_base_path,
                 local_filename=local_test_filename
@@ -214,8 +215,8 @@ class EasySftpTest(unittest.TestCase):
             except Exception as download_exception:
                 exception = str(download_exception)
 
-                Log.test('Asserting expected exception received...')
-                self.assertEqual(EasySftp.ERROR_DOWNLOAD_FILE_EXISTS, exception)
+                Log.test('Asserting expected base_exception received...')
+                self.assertEqual(ClientError.ERROR_FILE_DOWNLOAD_DESTINATION_EXISTS, exception)
 
             # Perform the same download, with allow overwrite enabled
             Log.test('Downloading same test file again with allow overwrite enabled...')
@@ -236,7 +237,7 @@ class EasySftpTest(unittest.TestCase):
         Log.test('Testing SFTP download...')
 
         Log.test('Connecting to SFTP server...')
-        sftp_client = EasySftp()
+        sftp_client = Client()
         sftp_client.disable_fingerprint_validation()
         sftp_client.connect_password(
             username=EasySftpTest.sftp_username,
@@ -246,7 +247,7 @@ class EasySftpTest(unittest.TestCase):
         )
 
         Log.test('Creating local test file...')
-        local_test_filename = LazyHelpers.create_local_test_file()
+        local_test_filename = Helpers.create_local_test_file()
 
         Log.test('Reading test file contents...')
         local_test_file = open(local_test_filename, "rt")
@@ -257,7 +258,7 @@ class EasySftpTest(unittest.TestCase):
 
         remote_filenames = {}
         for i in range(0, test_file_count):
-            remote_filenames[i] = EasySftp.sanitize_path('{base_path}/test_sftp_file_list_success/{i}/{local_filename}'.format(
+            remote_filenames[i] = Client.sanitize_path('{base_path}/test_sftp_file_list_success/{i}/{local_filename}'.format(
                 i=i,
                 base_path=EasySftpTest.sftp_base_path,
                 local_filename=local_test_filename
@@ -270,7 +271,7 @@ class EasySftpTest(unittest.TestCase):
 
         # Test downloading of test files individually
         for i in range(0, test_file_count):
-            local_filename = LazyHelpers.create_unique_local_filename()
+            local_filename = Helpers.create_unique_local_filename()
             Log.test('Downloading test file: {remote_filename}'.format(remote_filename=remote_filenames[i]))
             sftp_client.file_download(
                 local_filename=local_filename,
@@ -285,10 +286,10 @@ class EasySftpTest(unittest.TestCase):
 
         # Perform recursive download and make sure all test files get downloaded
         Log.test('Testing recursive download...')
-        self.found_callback_test_sftp_file_download_success = []
+        self.found_files = []
 
         # Download all files from the SFTP server to a local test path, a callback function will store the details of downloaded files
-        local_path = LazyHelpers.create_unique_local_temp_path()
+        local_path = Helpers.create_unique_local_temp_path()
         sftp_client.file_download_recursive(
             remote_path=EasySftpTest.sftp_base_path,
             local_path=local_path,
@@ -297,7 +298,7 @@ class EasySftpTest(unittest.TestCase):
 
         # Go through all the files that were captures by the callback function and make sure we found everything we uploaded
         count_found = 0
-        for downloaded_file in self.found_callback_test_sftp_file_download_success:
+        for downloaded_file in self.found_files:
             for i in range(0, test_file_count):
                 if downloaded_file['remote_filename'] == remote_filenames[i]:
                     Log.test('Found: {remote_filename}'.format(remote_filename=downloaded_file['remote_filename']))
@@ -305,6 +306,63 @@ class EasySftpTest(unittest.TestCase):
 
         Log.test('Asserting all uploaded test files found...')
         self.assertEqual(count_found, test_file_count)
+
+    def test_file_download_limit(self) -> None:
+        """
+        Assert download file limit works
+
+        :return: None
+        """
+        test_file_count = 5
+        test_file_download_limit = 2
+
+        Log.test('Testing SFTP download...')
+
+        Log.test('Connecting to SFTP server...')
+        sftp_client = Client()
+        sftp_client.set_file_download_limit(test_file_download_limit)
+        sftp_client.disable_fingerprint_validation()
+        sftp_client.connect_password(
+            username=EasySftpTest.sftp_username,
+            password=EasySftpTest.sftp_password,
+            address=EasySftpTest.sftp_address,
+            port=EasySftpTest.sftp_port
+        )
+
+        Log.test('Creating local test file...')
+        local_test_filename = Helpers.create_local_test_file()
+
+        Log.test('Uploading test files to SFTP server...')
+        remote_filenames = {}
+        for i in range(0, test_file_count):
+            remote_filenames[i] = Client.sanitize_path('{base_path}/test_file_download_limit/{i}/{local_filename}'.format(
+                i=i,
+                base_path=EasySftpTest.sftp_base_path,
+                local_filename=local_test_filename
+            ))
+            Log.test('Uploading test file: {remote_filename}...'.format(remote_filename=remote_filenames[i]))
+            sftp_client.file_upload(
+                local_filename=local_test_filename,
+                remote_filename=remote_filenames[i]
+            )
+
+        # Download all files from the SFTP server to a local test path, a callback function will store the details of downloaded files
+        Log.test('Downloading test files...')
+        local_path = Helpers.create_unique_local_temp_path()
+        sftp_client.file_download_recursive(
+            remote_path=EasySftpTest.sftp_base_path,
+            local_path=local_path,
+            callback=self.callback_file_download
+        )
+
+        # Go through all the files that were captures by the callback function and make sure we found everything we uploaded
+        count_found = 0
+
+        for downloaded_file in self.callback_results:
+            count_found += 1
+
+        Log.test('Asserting maximum file limit reached...')
+        self.assertEqual(count_found, test_file_download_limit)
 
     def callback_file_download(self, local_filename, remote_filename) -> None:
         """
@@ -318,10 +376,10 @@ class EasySftpTest(unittest.TestCase):
 
         :return: None
         """
-        if self.found_callback_test_sftp_file_download_success is None:
-            self.found_callback_test_sftp_file_download_success = []
+        if self.callback_results is None:
+            self.callback_results = []
 
-        self.found_callback_test_sftp_file_download_success.append({
+        self.callback_results.append({
             'local_filename': local_filename,
             'remote_filename': remote_filename
         })

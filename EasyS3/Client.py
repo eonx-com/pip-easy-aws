@@ -10,32 +10,11 @@ import uuid
 from EasyLog.Log import Log
 from io import BytesIO
 
+# noinspection PyBroadException
+from EasyS3.ClientError import ClientError
+
 
 class Client:
-    # Error constants
-    ERROR_LOCAL_FILE_NOT_FOUND = 'The file was not found on the local filesystem'
-    ERROR_LOCAL_FILE_UNREADABLE = 'The file was found on the local filesystem however its content were not readable, please check file permissions'
-    ERROR_BUCKET_LIST_EXCEPTION = 'An unexpected error occurred during listing of S3 buckets'
-    ERROR_FILE_LIST_EXCEPTION = 'An unexpected error occurred during listing of files in S3 bucket'
-    ERROR_FILE_EXISTS_EXCEPTION = 'An unexpected error occurred during test of file existence in S3 bucket'
-    ERROR_FILE_DELETE_EXCEPTION = 'An unexpected error occurred while deleting S3 file'
-    ERROR_FILE_DELETE_NOT_EXIST = 'The file you are attempting to delete does not exist'
-    ERROR_FILE_DELETE_STILL_EXIST = 'The file you are attempting to delete was not successfully deleted'
-    ERROR_FILE_GET_TAG_EXCEPTION = 'An unexpected error occurred while attempting to retrieve tags from file in S3'
-    ERROR_FILE_PUT_TAG_EXCEPTION = 'An unexpected error occurred while attempting to update tags on file in S3'
-    ERROR_FILE_COPY_EXCEPTION = 'An unexpected error occurred while copying S3 file'
-    ERROR_FILE_COPY_SOURCE_DESTINATION_SAME = 'The source and destination of the file copy cannot be the same'
-    ERROR_FILE_COPY_SOURCE_NOT_EXIST = 'The requested file did not exist in the source bucket'
-    ERROR_FILE_COPY_DESTINATION_EXISTS = 'The requested file already exists in the destination bucket'
-    ERROR_FILE_COPY_DESTINATION_NOT_EXIST = 'The requested file could not be found in the destination bucket after the file copy'
-    ERROR_FILE_MOVE_EXCEPTION = 'An unexpected error occurred while moving S3 file'
-    ERROR_FILE_MOVE_COPY_EXCEPTION = 'An unexpected error occurred while moving S3 file, copying to the destination failed'
-    ERROR_FILE_MOVE_DELETE_EXCEPTION = 'An unexpected error occurred while moving S3 file, deleting original file after copy failed'
-    ERROR_FILE_UPLOAD_EXISTS = 'The file upload failed as the file already exists and allow overwrite was not enabled'
-    ERROR_FILE_UPLOAD_EXCEPTION = 'An unexpected error occurred while uploading file to S3'
-    ERROR_FILE_DOWNLOAD_EXCEPTION = 'An unexpected error occurred while downloading file from S3'
-    ERROR_FILE_DOWNLOAD_EXISTS = 'The file download failed as the file already exists and allow overwrite was not enabled'
-
     # Cache for S3 client
     __client__ = None
     __uuid__ = None
@@ -51,7 +30,6 @@ class Client:
             Client.__client__ = boto3.session.Session().client('s3')
 
         # Return the cached client
-        Log.trace('Returning S3 Client...')
         return Client.__client__
 
     @staticmethod
@@ -64,6 +42,7 @@ class Client:
         # If we haven't use a UUID yet, generate one and cache it
         if Client.__uuid__ is None:
             Client.__uuid__ = uuid.uuid4()
+            Log.debug('Generated S3 Client UUID: {uuid}'.format(uuid=Client.__uuid__))
 
         # Return the cached UUID
         return Client.__uuid__
@@ -75,27 +54,37 @@ class Client:
 
         :return: list[str]
         """
-        Log.trace('Listing S3 Buckets...')
+        buckets = []
+        list_buckets_result = []
 
         try:
-            list_buckets_result = Client.get_s3_client().list_buckets()['Buckets']
+            Log.trace('Listing S3 Buckets...')
+            list_buckets_result = Client.get_s3_client().list_buckets()
         except Exception as list_exception:
-            Log.exception(Client.ERROR_BUCKET_LIST_EXCEPTION, list_exception)
-            raise Exception(Client.ERROR_BUCKET_LIST_EXCEPTION)
+            # Failed to retrieve bucket list
+            Log.exception(ClientError.ERROR_BUCKET_LIST_UNHANDLED_EXCEPTION, list_exception)
 
-        # Create list of buckets
-        buckets = []
+        # Make sure the result contains the expected key
+        Log.debug('Checking Result...')
+        if 'Buckets' not in list_buckets_result:
+            # Missing expected buckets key in response from S3
+            Log.exception(ClientError.ERROR_BUCKET_LIST_KEY_MISSING)
 
         # Dump all files found for debugging purposes
         if len(list_buckets_result) == 0:
-            Log.debug('Bucket List Result: No Files Found')
+            Log.debug('No Buckets Found')
         else:
-            Log.debug('Bucket List Result: ')
+            Log.debug('Buckets Found: ')
             for bucket in list_buckets_result:
-                Log.debug('Found: {bucket}'.format(bucket=bucket['Name']))
+                # Make sure the name key exists in the result
+                if 'Name' in bucket is False:
+                    Log.exception(ClientError.ERROR_BUCKET_LIST_KEY_MISSING)
+
+                Log.debug('- {bucket}'.format(bucket=bucket['Name']))
                 buckets.append(bucket['Name'])
 
         # Return the bucket names
+        Log.debug('Bucket List Completed')
         return buckets
 
     @staticmethod
@@ -114,37 +103,44 @@ class Client:
 
         :return: list[str]
         """
+        files = []
+
         # Sanitize the bucket path
         bucket_path = Client.sanitize_path(bucket_path)
 
         Log.trace('Listing Files...')
-
         Log.debug('Bucket Name: {bucket_name}'.format(bucket_name=bucket_name))
         Log.debug('Bucket Path: {bucket_path}'.format(bucket_path=bucket_path))
         Log.debug('Listing Recursively: {recursive}'.format(recursive=('Yes', 'No')[recursive]))
 
-        # Store any files we find
-        files = []
-
         try:
             # Retrieve list of files
-            list_objects_result = Client.get_s3_client().list_objects_v2(
-                Bucket=bucket_name,
-                Prefix=bucket_path,
-                Delimiter='|'
-            )
+            list_objects_result = Client.get_s3_client().list_objects_v2(Bucket=bucket_name, Prefix=bucket_path, Delimiter='|')
 
             while True:
-                if 'Contents' in list_objects_result:
-                    # Iterate through the content of the most recent search results
-                    for object_details in list_objects_result['Contents']:
-                        if 'Size' in object_details and object_details['Size'] > 0 and 'Key' in object_details:
-                            # If we are not recursively searching, make it is in the specified path
-                            if recursive is False and os.path.dirname(object_details['Key']) != bucket_path:
+                # Make sure the result contains the expected contents key
+                if 'Contents' not in list_objects_result:
+                    # The result did not contain the required key, throw an exception
+                    Log.exception(ClientError.ERROR_FILE_LIST_KEY_NOT_FOUND)
+
+                # Iterate through the content of the most recent search results
+                for object_details in list_objects_result['Contents']:
+                    # Make sure the result contains the expected filename key
+                    if 'Key' not in object_details:
+                        # The result did not contain the required key, throw an exception
+                        Log.exception(ClientError.ERROR_FILE_LIST_KEY_NOT_FOUND)
+
+                    # Ignore anything with zero file size (as it is most likely a directory)
+                    if 'Size' in object_details and object_details['Size'] > 0:
+                        # Check if we are performing a recursive search
+                        if recursive is False:
+                            # We are not recursively searching, make the file is in the required path
+                            if os.path.dirname(object_details['Key']) != bucket_path:
+                                # Skip this file
                                 continue
 
-                            # Add the file to the list we will return
-                            files.append(object_details['Key'])
+                        # Add the file to the list we will return
+                        files.append(object_details['Key'])
 
                 # Check if the search results indicated there were more results
                 if 'NextMarker' not in list_objects_result:
@@ -152,20 +148,16 @@ class Client:
 
                 # There were more results, rerun the search to get the next page of results
                 Log.debug('Loading Next Marker...')
-                list_objects_result = Client.get_s3_client().list_objects_v2(
-                    Bucket=bucket_name,
-                    Delimiter='|',
-                    NextMarker=list_objects_result['NextMarker']
-                )
+                next_marker = list_objects_result['NextMarker']
+                list_objects_result = Client.get_s3_client().list_objects_v2(Bucket=bucket_name, Delimiter='|', NextMarker=next_marker)
         except Exception as list_exception:
-            Log.exception(Client.ERROR_FILE_LIST_EXCEPTION, list_exception)
-            raise Exception(Client.ERROR_FILE_LIST_EXCEPTION)
+            Log.exception(ClientError.ERROR_FILE_LIST_UNHANDLED_EXCEPTION, list_exception)
 
         # Dump all files for debugging
         if len(files) == 0:
-            Log.debug('File List Result: No Files Found')
+            Log.debug('No Files Found')
         else:
-            Log.debug('File List Result:')
+            Log.debug('Files Found:')
             for filename in files:
                 Log.debug('- {filename}'.format(filename=filename))
 
@@ -185,27 +177,31 @@ class Client:
 
         :return: bool
         """
+        file_list_result = []
+
+        # Sanitize the bucket path
         bucket_filename = Client.sanitize_path(bucket_filename)
 
         Log.trace('Checking If File Exists...')
         Log.debug('Bucket Name: {bucket_name}'.format(bucket_name=bucket_name))
         Log.debug('Bucket Filename: {bucket_filename}'.format(bucket_filename=bucket_filename))
 
-        # Retrieve list of files in the bucket
         try:
+            # Retrieve list of files in the bucket
+            Log.debug('Retrieving File List...')
             file_list_result = Client.file_list(bucket_name=bucket_name, bucket_path=bucket_filename)
         except Exception as exists_exception:
-            Log.exception(Client.ERROR_FILE_EXISTS_EXCEPTION, exists_exception)
-            raise exists_exception
+            Log.exception(ClientError.ERROR_FILE_EXISTS_UNHANDLED_EXCEPTION, exists_exception)
 
+        # Check if the file exists
+        Log.debug('Checking Existence...')
         file_exists_result = bucket_filename in file_list_result
 
-        Log.debug('File List Result: {file_found}'.format(file_found=('Yes', 'No')[file_exists_result]))
-
+        Log.debug('File {file_found}'.format(file_found=('Found', 'Not Found')[file_exists_result]))
         return file_exists_result
 
     @staticmethod
-    def file_delete(bucket_name, bucket_filename) -> bool:
+    def file_delete(bucket_name, bucket_filename) -> None:
         """
         Delete a file from S3 bucket
 
@@ -215,42 +211,45 @@ class Client:
         :type bucket_filename: string
         :param bucket_filename: Path of the S3 file to be deleted
 
-        :return: bool
+        :return: None
         """
+        # Sanitize the bucket path
         bucket_filename = Client.sanitize_path(bucket_filename)
 
         Log.trace('Deleting File...')
-        Log.trace('Bucket Name: {bucket_name}'.format(bucket_name=bucket_name))
-        Log.trace('Bucket Filename: {bucket_filename}'.format(bucket_filename=bucket_filename))
+        Log.debug('Bucket Name: {bucket_name}'.format(bucket_name=bucket_name))
+        Log.debug('Bucket Filename: {bucket_filename}'.format(bucket_filename=bucket_filename))
 
         # Make sure the file exists before we try to delete it
-        Log.trace('Checking File To Delete Exists...')
+        Log.debug('Checking File Exists Before Delete...')
         if Client.file_exists(bucket_name=bucket_name, bucket_filename=bucket_filename) is False:
-            Log.exception(Client.ERROR_FILE_DELETE_NOT_EXIST)
-            raise Exception(Client.ERROR_FILE_DELETE_NOT_EXIST)
+            # The file to be deleted did not exist
+            Log.exception(ClientError.ERROR_FILE_DELETE_SOURCE_NOT_FOUND)
 
+        # Delete the file
         try:
-            Log.trace('Deleting File...')
-            Client.get_s3_client().delete_object(
-                Bucket=bucket_name,
-                Key=bucket_filename
-            )
+            Log.debug('Deleting...')
+            Client.get_s3_client().delete_object(Bucket=bucket_name, Key=bucket_filename)
         except Exception as delete_exception:
-            Log.exception(Client.ERROR_FILE_DELETE_EXCEPTION, delete_exception)
-            raise Exception(Client.ERROR_FILE_DELETE_EXCEPTION)
+            # Unhandled exception during deletion
+            Log.exception(ClientError.ERROR_FILE_DELETE_UNHANDLED_EXCEPTION, delete_exception)
 
-        Log.trace('Checking Delete Successful...')
+        # Make sure the file no longer exists
+        Log.debug('Checking Delete Result...')
         if Client.file_exists(bucket_name=bucket_name, bucket_filename=bucket_filename) is True:
-            Log.error(Client.ERROR_FILE_DELETE_STILL_EXIST)
-            raise Exception(Client.ERROR_FILE_DELETE_STILL_EXIST)
-
-        # Return success
-        return True
+            Log.exception(ClientError.ERROR_FILE_DELETE_FAILED)
+        Log.debug('Delete successful...')
 
     @staticmethod
-    def move_file(source_bucket_name, source_bucket_filename, destination_bucket_name, destination_bucket_filename) -> None:
+    def move_file(
+            source_bucket_name,
+            source_bucket_filename,
+            destination_bucket_name,
+            destination_bucket_filename,
+            allow_overwrite=True
+    ) -> None:
         """
-        Move a file in S3 to another bucket/path
+        Move a file from one S3 bucket/path to another S3 bucket/path
 
         :type source_bucket_name: string
         :param source_bucket_name: The bucket the file should be moved from
@@ -264,14 +263,30 @@ class Client:
         :type destination_bucket_filename: string
         :param destination_bucket_filename: The destination filename
 
+        :type allow_overwrite: bool
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an base_exception will be thrown
+
         :return: None
         """
+        # Sanitize the bucket path
         destination_bucket_filename = Client.sanitize_path(destination_bucket_filename)
 
-        Log.trace('Moving File...')
+        Log.trace('Moving S3 File...')
 
+        # Make sure the source file exists
+        if Client.file_exists(bucket_name=source_bucket_name, bucket_filename=source_bucket_filename) is False:
+            Log.exception(ClientError.ERROR_FILE_COPY_SOURCE_NOT_FOUND)
+
+        # If we are not in overwrite mode, we need to check if the file exists already
+        if allow_overwrite is False:
+            Log.debug('Checking File Does Not Exist At Destination...')
+            if Client.file_exists(bucket_name=destination_bucket_name, bucket_filename=destination_bucket_filename) is True:
+                # The file already exists at the destination
+                Log.exception(ClientError.ERROR_FILE_COPY_DESTINATION_EXISTS)
+
+        # Copy the file
         try:
-            Log.trace('Copying File To Destination...')
+            Log.debug('Copying File To Destination...')
             Client.copy_file(
                 source_bucket_name=source_bucket_name,
                 source_bucket_filename=source_bucket_filename,
@@ -279,18 +294,17 @@ class Client:
                 destination_bucket_filename=destination_bucket_filename
             )
         except Exception as copy_exception:
-            Log.exception(Client.ERROR_FILE_MOVE_COPY_EXCEPTION, copy_exception)
-            raise Exception(Client.ERROR_FILE_MOVE_COPY_EXCEPTION)
+            # Unexpected exception error occurred during copy operation
+            Log.exception(ClientError.ERROR_FILE_MOVE_COPY_EXCEPTION, copy_exception)
 
+        # Delete the file from the source bucket
         try:
-            Log.trace('Deleting File From Source...')
-            Client.file_delete(
-                bucket_name=source_bucket_name,
-                bucket_filename=source_bucket_filename
-            )
+            Log.debug('Deleting S3 File From Source...')
+            Client.file_delete(bucket_name=source_bucket_name, bucket_filename=source_bucket_filename)
         except Exception as copy_exception:
-            Log.exception(Client.ERROR_FILE_MOVE_DELETE_EXCEPTION, copy_exception)
-            raise Exception(Client.ERROR_FILE_MOVE_DELETE_EXCEPTION)
+            Log.exception(ClientError.ERROR_FILE_MOVE_DELETE_EXCEPTION, copy_exception)
+
+        Log.debug('Move Completed')
 
     @staticmethod
     def copy_file(
@@ -315,8 +329,12 @@ class Client:
         :type destination_bucket_filename: string
         :param destination_bucket_filename: The destination filename
 
+        :type allow_overwrite: bool
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an base_exception will be thrown
+
         :return: None
         """
+        # Sanitize the bucket path
         source_bucket_filename = Client.sanitize_path(source_bucket_filename)
         destination_bucket_filename = Client.sanitize_path(destination_bucket_filename)
 
@@ -328,49 +346,43 @@ class Client:
 
         # Ensure the source and destination are not the same
         if source_bucket_filename == destination_bucket_filename:
-            Log.error(Client.ERROR_FILE_COPY_SOURCE_DESTINATION_SAME)
-            raise Exception(Client.ERROR_FILE_COPY_SOURCE_DESTINATION_SAME)
+            Log.exception(ClientError.ERROR_FILE_COPY_SOURCE_DESTINATION_SAME)
 
         # Make sure the source file exists
         if Client.file_exists(bucket_name=source_bucket_name, bucket_filename=source_bucket_filename) is False:
-            Log.error(Client.ERROR_FILE_COPY_SOURCE_NOT_EXIST)
-            raise Exception(Client.ERROR_FILE_COPY_SOURCE_NOT_EXIST)
+            Log.exception(ClientError.ERROR_FILE_COPY_SOURCE_NOT_FOUND)
 
         # If we are not in overwrite mode, we need to check if the file exists already
         if allow_overwrite is False:
-            Log.debug('Overwrite Disabled, Ensuring File Does Not Exist At Destination...')
-            if Client.file_exists(
-                bucket_name=destination_bucket_name,
-                bucket_filename=destination_bucket_filename
-            ) is False:
+            Log.debug('Checking File Does Not Exist...')
+            if Client.file_exists(bucket_name=destination_bucket_name, bucket_filename=destination_bucket_filename) is True:
                 # The file already exists at the destination
-                Log.error(Client.ERROR_FILE_COPY_DESTINATION_EXISTS)
-                raise Exception(Client.ERROR_FILE_COPY_DESTINATION_EXISTS)
+                Log.exception(ClientError.ERROR_FILE_COPY_DESTINATION_EXISTS)
 
         try:
-            # Copy the object to its destination
+            # Copy the file to its destination
             Log.debug('Copying File To Destination...')
-            Client.get_s3_client().copy(
-                CopySource={
-                    'Bucket': source_bucket_name,
-                    'Key': source_bucket_filename
-                },
-                Bucket=destination_bucket_name,
-                Key=destination_bucket_filename
-            )
+            copy_source = {'Bucket': source_bucket_name, 'Key': source_bucket_filename}
+            Client.get_s3_client().copy(CopySource=copy_source, Bucket=destination_bucket_name, Key=destination_bucket_filename)
         except Exception as copy_exception:
             # Something unexpected happened during the file copy
-            Log.exception(Client.ERROR_FILE_COPY_EXCEPTION, copy_exception)
-            raise Client.ERROR_FILE_COPY_EXCEPTION
+            Log.exception(ClientError.ERROR_FILE_COPY_UNHANDLED_EXCEPTION, copy_exception)
 
         # Make sure the file exists after the copy
-        Log.debug('Checking File Copy Succeeded...')
+        Log.debug('Checking File At Destination...')
         if Client.file_exists(bucket_name=source_bucket_name, bucket_filename=source_bucket_filename) is False:
-            Log.error(Client.ERROR_FILE_COPY_DESTINATION_NOT_EXIST)
-            raise Exception(Client.ERROR_FILE_COPY_DESTINATION_NOT_EXIST)
+            # File did not exist at the destination
+            Log.exception(ClientError.ERROR_FILE_COPY_FAILED)
+
+        Log.debug('Copy Completed')
 
     @staticmethod
-    def file_download(bucket_name, bucket_filename, local_filename, allow_overwrite=True) -> None:
+    def file_download(
+            bucket_name,
+            bucket_filename,
+            local_filename,
+            allow_overwrite=True
+    ) -> None:
         """
         Download a file from an S3 bucket to local disk
 
@@ -384,44 +396,68 @@ class Client:
         :param local_filename: Download filename on local filesystem
 
         :type allow_overwrite: bool
-        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be thrown
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an base_exception will be thrown
 
         :return: None
         """
+        # Sanitize the bucket path
         bucket_filename = Client.sanitize_path(bucket_filename)
+        destination_path = os.path.dirname(local_filename)
 
         Log.trace('Downloading File To Disk...')
         Log.debug('Bucket Name: {bucket_name}'.format(bucket_name=bucket_name))
         Log.debug('Bucket Filename: {bucket_filename}'.format(bucket_filename=bucket_filename))
         Log.debug('Destination: {local_filename}'.format(local_filename=local_filename))
 
+        # Make sure the file exists at the source
+        Log.debug('Checking Source File Exists...')
+        if Client.file_exists(bucket_name=bucket_name, bucket_filename=bucket_filename) is False:
+            # Source file could not be found, copy cannot proceed
+            Log.exception(ClientError.ERROR_FILE_DOWNLOAD_SOURCE_NOT_FOUND)
+
+        if allow_overwrite is False:
+            # If we are not in overwrite mode, we need to check if the file exists already
+            Log.debug('Checking Destination File Does Not Exist...')
+            if os.path.exists(local_filename) is True:
+                Log.exception(ClientError.ERROR_FILE_DOWNLOAD_DESTINATION_EXISTS)
+
         # Make sure the destination path exists in the local filesystem
-        Log.debug('Ensuring Download Folder Exists...')
-        destination_path = os.path.dirname(local_filename)
+        Log.debug('Checking Download Path Exists...')
         if os.path.exists(destination_path) is False:
+            # Download path didn't exist, we need to create it before download
             Log.debug('Creating Download Folder...')
             os.makedirs(destination_path)
-        elif allow_overwrite is False:
-            # If we are not in overwrite mode, we need to check if the file exists already
-            Log.debug('Overwrite Disabled, Ensuring File Does Not Already Exist Locally...')
-            if os.path.exists(local_filename) is True:
-                Log.error(Client.ERROR_FILE_DOWNLOAD_EXISTS)
-                raise Exception(Client.ERROR_FILE_DOWNLOAD_EXISTS)
 
+        # Download the file
         try:
-
             Log.debug('Downloading...')
-            Client.get_s3_client().download_file(
-                Bucket=bucket_name,
-                Key=bucket_filename,
-                Filename=local_filename
-            )
+            Client.get_s3_client().download_file(Bucket=bucket_name, Key=bucket_filename, Filename=local_filename)
         except Exception as download_exception:
-            Log.exception(Client.ERROR_FILE_DOWNLOAD_EXCEPTION, download_exception)
-            raise download_exception
+            # Unhandled exception during download
+            Log.exception(ClientError.ERROR_FILE_DOWNLOAD_UNHANDLED_EXCEPTION, download_exception)
+
+        # Make sure the file now exists locally
+        Log.debug('Checking Downloaded File...')
+        if os.path.exists(local_filename) is False:
+            Log.exception(ClientError.ERROR_FILE_DOWNLOAD_DESTINATION_NOT_FOUND)
+
+        # Make sure the file is readable via the load filesystem
+        Log.debug('Checking Downloaded File Is Readable...')
+        local_file = open(local_filename, "r")
+        local_file_readable = local_file.readable()
+        local_file.close()
+        if local_file_readable is False:
+            # The file could not be read after download
+            Log.exception(ClientError.ERROR_FILE_DOWNLOAD_DESTINATION_NOT_READABLE)
+
+        Log.debug('Download Completed')
 
     @staticmethod
-    def file_download_to_string(bucket_name, bucket_filename, encoding='utf-8') -> str:
+    def file_download_to_string(
+            bucket_name,
+            bucket_filename,
+            encoding='utf-8'
+    ) -> str:
         """
         Download a file from the bucket decoding it to a string
 
@@ -436,22 +472,66 @@ class Client:
 
         :return: str
         """
-        Log.trace('Downloading file from current bucket to string...')
-        Log.trace('Bucket Name: {bucket_name}'.format(bucket_name=bucket_name))
-        Log.trace('Bucket Filename: {bucket_filename}'.format(bucket_filename=bucket_filename))
-        Log.trace('String Encoding: {encoding}'.format(encoding=encoding))
+        # Sanitize the bucket path
+        bucket_filename = Client.sanitize_path(bucket_filename)
 
+        Log.trace('Downloading File To String...')
+        Log.debug('Bucket Name: {bucket_name}'.format(bucket_name=bucket_name))
+        Log.debug('Bucket Filename: {bucket_filename}'.format(bucket_filename=bucket_filename))
+        Log.debug('String Encoding: {encoding}'.format(encoding=encoding))
+
+        # Make sure we can find the file at the source before we start
+        Log.debug('Checking Source File Exists...')
+        if Client.file_exists(bucket_name=bucket_name, bucket_filename=bucket_filename) is False:
+            # Source file could not be found, copy cannot proceed
+            Log.exception(ClientError.ERROR_FILE_DOWNLOAD_SOURCE_NOT_FOUND)
+
+        # Get the file object from S3
+        file_object = None
         try:
-            return Client.get_s3_client().get_object(
-                Bucket=bucket_name,
-                Key=bucket_filename
-            ).get('Body').read().decode(encoding)
+            Log.debug('Retrieving S3 Object...')
+            file_object = Client.get_s3_client().get_object(Bucket=bucket_name, Key=bucket_filename)
         except Exception as download_exception:
-            Log.exception(Client.ERROR_FILE_DOWNLOAD_EXCEPTION, download_exception)
-            raise download_exception
+            # Something went wrong retrieving the object from S3
+            Log.exception(ClientError.ERROR_FILE_DOWNLOAD_UNHANDLED_EXCEPTION, download_exception)
+
+        # Retrieve the body of the object
+        body = None
+        try:
+            Log.debug('Getting Object Body...')
+            body = file_object.get('Body')
+        except Exception as body_exception:
+            # Error string decoding
+            Log.exception(ClientError.ERROR_FILE_DOWNLOAD_BODY_EXCEPTION, body_exception)
+
+        # Read the body into a variable
+        body_content = None
+        try:
+            Log.debug('Reading Body...')
+            body_content = body.read()
+        except Exception as read_exception:
+            # Error string decoding
+            Log.exception(ClientError.ERROR_FILE_DOWNLOAD_READ_EXCEPTION, read_exception)
+
+        # Perform string decoding
+        body_string = None
+        try:
+            Log.debug('Decoding {encoding}...'.format(encoding=encoding.upper()))
+            body_string = body_content.decode(encoding)
+        except Exception as decode_exception:
+            # Error string decoding
+            Log.exception(ClientError.ERROR_FILE_DOWNLOAD_DECODE_EXCEPTION, decode_exception)
+
+        Log.debug('Download Completed')
+        return body_string
 
     @staticmethod
-    def file_upload(bucket_name, bucket_filename, local_filename, allow_overwrite=True) -> None:
+    def file_upload(
+            bucket_name,
+            bucket_filename,
+            local_filename,
+            allow_overwrite=True
+    ) -> None:
         """
         Upload a local file to an S3 bucket
 
@@ -465,10 +545,13 @@ class Client:
         :param local_filename: File on local filesystem to be uploaded
 
         :type allow_overwrite: bool
-        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be thrown
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an base_exception will be thrown
 
         :return: None
         """
+        # Sanitize the bucket path
+        bucket_filename = Client.sanitize_path(bucket_filename)
+
         Log.trace('Uploading file from local filesystem to S3 bucket...')
         Log.debug('Uploading: {local_filename}'.format(local_filename=local_filename))
         Log.debug('Bucket Name: {bucket_name}'.format(bucket_name=bucket_name))
@@ -477,26 +560,25 @@ class Client:
         # Make sure the local file exists
         Log.debug('Checking local file exists...')
         if os.path.exists(path=local_filename) is False:
-            Log.error(Client.ERROR_LOCAL_FILE_NOT_FOUND)
-            raise Exception(Client.ERROR_LOCAL_FILE_NOT_FOUND)
+            Log.exception(ClientError.ERROR_FILE_UPLOAD_SOURCE_NOT_FOUND)
 
         # Make sure the file is readable
-        Log.debug('Checking local file is readable...')
+        Log.debug('Checking File Is Readable...')
         local_file = open(local_filename, "r")
         local_file_readable = local_file.readable()
         local_file.close()
-
         if local_file_readable is False:
-            Log.error(Client.ERROR_LOCAL_FILE_UNREADABLE)
-            raise Exception(Client.ERROR_LOCAL_FILE_UNREADABLE)
+            Log.error(ClientError.ERROR_FILE_UPLOAD_SOURCE_UNREADABLE)
+            raise Exception(ClientError.ERROR_FILE_UPLOAD_SOURCE_UNREADABLE)
 
+        # If we are not in overwrite mode, we need to check if the file exists already
+        if allow_overwrite is False:
+            if Client.file_exists(bucket_name=bucket_name, bucket_filename=bucket_filename) is True:
+                Log.error(ClientError.ERROR_FILE_UPLOAD_DESTINATION_EXISTS)
+                raise Exception(ClientError.ERROR_FILE_UPLOAD_DESTINATION_EXISTS)
+
+        # Upload the file
         try:
-            # If we are not in overwrite mode, we need to check if the file exists already
-            if allow_overwrite is False:
-                if Client.file_exists(bucket_name=bucket_name, bucket_filename=bucket_filename) is True:
-                    Log.error(Client.ERROR_FILE_DOWNLOAD_EXISTS)
-                    raise Exception(Client.ERROR_FILE_DOWNLOAD_EXISTS)
-
             Log.debug('Uploading...')
             Client.get_s3_client().upload_file(
                 Bucket=bucket_name,
@@ -504,8 +586,11 @@ class Client:
                 Filename=local_filename
             )
         except Exception as upload_exception:
-            Log.exception(Client.ERROR_FILE_UPLOAD_EXCEPTION, upload_exception)
+            # An unexpected exception occurred during upload
+            Log.exception(ClientError.ERROR_FILE_UPLOAD_UNHANDLED_EXCEPTION, upload_exception)
             raise upload_exception
+
+        Log.debug('Upload Completed')
 
     @staticmethod
     def file_upload_from_string(bucket_name, bucket_filename, contents, encoding='utf-8', allow_overwrite=True) -> None:
@@ -525,34 +610,54 @@ class Client:
         :param encoding: The strings content_encoding, defaults to UTF-8
 
         :type allow_overwrite: bool
-        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be thrown
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an base_exception will be thrown
 
         :return: EasyS3File
         """
+        # Sanitize the bucket path
+        bucket_filename = Client.sanitize_path(bucket_filename)
+
         Log.trace('Uploading string to S3 bucket...')
-        Log.trace('Bucket Name: {bucket_name}'.format(bucket_name=bucket_name))
-        Log.trace('Bucket Filename: {bucket_filename}'.format(bucket_filename=bucket_filename))
-        Log.trace('String Encoding: {encoding}'.format(encoding=encoding))
-        Log.trace('String Length: {string_length}'.format(string_length=len(contents)))
+        Log.debug('Bucket Name: {bucket_name}'.format(bucket_name=bucket_name))
+        Log.debug('Bucket Filename: {bucket_filename}'.format(bucket_filename=bucket_filename))
+        Log.debug('String Encoding: {encoding}'.format(encoding=encoding))
+        Log.debug('String Length: {string_length}'.format(string_length=len(contents)))
 
+        if allow_overwrite is False:
+            if Client.file_exists(
+                    bucket_name=bucket_name,
+                    bucket_filename=bucket_filename
+            ) is True:
+                Log.error(ClientError.ERROR_FILE_DOWNLOAD_DESTINATION_EXISTS)
+                raise Exception(ClientError.ERROR_FILE_DOWNLOAD_DESTINATION_EXISTS)
+
+        # Convert the string to a byte array
+        byte_array = None
         try:
-            if allow_overwrite is False:
-                if Client.file_exists(
-                        bucket_name=bucket_name,
-                        bucket_filename=bucket_filename
-                ) is True:
-                    Log.error(Client.ERROR_FILE_DOWNLOAD_EXISTS)
-                    raise Exception(Client.ERROR_FILE_DOWNLOAD_EXISTS)
+            byte_array = bytes(contents, encoding)
+        except Exception as byte_array_exception:
+            Log.exception(ClientError.ERROR_FILE_UPLOAD_SOURCE_TO_ARRAY_ERROR, byte_array_exception)
 
+        # Convert the byte array to file like object
+        file_object = None
+        try:
+            file_object = BytesIO(byte_array)
+        except Exception as file_object_exception:
+            Log.exception(ClientError.ERROR_FILE_UPLOAD_SOURCE_TO_FILE_OBJECT_ERROR, file_object_exception)
+
+        # Upload the file object
+        try:
             Log.debug('Uploading...')
             Client.get_s3_client().upload_fileobj(
-                Fileobj=BytesIO(bytes(contents, encoding)),
+                Fileobj=file_object,
                 Bucket=bucket_name,
                 Key=bucket_filename
             )
         except Exception as upload_exception:
-            Log.exception(Client.ERROR_FILE_UPLOAD_EXCEPTION, upload_exception)
+            Log.exception(ClientError.ERROR_FILE_UPLOAD_UNHANDLED_EXCEPTION, upload_exception)
             raise upload_exception
+
+        Log.debug('Upload Completed')
 
     @staticmethod
     def get_file_tags(bucket_name, bucket_filename) -> dict:
@@ -567,35 +672,46 @@ class Client:
 
         :return: dict
         """
+        # Sanitize the bucket path
+        bucket_filename = Client.sanitize_path(bucket_filename)
+
         Log.trace('Retrieving tags for S3 file...')
         Log.debug('Bucket Name: {bucket_name}'.format(bucket_name=bucket_name))
         Log.debug('Bucket Filename: {bucket_filename}'.format(bucket_filename=bucket_filename))
 
+        # Make sure the file exists before we try to do this
+        Log.debug('Checking File Exists Before Reading Tags...')
+        if Client.file_exists(bucket_name=bucket_name, bucket_filename=bucket_filename) is False:
+            # The file to be deleted did not exist
+            Log.exception(ClientError.ERROR_FILE_TAG_READ_SOURCE_NOT_FOUND)
+
+        # Retrieve the existing tags
+        keys = None
+        object_tags = None
         try:
-            object_tags = Client.get_s3_client().get_object_tagging(
-                Bucket=bucket_name,
-                Key=bucket_filename
-            )
-
+            Log.debug('Loading Tag Set...')
+            object_tags = Client.get_s3_client().get_object_tagging(Bucket=bucket_name, Key=bucket_filename)
             keys = object_tags.keys()
-            returned_tags = {}
+        except Exception as tag_exception:
+            Log.exception(ClientError.ERROR_FILE_TAG_READ_EXCEPTION, tag_exception)
 
-            if 'TagSet' in keys:
-                # Tags were found iterate through them and convert them into a dictionary of key/value pairs
-                Log.debug('Found tags, iterating results...')
+        # Check if any tags existed
+        if 'TagSet' not in keys:
+            # No tags found, return the empty dictionary
+            Log.debug('No Tags Found')
+            return {}
 
-                for tag in object_tags['TagSet']:
-                    Log.debug('Found: {tag_key}={tag_value}'.format(tag_key=tag['Key'], tag_value=tag['Value']))
-                    returned_tags[tag['Key']] = tag['Value']
-            else:
-                # No tags were found
-                Log.debug('No tags were found for specified file')
+        # Iterate tags into a dictionary
+        Log.debug('Tags Found')
+        tags = {}
+        for tag in object_tags['TagSet']:
+            key = tag['key']
+            value = tag['value']
+            Log.debug('- {key}: {value}'.format(key=key, value=value))
+            tags[key] = value
 
-        except Exception as get_tag_exception:
-            Log.exception(Client.ERROR_FILE_GET_TAG_EXCEPTION, get_tag_exception)
-            raise get_tag_exception
-
-        return returned_tags
+        # Return the tags we found
+        return tags
 
     @staticmethod
     def set_file_tags(bucket_name, bucket_filename, tags) -> None:
@@ -613,17 +729,26 @@ class Client:
 
         :return: None
         """
+        # Sanitize the bucket path
+        bucket_filename = Client.sanitize_path(bucket_filename)
+
         Log.trace('Setting AWS S3 file tags...')
         Log.debug('Bucket Name: {bucket_name}'.format(bucket_name=bucket_name))
         Log.debug('Bucket Filename: {bucket_filename}'.format(bucket_filename=bucket_filename))
 
-        try:
-            # Create list object to pass to S3 with key/value pairs
-            tag_set = []
-            for key in tags.keys():
-                Log.debug('Tag: {key}={value}'.format(key=key, value=tags[key]))
-                tag_set.append({'Key': key, 'Value': tags[key]})
+        # Make sure the file exists before we try to do this
+        Log.debug('Checking File Exists Before Setting Tags...')
+        if Client.file_exists(bucket_name=bucket_name, bucket_filename=bucket_filename) is False:
+            # The file to be deleted did not exist
+            Log.exception(ClientError.ERROR_FILE_TAG_READ_SOURCE_NOT_FOUND)
 
+        # Create list object to pass to S3 with key/value pairs
+        tag_set = []
+        for key in tags.keys():
+            Log.debug('Tag: {key}={value}'.format(key=key, value=tags[key]))
+            tag_set.append({'Key': key, 'Value': tags[key]})
+
+        try:
             Log.debug('Writing tags to S3 object...')
             Client.get_s3_client().put_object_tagging(
                 Bucket=bucket_name,
@@ -631,13 +756,29 @@ class Client:
                 Tagging={'TagSet': tag_set}
             )
         except Exception as put_tag_exception:
-            Log.exception(Client.ERROR_FILE_PUT_TAG_EXCEPTION, put_tag_exception)
-            raise put_tag_exception
+            Log.exception(ClientError.ERROR_FILE_TAG_WRITE_EXCEPTION, put_tag_exception)
+
+        # Retrieve the tags were written correctly
+        Log.debug('Checking Tags...')
+        new_tags = Client.get_file_tags(bucket_name=bucket_name, bucket_filename=bucket_filename)
+
+        # Validate the number of keys match
+        if len(new_tags) != len(tags):
+            Log.exception(ClientError.ERROR_FILE_TAG_WRITE_FAILED)
+
+        # Validate each tag is present in the new values and the values match
+        for key in tags.keys():
+            if key not in new_tags:
+                # The tag did not exist
+                Log.exception(ClientError.ERROR_FILE_TAG_WRITE_FAILED)
+            if tags[key] != new_tags[key]:
+                # The values were not matched
+                Log.exception(ClientError.ERROR_FILE_TAG_WRITE_FAILED)
 
     @staticmethod
-    def test_path_permissions(bucket_name, bucket_path='') -> bool:
+    def test_client_path(bucket_name, bucket_path='') -> bool:
         """
-        Create a test file with known content, upload it to S3, download it again, and compare the content
+        Create a test file with known contents, upload it to S3, download it again, and compare the content
 
         :type bucket_name: str
         :param bucket_name: Bucket to test
@@ -647,34 +788,27 @@ class Client:
 
         :return: bool
         """
+        # Sanitize the bucket path
+        bucket_path = Client.sanitize_path(bucket_path)
+
         Log.trace('Testing S3 path permissions...')
         Log.debug('Bucket Name: {bucket_name}'.format(bucket_name=bucket_name))
         Log.debug('Bucket Path: {bucket_path}'.format(bucket_path=bucket_path))
 
         # Generate test filenames
-        bucket_filename = Client.sanitize_path('{path}/{bucket}.{uuid}.test.txt'.format(
-            path=bucket_path,
-            bucket=bucket_name,
-            uuid=Client.get_uuid()
-        ))
-        original_filename = Client.sanitize_path('{temp_dir}/{bucket}.{uuid}.test.txt'.format(
-            temp_dir=tempfile.gettempdir(),
-            bucket=bucket_name,
-            uuid=Client.get_uuid()
-        ))
+        bucket_filename = Client.sanitize_path('{path}/{bucket}.{uuid}.test.txt'.format(path=bucket_path, bucket=bucket_name, uuid=Client.get_uuid()))
+        original_filename = Client.sanitize_path('{temp_dir}/{bucket}.{uuid}.test.txt'.format(temp_dir=tempfile.gettempdir(), bucket=bucket_name, uuid=Client.get_uuid()))
         downloaded_filename = '{original_filename}.downloaded'.format(original_filename=original_filename)
 
         # Make sure destination path on local filesystem exists
+        Log.debug('Ensuring Destination Path Exists...')
         destination_path = os.path.dirname(original_filename)
-
-        Log.debug('Checking if destination path exists...')
-
         if os.path.exists(destination_path) is False:
-            Log.debug('Destination path does not exist, creating destination path: {destination_path}'.format(destination_path=destination_path))
+            Log.debug('Creating Destination Path...')
             os.makedirs(destination_path)
 
         # Create test file
-        Log.debug('Creating local test file: {original_filename}...'.format(original_filename=original_filename))
+        Log.debug('Creating Test File Locally')
         test_contents = ''
         for i in range(100):
             test_contents = str(uuid.uuid4())
@@ -684,23 +818,12 @@ class Client:
         Log.debug('Closing file object')
         test_file.close()
 
-        # Display file size
-        Log.debug('Test file size: {size} Bytes'.format(size=len(test_contents)))
-
-        # Make that mother trucking file dance
-        Log.debug('Uploading test file to S3 bucket...')
-        Client.get_s3_client().upload_file(
-            Bucket=bucket_name,
-            Key=bucket_filename,
-            Filename=original_filename
-        )
+        # Upload the tet files
+        Log.debug('Uploading Test File...')
+        Client.get_s3_client().upload_file(Bucket=bucket_name, Key=bucket_filename, Filename=original_filename)
 
         Log.debug('Downloading test file from S3 bucket: downloaded_filename...'.format(downloaded_filename=downloaded_filename))
-        Client.get_s3_client().download_file(
-            Bucket=bucket_name,
-            Key=bucket_filename,
-            Filename=downloaded_filename
-        )
+        Client.get_s3_client().download_file(Bucket=bucket_name, Key=bucket_filename, Filename=downloaded_filename)
 
         # Compare the two files
         Log.debug('Comparing downloaded file to original test file...')

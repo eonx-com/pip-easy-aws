@@ -23,7 +23,7 @@ class EasyLambda:
             self.init()
         except Exception as init_exception:
             # Something went wrong inside the users init function- log the error
-            Log.exception('Unhandled exception during execution of user initialization function', init_exception)
+            Log.exception('Unhandled base_exception during execution of user initialization function', init_exception)
             raise init_exception
 
         try:
@@ -31,7 +31,7 @@ class EasyLambda:
             self.run()
         except Exception as run_exception:
             # Something went wrong inside the users run function- log the error
-            Log.error('Unhandled exception during execution of user run function:\n{run_exception}'.format(run_exception=run_exception))
+            Log.error('Unhandled base_exception during execution of user run function:\n{run_exception}'.format(run_exception=run_exception))
             raise run_exception
 
         # Execution completed, log out the time remaining- this may be useful for tracking bloat/performance degradation over the life of the Lambda function

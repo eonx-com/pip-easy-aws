@@ -31,7 +31,7 @@ class IteratorDestinationFactory:
         :param create_logfile_on_completion: If True, a copy of the execution log will be saved in the base path after completion
 
         :type allow_overwrite: bool
-        :param allow_overwrite: If True, files will be overwritten if they already exist, otherwise an exception will be thrown and the file will be moved to the error destinations (if any)
+        :param allow_overwrite: If True, files will be overwritten if they already exist, otherwise an base_exception will be thrown and the file will be moved to the error destinations (if any)
 
 
         :return: Destination
@@ -98,7 +98,7 @@ class IteratorDestinationFactory:
         :param create_logfile_on_completion: If True, a copy of the execution log will be saved in the base path after completion
 
         :type allow_overwrite: bool
-        :param allow_overwrite: If True, files will be overwritten if they already exist, otherwise an exception will be thrown and the file will be moved to the error destinations (if any)
+        :param allow_overwrite: If True, files will be overwritten if they already exist, otherwise an base_exception will be thrown and the file will be moved to the error destinations (if any)
 
         :return: Destination
         """

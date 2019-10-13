@@ -8,52 +8,104 @@ import socket
 import warnings
 
 from EasyFilesystem.Helpers import Helpers
+from EasyLocalDisk.Client import Client as ClientLocalDisk
 from EasyLog.Log import Log
+from EasySftp.ClientError import ClientError
 from io import StringIO
-from pysftp import Connection
 from pysftp import CnOpts
+from pysftp import Connection
 
 
+# noinspection PyBroadException
 class Client:
-    # Error constants
-    ERROR_CONNECTION_FAILED = 'Failed to connect to SFTP server'
-    ERROR_INVALID_FINGERPRINT = 'Failed to validate the SFTP server host key/fingerprint'
-    ERROR_INVALID_FINGERPRINT_TYPE = 'The specified sftp_fingerprint type was not known'
-    ERROR_DOWNLOAD_FILE_EXISTS = 'The file download failed as the file already exists and allow overwrite was not enabled'
-    ERROR_UPLOAD_FILE_EXISTS = 'The file upload failed as the file already exists and allow overwrite was not enabled'
-
     def __init__(self):
         """
         Setup SFTP client
         """
-        Log.trace('Instantiating SFTP client class...')
+        Log.trace('Instantiating SFTP Client...')
 
-        # Creating variables we will be using later
         self.__connection__ = None
-
-        # Used to enforce maximum number of files limit
         self.__count_downloaded__ = 0
-
-        # No file download limit by default
         self.__maximum_files__ = None
-
-        # Enable host fingerprint checking by default
         self.__fingerprint_validation__ = True
 
     def __del__(self):
         """
         Close any existing SFTP connection on deletion of this object. This is needed to prevent Lambda function from generating an error on completion
         """
-        Log.trace('Cleaning up SFTP client class...')
+        Log.trace('Destroying SFTP Client...')
 
-        if self.is_connected():
+        if self.is_connected() is True:
             # noinspection PyBroadException
             try:
-                Log.debug('Closing connection to SFTP server...')
                 self.__connection__.close()
             except Exception:
                 # Ignore exceptions at this point
                 pass
+
+    @staticmethod
+    def __assert_connection_warning__(warning) -> None:
+        """
+        Assert the expected connection warning was received, throwing an exception if not
+
+        :type warning: dict
+        :param warning: The warning received
+
+        :return: None
+        """
+        # If we didn't receive a warning then all is fine
+        if -1 not in warning:
+            return
+
+        # Otherwise check the category of the warning, it should only be a UserWarning
+        warning_category = warning[-1].category
+
+        if issubclass(warning_category, UserWarning) is True:
+            warning_message = str(warning[-1].message)
+            # Check the message is as expected
+            if 'Failed to load HostKeys' not in warning_message or 'You will need to explicitly load HostKeys' not in warning_message:
+                raise Exception(ClientError.ERROR_CONNECT_FAILED)
+
+            return
+
+        # Unexpected warning received
+        raise Exception(ClientError.ERROR_CONNECT_FAILED)
+
+    def __get_connection_options__(self, address, fingerprint, fingerprint_type):
+        """
+        Get connection settings for pysftp client
+
+        :type address: str
+        :param address: SFTP server sftp_address/hostname
+
+        :type fingerprint: str/None
+        :param fingerprint: SFTP server sftp_fingerprint used to validate server identity. If not specified the known_hosts file on the host machine will be used
+
+        :type fingerprint_type: str/None
+        :param fingerprint_type: SFTP server sftp_fingerprint type (e.g. ssh-rsa, ssh-dss). This must be one of the key types supported by the underlying paramiko library
+
+        :return: obj
+        """
+        Log.trace('Retrieving Connection Options...')
+        options = CnOpts()
+
+        if self.__fingerprint_validation__ is False:
+            Log.warning('Host sftp_fingerprint checking disabled, this may be a security risk...')
+            options.hostkeys = None
+        else:
+            # If a valid sftp_fingerprint and type were specified, add these to the known hosts, otherwise pysftp will use
+            # the known_hosts file on the computer
+            if fingerprint is not None and fingerprint_type is not None:
+                Log.debug('Adding known host sftp_fingerprint to client...')
+                options.hostkeys.add(
+                    hostname=address,
+                    keytype=fingerprint_type,
+                    key=self.fingerprint_to_paramiko_key(fingerprint, fingerprint_type)
+                )
+            else:
+                Log.warning('No host fingerprints added, relying on known_hosts file')
+
+        return options
 
     def enable_fingerprint_validation(self) -> None:
         """
@@ -61,6 +113,7 @@ class Client:
 
         :return: None
         """
+        Log.trace('Enable Fingerprint Validation...')
         self.__fingerprint_validation__ = True
 
     def disable_fingerprint_validation(self) -> None:
@@ -69,9 +122,8 @@ class Client:
 
         :return: None
         """
+        Log.trace('Disable Fingerprint Validation...')
         self.__fingerprint_validation__ = False
-
-    # Connection management functions
 
     def connect_rsa_private_key(
             self,
@@ -82,7 +134,7 @@ class Client:
             password=None,
             fingerprint=None,
             fingerprint_type=None
-    ) -> bool:
+    ) -> None:
         """
         Connect to SFTP server using private key authentication
 
@@ -107,28 +159,22 @@ class Client:
         :type fingerprint_type: str or None
         :param fingerprint_type: SFTP server sftp_fingerprint type
 
-        :return: bool
+        :return: None
         """
-        Log.trace('Opening SFTP connection (RSA Private Key)...')
+        Log.trace('Connecting (RSA Private Key)...')
 
         # We need to ignore the warning due to non-existence of known_hosts file in Lambda
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
 
-            Log.debug('SFTP Server: {username}@{address}:{port}'.format(
-                address=address,
-                port=port,
-                username=username
-            ))
-
+            Log.debug('SFTP Server: {username}@{address}:{port}'.format(address=address, port=port, username=username))
             Log.debug('RSA Key Length: {key_length} Bytes'.format(key_length=len(rsa_private_key)))
+
             if fingerprint is not None:
                 Log.debug('Host Fingerprint: {fingerprint}'.format(fingerprint=fingerprint))
-            if fingerprint_type is not None:
                 Log.debug('Host Fingerprint Type: {fingerprint_type}'.format(fingerprint_type=fingerprint_type))
 
             try:
-                # Validate connection details
                 address = Client.validate_sftp_address(address)
                 port = Client.validate_sftp_port(port)
                 rsa_private_key = Client.validate_sftp_private_key(rsa_private_key)
@@ -136,7 +182,6 @@ class Client:
                 fingerprint = Client.validate_sftp_fingerprint(fingerprint)
                 fingerprint_type = Client.validate_sftp_fingerprint_type(fingerprint_type)
 
-                # Get connection options for SFTP client
                 connection_options = self.__get_connection_options__(
                     address=address,
                     fingerprint=fingerprint,
@@ -152,24 +197,16 @@ class Client:
                     cnopts=connection_options
                 )
             except Exception as connection_exception:
-                Log.exception('Failed to connect to SFTP server', connection_exception)
-
                 if 'no hostkey for host' in str(connection_exception).lower():
-                    raise Exception(Client.ERROR_INVALID_FINGERPRINT)
+                    raise Exception(ClientError.ERROR_CONNECT_INVALID_FINGERPRINT, connection_exception)
 
-                raise Exception(Client.ERROR_CONNECTION_FAILED)
+                Log.exception(ClientError.ERROR_CONNECT_FAILED, connection_exception)
 
-            # Assert we received the expected warning;
-            if -1 in w:
-                if issubclass(w[-1].category, UserWarning):
-                    assert 'Failed to load HostKeys' in str(w[-1].message)
-                    assert 'You will need to explicitly load HostKeys' in str(w[-1].message)
+            # Assert the connection was successful and didn't generate unexpected warnings
+            Client.__assert_connection_warning__(w)
 
             # Turn warnings back on
             warnings.simplefilter("default")
-
-        Log.debug('Connection successful')
-        return True
 
     def connect_password(
             self,
@@ -179,7 +216,7 @@ class Client:
             password,
             fingerprint=None,
             fingerprint_type=None
-    ):
+    ) -> None:
         """
         Connect to SFTP server using sftp_username and password
 
@@ -201,32 +238,23 @@ class Client:
         :type fingerprint_type: str or None
         :param fingerprint_type: SFTP server sftp_fingerprint type
 
-        :return: bool
+        :return: None
         """
-        Log.trace('Opening SFTP connection (Password)...')
+        Log.trace('Connecting (Username/Password)...')
 
         # We need to ignore the warning due to non-existence of known_hosts file in Lambda
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
 
-            Log.debug('SFTP Server: {username}@{address}:{port}'.format(
-                address=address,
-                port=port,
-                username=username
-            ))
-            Log.debug('Host Fingerprint: {fingerprint} ({fingerprint_type})'.format(
-                fingerprint=fingerprint,
-                fingerprint_type=fingerprint_type
-            ))
+            Log.debug('SFTP Server: {username}@{address}:{port}'.format(address=address, port=port, username=username))
+            Log.debug('Host Fingerprint: {fingerprint} ({fingerprint_type})'.format(fingerprint=fingerprint, fingerprint_type=fingerprint_type))
 
-            # Validate connection details
             address = Client.validate_sftp_address(address)
             port = Client.validate_sftp_port(port)
             username = Client.validate_sftp_username(username)
             fingerprint = Client.validate_sftp_fingerprint(fingerprint)
             fingerprint_type = Client.validate_sftp_fingerprint_type(fingerprint_type)
 
-            # Get connection options for SFTP client
             connection_options = self.__get_connection_options__(
                 address=address,
                 fingerprint=fingerprint,
@@ -242,24 +270,16 @@ class Client:
                     cnopts=connection_options
                 )
             except Exception as connection_exception:
-                Log.exception('Failed to connect to SFTP server', connection_exception)
-
                 if 'no hostkey for host' in str(connection_exception).lower():
-                    raise Exception(Client.ERROR_INVALID_FINGERPRINT)
+                    Log.exception(ClientError.ERROR_CONNECT_INVALID_FINGERPRINT, connection_exception)
 
-                raise Exception(Client.ERROR_CONNECTION_FAILED)
+                Log.exception(ClientError.ERROR_CONNECT_FAILED, connection_exception)
 
-            # Assert we received the expected warning;
-            if -1 in w:
-                if issubclass(w[-1].category, UserWarning):
-                    assert 'Failed to load HostKeys' in str(w[-1].message)
-                    assert 'You will need to explicitly load HostKeys' in str(w[-1].message)
+            # Assert the connection was successful and didn't generate unexpected warnings
+            Client.__assert_connection_warning__(w)
 
             # Turn warnings back on
             warnings.simplefilter("default")
-
-        Log.debug('Connection successful')
-        return True
 
     def disconnect(self):
         """
@@ -267,7 +287,7 @@ class Client:
 
         :return: None
         """
-        Log.trace('Disconnecting from SFTP server...')
+        Log.trace('Disconnecting...')
         self.__connection__.close()
 
     def is_connected(self):
@@ -276,44 +296,32 @@ class Client:
 
         :return: bool
         """
-        Log.trace('Checking SFTP server connection state...')
-
+        # noinspection PyBroadException
         try:
-            # If no connection has every been established return false
+            # If no connection has ever been established return false
             if self.__connection__ is None:
-                Log.debug('Not connected (connection not instantiated)')
                 return False
 
             # If there is no SFTP client inside the connection object, return false
             if self.__connection__.sftp_client is None:
-                Log.debug('Not connected (client not instantiated)')
                 return False
 
             # If there is no SFTP channel inside the client object, return false
             if self.__connection__.sftp_client.get_channel() is None:
-                Log.debug('Not connected (no transport channel found)')
                 return False
 
             # If there is no SFTP transport, return false
             if self.__connection__.sftp_client.get_channel().get_transport() is None:
-                Log.debug('Not connected (no transport object found)')
                 return False
 
             # Otherwise return the current state of the underlying transport layer
-
             if self.__connection__.sftp_client.get_channel().get_transport().is_active() is True:
                 return True
 
-            Log.debug('Not connected (by process of elimination)')
             return False
 
-        except Exception as state_exception:
-            # If anything goes wrong, assume we are dead in the water
-            Log.warning('Unexpected exception during connection state check: {state_exception}'.format(state_exception=state_exception))
-            Log.trace('Not connected (unable to determine connection state)')
+        except Exception:
             return False
-
-    # File management functions
 
     def reset_file_download_counter(self):
         """
@@ -321,6 +329,7 @@ class Client:
 
         :return:
         """
+        Log.trace('Reset Download Counter...')
         self.__count_downloaded__ = 0
 
     def set_file_download_limit(self, maximum_files) -> None:
@@ -332,6 +341,7 @@ class Client:
 
         :return: None
         """
+        Log.trace('Setting Download Limit...')
         self.__maximum_files__ = maximum_files
 
     def file_list(self, remote_path, recursive=False):
@@ -346,37 +356,24 @@ class Client:
 
         :return: list
         """
-        Log.trace('Listing files on SFTP server...')
+        Log.trace('Listing Files: {remote_path}...'.format(remote_path=remote_path))
 
+        files = []
         try:
-            files = []
-
-            # List files in current remote path
-            Log.debug('Path: {remote_path}'.format(remote_path=remote_path))
             current_path = self.__connection__.listdir(remote_path)
-
-            # Iterate through all of the files
-            for current_remote_path in current_path:
-                Log.debug('Current file: {current_remote_path}'.format(current_remote_path=current_remote_path))
-
-                # Sanitize the path
-                current_remote_path = Client.sanitize_path(remote_path + '/' + current_remote_path)
-
-                # If the current path is a directory we may continue recursing down the folder structure
-                if self.__connection__.isdir(current_remote_path):
-                    # If we are performing a recursive list, iterate down further
-                    if recursive is True:
-                        # Down the rabbit hole
-                        Log.debug('Recursing sub-folder: {current_remote_path}'.format(current_remote_path=current_remote_path))
-                        files.extend(self.file_list(remote_path=current_remote_path, recursive=recursive))
+            for current_filename in current_path:
+                current_filename = Client.sanitize_path(remote_path + '/' + current_filename)
+                if self.__connection__.isdir(current_filename) and recursive is True:
+                    # Iterate down to next folder
+                    Log.debug('Directory: {current_filename}'.format(current_filename=current_filename))
+                    files.extend(self.file_list(remote_path=current_filename, recursive=recursive))
                 else:
-                    # Append the current file to the list of found files
-                    files.append(current_remote_path)
+                    # Add current file to the results
+                    Log.debug('File: {current_filename}'.format(current_filename=current_filename))
+                    files.append(current_filename)
         except Exception as file_list_exception:
-            Log.exception('An unexpected error occurred during listing of files', file_list_exception)
-            raise file_list_exception
+            Log.exception(ClientError.ERROR_FILE_LIST_UNHANDLED_EXCEPTION, file_list_exception)
 
-        # Return any files we found
         return files
 
     def file_upload(self, local_filename, remote_filename, callback=None, confirm=False, allow_overwrite=True) -> None:
@@ -398,33 +395,28 @@ class Client:
             they have been uploaded, setting this to True will generate an error.
 
         :type allow_overwrite: bool
-        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be thrown
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an base_exception will be thrown
 
         :return: None
         """
-        Log.trace('Uploading file to SFTP server...')
+        Log.trace('Uploading File...')
 
-        # Ensure destination folder exists
-        self.assert_remote_path_exists(os.path.dirname(remote_filename))
+        # Make sure the file doesn't already exist if overwrite is disabled
+        if allow_overwrite is False:
+            Log.debug('Checking File Does Not Exist At Destination...')
+            if self.file_exists(remote_filename=remote_filename) is True:
+                raise Exception(ClientError.ERROR_FILE_UPLOAD_EXISTS)
 
-        Log.debug('Uploading: {remote_filename}...'.format(remote_filename=remote_filename))
+        # Make sure the destination path exists on the server
+        Log.debug('Creating Upload Path...')
+        self.path_create(os.path.dirname(remote_filename))
+
+        # Upload the file
         try:
-            if allow_overwrite is False:
-                if self.file_exists(remote_filename=remote_filename) is True:
-                    Log.error(Client.ERROR_UPLOAD_FILE_EXISTS)
-                    raise Exception(Client.ERROR_UPLOAD_FILE_EXISTS)
-
-            self.__connection__.put(
-                localpath=local_filename,
-                remotepath=remote_filename,
-                confirm=confirm,
-                callback=callback
-            )
+            Log.debug('Uploading...')
+            self.__connection__.put(localpath=local_filename, remotepath=remote_filename, confirm=confirm, callback=callback)
         except Exception as upload_exception:
-            Log.exception('An unexpected error occurred during upload of file from local filesystem', upload_exception)
-            raise upload_exception
-
-        Log.debug('Upload finished')
+            Log.exception(ClientError.ERROR_FILE_UPLOAD_UNHANDLED_EXCEPTION, upload_exception)
 
     def file_upload_from_string(self, contents, remote_filename, callback=None, confirm=False, allow_overwrite=True) -> None:
         """
@@ -445,52 +437,41 @@ class Client:
             they have been uploaded, setting this to True will generate an error.
 
         :type allow_overwrite: bool
-        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be thrown
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an base_exception will be thrown
 
         :return: None
         """
-        Log.trace('Uploading file (from string) to SFTP server...')
+        Log.trace('Uploading String To File...')
 
-        # Ensure destination folder exists
-        self.assert_remote_path_exists(os.path.dirname(remote_filename))
+        Log.debug('Creating Temporary File...')
+        local_temp_filename = '{local_path}/{filename}'.format(local_path=Helpers.create_unique_local_temp_path(), filename=os.path.basename(remote_filename))
+        ClientLocalDisk.file_create_from_string(filename=local_temp_filename, contents=contents)
 
+        # Ensure destination folder exists on SFTP server
         try:
-            Log.debug('File size: {size}'.format(size=len(contents)))
+            Log.debug('Checking Destination Folder Exists...')
+            self.path_create(os.path.dirname(remote_filename))
+        except Exception as folder_exception:
+            Log.exception(ClientError.ERROR_FILE_UPLOAD_TEMP_FOLDER, folder_exception)
 
-            # Save the string to the local disk in a temporary file
-            local_path = Helpers.create_unique_local_temp_path()
-            local_temp_filename = '{local_path}/{filename}'.format(
-                local_path=local_path,
-                filename=os.path.basename(remote_filename)
-            )
-            Log.debug('Creating temporary file: {local_temp_filename}'.format(local_temp_filename=local_temp_filename))
-
-            local_temp_file = open(local_temp_filename, "wt")
-            local_temp_file.write(contents)
-            local_temp_file.close()
-
-            # Upload the file
-            Log.debug('Uploading local temporary file to SFTP server...')
-            self.file_upload(
-                local_filename=local_temp_filename,
-                remote_filename=remote_filename,
-                confirm=confirm,
-                allow_overwrite=allow_overwrite
-            )
-
-            # Remove the local temporary file we created
-            Log.debug('Deleting local temporary file...')
-            os.unlink(local_temp_filename)
-
-            if callback is not None:
-                Log.debug('Triggering user callback function...')
-                callback(remote_filename=remote_filename, contents=contents)
-
+        # Upload the file to SFTP Server
+        try:
+            Log.debug('Uploading...')
+            self.file_upload(local_filename=local_temp_filename, remote_filename=remote_filename, confirm=confirm, allow_overwrite=allow_overwrite)
         except Exception as upload_exception:
-            Log.exception('An unexpected error occurred during upload of file from string', upload_exception)
-            raise upload_exception
+            Log.exception(ClientError.ERROR_FILE_UPLOAD_UNHANDLED_EXCEPTION, upload_exception)
 
-        Log.debug('Upload finished')
+        # Trigger user callback function if there is one
+        try:
+            if callback is not None:
+                Log.debug('Triggering Upload Callback...')
+                callback(remote_filename=remote_filename, contents=contents)
+        except Exception as callback_exception:
+            Log.exception(ClientError.ERROR_FILE_UPLOAD_CALLBACK, callback_exception)
+
+        # Remove the local temporary file we created
+        Log.debug('Deleting Temporary file...')
+        ClientLocalDisk.file_delete(filename=local_temp_filename)
 
     def file_delete(self, remote_filename):
         """
@@ -501,34 +482,46 @@ class Client:
 
         :return: None
         """
-        Log.trace('Deleting file from SFTP server...')
+        Log.trace('Deleting SFTP File...')
 
+        # Ensure the file exists
+        Log.debug('Checking File Exists...')
+        if self.file_exists(remote_filename=remote_filename) is False:
+            Log.exception(ClientError.ERROR_FILE_DELETE_SOURCE_NOT_FOUND)
+
+        # Delete the file
         try:
+            Log.debug('Deleting...')
             self.__connection__.remove(remote_filename)
         except Exception as delete_exception:
             Log.exception('An unexpected error occurred during deletion of file', delete_exception)
             raise delete_exception
 
-        Log.debug('Deleting completed')
+        # Ensure the file was deleted
+        Log.debug('Checking File Deleted Successfully...')
+        if self.file_exists(remote_filename=remote_filename) is True:
+            Log.exception(ClientError.ERROR_FILE_DELETE_FAILED)
 
-    def file_exists(self, remote_filename):
+    def file_exists(self, remote_filename) -> bool:
         """
         Check if file exists
 
         :type remote_filename: str
         :param remote_filename: Filename/path of the file to check
 
-        :return: None
+        :return: bool
         """
-        Log.trace('Checking file exists on SFTP server...')
+        # Sanitize the file path
+        remote_filename = Client.sanitize_path(remote_filename)
+
+        Log.trace('Checking File Exists...')
 
         try:
             return self.__connection__.exists(remotepath=remote_filename)
         except Exception as exists_exception:
-            Log.exception('An unexpected error occurred during check of file existence', exists_exception)
-            raise exists_exception
+            Log.exception(ClientError.ERROR_FILE_LIST_UNHANDLED_EXCEPTION, exists_exception)
 
-    def file_download(self, local_filename, remote_filename, allow_overwrite=True) -> bool:
+    def file_download(self, local_filename, remote_filename, callback=None, allow_overwrite=True) -> None:
         """
         Download a file from SFTP server
 
@@ -538,42 +531,46 @@ class Client:
         :type remote_filename: str
         :param remote_filename: Filename/path of the file to download from the SFTP server
 
+        :type callback: Callable or None
+        :param callback: User callback function
+
         :type allow_overwrite: bool
         :param allow_overwrite: Boolean flag to allow overwriting of local files
 
-        :return: bool
+        :return: None
         """
-        Log.trace('Downloading file from SFTP server: {remote_filename}...'.format(remote_filename=remote_filename))
+        Log.trace('Downloading File To Disk...')
+        Log.debug('Local Filename: {local_filename}'.format(local_filename=local_filename))
+        Log.debug('Remote Filename: {remote_filename}'.format(remote_filename=remote_filename))
 
+        # Restrict to maximum allowed files if applicable
+        if self.__maximum_files__ is not None and self.__count_downloaded__ >= int(self.__maximum_files__):
+            Log.debug('Maximum downloaded file limit reached')
+            return
+
+        # If allow overwrite is disabled, make sure the file doesn't already exist
+        if allow_overwrite is False:
+            if os.path.exists(local_filename) is True:
+                Log.error(ClientError.ERROR_FILE_DOWNLOAD_DESTINATION_EXISTS)
+                raise Exception(ClientError.ERROR_FILE_DOWNLOAD_DESTINATION_EXISTS)
+
+        # Make sure the download path exists locally before we start downloading
+        ClientLocalDisk.path_create(path=os.path.dirname(local_filename))
+
+        # Download the file
         try:
-            # Restrict to maximum allowed files if applicable
-            if self.__maximum_files__ is not None and self.__count_downloaded__ >= int(self.__maximum_files__):
-                Log.debug('Maximum downloaded file limit reached')
-                return False
-
-            # Make sure the path exists locally
-            Client.assert_local_path_exists(os.path.dirname(local_filename))
-
-            # If allow overwrite is disabled, make sure the file doesn't already exist
-            if allow_overwrite is False:
-                if os.path.exists(local_filename) is True:
-                    Log.error(Client.ERROR_DOWNLOAD_FILE_EXISTS)
-                    raise Exception(Client.ERROR_DOWNLOAD_FILE_EXISTS)
-
-            self.__connection__.get(
-                remotepath=remote_filename,
-                localpath=local_filename,
-                preserve_mtime=True
-            )
-
-            if self.__maximum_files__ is not None:
-                self.__count_downloaded__ = self.__count_downloaded__ + 1
+            self.__connection__.get(remotepath=remote_filename, localpath=local_filename, preserve_mtime=True)
         except Exception as download_exception:
-            Log.exception('An unexpected error occurred during download of file to local filesystem', download_exception)
-            raise download_exception
+            Log.exception(ClientError.ERROR_FILE_DOWNLOAD_UNHANDLED_EXCEPTION, download_exception)
 
-        Log.debug('Download finished')
-        return True
+        # Track number of file downloads remaining
+        if self.__maximum_files__ is not None:
+            self.__count_downloaded__ = self.__count_downloaded__ + 1
+
+        # If a callback function was specified, pass it the filename of the downloaded file
+        if callback is not None:
+            Log.debug('Triggering Callback...')
+            callback(local_filename=local_filename, remote_filename=remote_filename)
 
     def file_download_recursive(self, remote_path, local_path, callback=None, allow_overwrite=True) -> None:
         """
@@ -589,123 +586,52 @@ class Client:
         :param callback: Optional callback function to call after each file has downloaded successfully
 
         :type allow_overwrite: bool
-        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be thrown
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an base_exception will be thrown
 
         :return: None
         """
-        Log.trace('Starting recursive download from SFTP server...')
+        Log.trace('Starting Recursive Download...')
 
-        try:
-            # Restrict to maximum allowed files if applicable
-            if self.__maximum_files__ is not None and self.__count_downloaded__ >= int(self.__maximum_files__):
-                Log.debug('Maximum downloaded file limit reached, ending recursion...')
-                return
+        # Restrict to maximum allowed files if applicable
+        if self.__maximum_files__ is not None and self.__count_downloaded__ >= int(self.__maximum_files__):
+            Log.debug('Maximum downloaded file limit reached')
+            return
 
-            # List files in current path
-            files_found = self.file_list(remote_path=remote_path, recursive=True)
+        # List files in current path
+        files_found = self.file_list(remote_path=remote_path, recursive=True)
 
-            # Iterate these files
-            for current_remote_filename in files_found:
-                # The local filename will stored in the same folder structure as on the SFTP server
-                current_local_path = Client.sanitize_path(local_path + '/' + os.path.dirname(current_remote_filename))
+        # Iterate these files
+        for current_remote_filename in files_found:
+            # The local filename will stored in the same folder structure as on the SFTP server
+            current_local_path = Client.sanitize_path(local_path + '/' + os.path.dirname(current_remote_filename))
 
-                # Make sure the file path exists locally before we download
-                Client.assert_local_path_exists(current_local_path)
+            # Make sure the current files path exists locally before we start downloading
+            ClientLocalDisk.path_create(path=os.path.dirname(current_local_path))
 
-                # Get the filename
-                current_local_filename = Client.sanitize_path(current_local_path + '/' + os.path.basename(current_remote_filename))
+            # Get the destination local filename
+            current_local_filename = Client.sanitize_path(current_local_path + '/' + os.path.basename(current_remote_filename))
 
-                Log.debug('Downloading: {filename}'.format(filename=current_remote_filename))
-                try:
-                    if self.file_download(
-                            local_filename=current_local_filename,
-                            remote_filename=current_remote_filename,
-                            allow_overwrite=allow_overwrite
-                    ) is True:
-                        # If a callback function was specified, pass it the filename of the downloaded file
-                        if callback is not None:
-                            Log.debug('Triggering user callback function...')
-                            callback(local_filename=current_local_filename, remote_filename=current_remote_filename)
-                except Exception as download_exception:
-                    if self.file_exists(remote_filename=current_remote_filename) is True:
-                        Log.exception('Failed to download file that exists on SFTP server: {current_remote_filename}'.format(current_remote_filename=current_remote_filename), download_exception)
-                        raise download_exception
+            # Download the current file
+            Log.debug('Downloading: {filename}...'.format(filename=current_remote_filename))
+            self.file_download(local_filename=current_local_filename, remote_filename=current_remote_filename, callback=callback, allow_overwrite=allow_overwrite)
 
-                    Log.warning('Failed to download file from SFTP server, file no longer exists')
-
-        except Exception as download_exception:
-            Log.exception('An unexpected error occurred during recursive download of files', download_exception)
-            raise download_exception
-
-    def __get_connection_options__(self, address, fingerprint, fingerprint_type):
+    def path_create(self, remote_path) -> None:
         """
-        Get connection settings for pysftp client
-
-        :type address: str
-        :param address: SFTP server sftp_address/hostname
-
-        :type fingerprint: str/None
-        :param fingerprint: SFTP server sftp_fingerprint used to validate server identity. If not specified the known_hosts
-            file on the host machine will be used
-
-        :type fingerprint_type: str/None
-        :param fingerprint_type: SFTP server sftp_fingerprint type (e.g. ssh-rsa, ssh-dss). This must be one of the
-            key types supported by the underlying paramiko library
-
-        :return: obj
-        """
-        Log.trace('Retrieving connection options...')
-        options = CnOpts()
-
-        if self.__fingerprint_validation__ is False:
-            Log.warning('Host sftp_fingerprint checking disabled, this may be a security risk...')
-            options.hostkeys = None
-        else:
-            # If a valid sftp_fingerprint and type were specified, add these to the known hosts, otherwise pysftp will use
-            # the known_hosts file on the computer
-            if fingerprint is not None and fingerprint_type is not None:
-                Log.debug('Adding known host sftp_fingerprint to client...')
-                options.hostkeys.add(
-                    hostname=address,
-                    keytype=fingerprint_type,
-                    key=self.fingerprint_to_paramiko_key(fingerprint, fingerprint_type)
-                )
-            else:
-                Log.warning('No host fingerprints added, relying on known_hosts file')
-
-        return options
-
-    def assert_remote_path_exists(self, remote_path) -> None:
-        """
-        Ensure a directory exists on the SFTP server, creating if it does not
+        Ensures a directory exists on the SFTP server, creating if it does not already exist
 
         :type remote_path: str
-        :param remote_path: The path to test/create
+        :param remote_path: The path to ensure exists
 
         :return: None
         """
-        Log.trace('Checking remote path exists: {remote_path}...'.format(remote_path=remote_path))
+        Log.trace('Creating Path...')
 
-        self.__connection__: Connection
         if self.__connection__.exists(remote_path) is False:
-            Log.debug('Destination path not found, creating folder...')
+            Log.debug('Creating Path...')
             self.__connection__.makedirs(remote_path)
-
-    @staticmethod
-    def assert_local_path_exists(local_path) -> None:
-        """
-        Ensure a directory exists on the local filesystem, creating if it doesn't exist
-
-        :type local_path: str
-        :param local_path: The path to test/create
-
-        :return: None
-        """
-        Log.trace('Checking local path exists: {local_path}...'.format(local_path=local_path))
-
-        if os.path.exists(local_path) is False:
-            Log.debug('Destination path not found, creating folder...')
-            os.makedirs(local_path)
+            Log.debug('Checking Path Creation...')
+            if self.__connection__.exists(remote_path) is False:
+                Log.exception(ClientError.ERROR_MAKE_PATH_FAILED)
 
     @staticmethod
     def fingerprint_to_paramiko_key(fingerprint, fingerprint_type):
@@ -739,7 +665,7 @@ class Client:
         else:
             # Unknown key type specified
             Log.error('Unknown sftp_fingerprint type specified: {fingerprint_type}'.format(fingerprint_type=fingerprint_type))
-            raise Exception(Client.ERROR_INVALID_FINGERPRINT_TYPE)
+            raise Exception(ClientError.ERROR_INVALID_FINGERPRINT_TYPE)
 
         return key
 

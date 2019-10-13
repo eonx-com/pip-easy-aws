@@ -128,6 +128,6 @@ class EasySecretsManager:
             elif client_exception.response['Error']['Code'] == 'InvalidParameterException':
                 Log.exception('The request to AWS Secrets Manager had invalid parameters', client_exception)
             else:
-                Log.exception('An unhandled exception error occurred while attempting to load value from AWS Secrets Manager', client_exception)
+                Log.exception('An unhandled base_exception error occurred while attempting to load value from AWS Secrets Manager', client_exception)
 
             raise client_exception

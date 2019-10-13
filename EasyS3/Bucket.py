@@ -6,11 +6,6 @@ from EasyS3.Client import Client
 
 
 class Bucket:
-    # Error constants
-    ERROR_FILE_MOVE_OUT_EXISTS_SOURCE = 'Error while moving file out of bucket, file still exists in source location'
-    ERROR_FILE_MOVE_OUT_NOT_EXIST_DESTINATION = 'Error while moving file out of bucket, file does not exist at destination'
-    ERROR_FILE_DELETE_EXISTS_SOURCE = 'Error while deleting file from bucket, file still exists'
-
     def __init__(self, bucket_name, base_path=''):
         """
         :type bucket_name: str
@@ -19,12 +14,13 @@ class Bucket:
         :type base_path: str
         :param base_path: Base path inside the the bucket
         """
-        Log.trace('Instantiating S3 Bucket Object...')
+        Log.trace('Instantiating S3 Bucket...')
+
+        self.__base_path__ = Client.sanitize_path(path=base_path)
+        self.__bucket_name__ = bucket_name
+
         Log.debug('Bucket Name: {bucket_name}'.format(bucket_name=bucket_name))
         Log.debug('Bucket Base Path: {base_path}'.format(base_path=base_path))
-
-        self.__bucket_name__ = bucket_name
-        self.__base_path__ = Client.sanitize_path(path=base_path)
 
     def get_bucket_name(self) -> str:
         """
@@ -51,10 +47,7 @@ class Bucket:
 
         :return: str
         """
-        return Client.sanitize_path('{base_path}/{bucket_path}'.format(
-            base_path=self.__base_path__,
-            bucket_path=bucket_filename
-        ))
+        return Client.sanitize_path('{base_path}/{bucket_path}'.format(base_path=self.__base_path__, bucket_path=bucket_filename))
 
     def file_list(self, bucket_path='', recursive=False) -> list:
         """
@@ -68,28 +61,11 @@ class Bucket:
 
         :return: list[str]
         """
+        Log.trace('Listing Bucket Files...')
+
         bucket_path = self.get_path_relative_to_base_path(bucket_filename=bucket_path)
 
-        Log.trace('Listing files...')
-        Log.debug('Bucket Name: {bucket_name}'.format(bucket_name=self.__bucket_name__))
-        Log.debug('Bucket Path: {bucket_path}'.format(bucket_path=bucket_path))
-        Log.debug('Recursive: {recursive}'.format(recursive=recursive))
-
-        file_list_result = Client.file_list(
-            bucket_name=self.__bucket_name__,
-            bucket_path=bucket_path,
-            recursive=recursive
-        )
-
-        # Dump all files found for debugging purposes
-        if len(file_list_result) == 0:
-            Log.debug('File List Result: No Files Found')
-        else:
-            Log.debug('File List Result: ')
-            for filename in file_list_result:
-                Log.debug('- {filename}'.format(filename=filename))
-
-        return file_list_result
+        return Client.file_list(bucket_name=self.__bucket_name__, bucket_path=bucket_path, recursive=recursive)
 
     def file_exists(self, bucket_filename) -> bool:
         """
@@ -100,52 +76,28 @@ class Bucket:
 
         :return: bool
         """
+        Log.trace('Checking Bucket File Exists...')
+
         bucket_filename = self.get_path_relative_to_base_path(bucket_filename=bucket_filename)
 
-        Log.trace('Checking file exists...')
-        Log.debug('Bucket Name: {bucket_name}'.format(bucket_name=self.__bucket_name__))
-        Log.debug('Bucket Filename: {bucket_filename}'.format(bucket_filename=bucket_filename))
+        return Client.file_exists(bucket_name=self.__bucket_name__, bucket_filename=bucket_filename)
 
-        file_exists_result = Client.file_exists(
-            bucket_name=self.__bucket_name__,
-            bucket_filename=bucket_filename
-        )
-
-        Log.debug('File Exists Result: {file_exists_result}'.format(file_exists_result=file_exists_result))
-        return file_exists_result
-
-    def file_delete(self, bucket_filename) -> bool:
+    def file_delete(self, bucket_filename) -> None:
         """
         Delete a file from this bucket
 
         :type bucket_filename: string
         :param bucket_filename: Path of the file in this bucket to be deleted
 
-        :return: bool
+        :return: None
         """
+        Log.trace('Deleting Bucket File...')
+
         bucket_filename = self.get_path_relative_to_base_path(bucket_filename=bucket_filename)
 
-        Log.trace('Deleting file...')
-        Log.debug('Bucket Name: {bucket_name}'.format(bucket_name=self.__bucket_name__))
-        Log.debug('Bucket Filename: {bucket_filename}'.format(bucket_filename=bucket_filename))
+        Client.file_delete(bucket_name=self.__bucket_name__, bucket_filename=bucket_filename)
 
-        Client.file_delete(
-            bucket_name=self.__bucket_name__,
-            bucket_filename=bucket_filename
-        )
-
-        # Make sure the file does not exist on completion
-        file_delete_result = Bucket.file_exists(bucket_filename=bucket_filename) is False
-
-        # Log an error if it still exists at the source
-        if file_delete_result is False:
-            Log.error(Bucket.ERROR_FILE_DELETE_EXISTS_SOURCE)
-
-        Log.debug('Delete Result: {file_delete_result}'.format(file_delete_result=file_delete_result))
-
-        return file_delete_result
-
-    def file_move_in(self, source_bucket_name, source_bucket_filename, destination_bucket_filename) -> bool:
+    def file_move_in(self, source_bucket_name, source_bucket_filename, destination_bucket_filename, allow_overwrite=True) -> None:
         """
         Move a file from another bucket into this bucket
 
@@ -158,29 +110,24 @@ class Bucket:
         :type destination_bucket_filename: string
         :param destination_bucket_filename: The destination filename in this bucket
 
-        :return: bool
-        """
-        destination_bucket_filename = self.get_path_relative_to_base_path(bucket_filename=destination_bucket_filename)
+        :type allow_overwrite: bool
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an base_exception will be thrown
 
-        Log.trace('Moving file into bucket...')
-        Log.debug('Source Bucket Name: {source_bucket_name}'.format(source_bucket_name=source_bucket_name))
-        Log.debug('Source Bucket Filename: {source_bucket_filename}'.format(source_bucket_filename=source_bucket_filename))
-        Log.debug('Destination Bucket Name: {destination_bucket_name}'.format(destination_bucket_name=self.__bucket_name__))
-        Log.debug('Destination Bucket Filename: {destination_bucket_filename}'.format(destination_bucket_filename=destination_bucket_filename))
+        :return: None
+        """
+        Log.trace('Moving File Into Bucket...')
+
+        destination_bucket_filename = self.get_path_relative_to_base_path(bucket_filename=destination_bucket_filename)
 
         Client.move_file(
             source_bucket_name=source_bucket_name,
             source_bucket_filename=source_bucket_filename,
             destination_bucket_name=self.__bucket_name__,
-            destination_bucket_filename=destination_bucket_filename
+            destination_bucket_filename=destination_bucket_filename,
+            allow_overwrite=allow_overwrite
         )
 
-        # Make sure the file exists
-        file_move_in_result = Bucket.file_exists(bucket_filename=destination_bucket_filename)
-
-        Log.debug('File Move In Result: {file_move_in_result}'.format(file_move_in_result=file_move_in_result))
-
-    def file_move_out(self, source_bucket_filename, destination_bucket_name, destination_bucket_filename) -> bool:
+    def file_move_out(self, source_bucket_filename, destination_bucket_name, destination_bucket_filename, allow_overwrite=True) -> None:
         """
         Move a file out of this bucket to another bucket/path
 
@@ -193,12 +140,12 @@ class Bucket:
         :type destination_bucket_filename: string
         :param destination_bucket_filename: The destination filename in the destination bucket
 
-        :return: bool
+        :type allow_overwrite: bool
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an base_exception will be thrown
+
+        :return: None
         """
-        Log.trace('Moving EasyS3Bucket File Out: {bucket_name}:{base_path}'.format(
-            bucket_name=self.__bucket_name__,
-            base_path=self.__base_path__
-        ))
+        Log.trace('Moving File Out Of Bucket...')
 
         source_bucket_filename = self.get_path_relative_to_base_path(bucket_filename=source_bucket_filename)
 
@@ -206,27 +153,11 @@ class Bucket:
             source_bucket_name=self.__bucket_name__,
             source_bucket_filename=source_bucket_filename,
             destination_bucket_name=destination_bucket_name,
-            destination_bucket_filename=destination_bucket_filename
+            destination_bucket_filename=destination_bucket_filename,
+            allow_overwrite=allow_overwrite
         )
 
-        # Make sure the file no longer exists in the source bucket
-        file_move_out_result_delete = Bucket.file_exists(bucket_filename=destination_bucket_filename)
-
-        if file_move_out_result_delete is True:
-            Log.error(Bucket.ERROR_FILE_MOVE_OUT_EXISTS_SOURCE)
-
-        # Make sure the file exists in the destination bucket
-        file_move_out_result_copy = Client.file_exists(
-            bucket_name=destination_bucket_name,
-            bucket_filename=destination_bucket_filename
-        )
-
-        if file_move_out_result_copy is True:
-            Log.error(Bucket.ERROR_FILE_MOVE_OUT_NOT_EXIST_DESTINATION)
-
-        return file_move_out_result_delete is True and file_move_out_result_copy is True
-
-    def file_copy_in(self, source_bucket_filename, destination_bucket_name, destination_bucket_filename) -> None:
+    def file_copy_in(self, source_bucket_filename, destination_bucket_name, destination_bucket_filename, allow_overwrite=True) -> None:
         """
         Copy a file from this bucket to another bucket
 
@@ -239,23 +170,25 @@ class Bucket:
         :type destination_bucket_filename: string
         :param destination_bucket_filename: The filename in the destination bucket
 
+        :type allow_overwrite: bool
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an base_exception will be thrown
+
         :return: None
         """
-        Log.trace('Copying EasyS3Bucket File In: {bucket_name}:{base_path}'.format(
-            bucket_name=self.__bucket_name__,
-            base_path=self.__base_path__
-        ))
+        Log.trace('Copying File Into Bucket...')
 
         source_bucket_filename = self.get_path_relative_to_base_path(bucket_filename=source_bucket_filename)
+        destination_bucket_filename = self.get_path_relative_to_base_path(bucket_filename=destination_bucket_filename)
 
         return Client.copy_file(
             source_bucket_name=self.__bucket_name__,
             source_bucket_filename=source_bucket_filename,
             destination_bucket_name=destination_bucket_name,
-            destination_bucket_filename=destination_bucket_filename
+            destination_bucket_filename=destination_bucket_filename,
+            allow_overwrite=allow_overwrite
         )
 
-    def file_copy_out(self, source_bucket_name, source_bucket_filename, destination_bucket_filename) -> None:
+    def file_copy_out(self, source_bucket_name, source_bucket_filename, destination_bucket_filename, allow_overwrite=True) -> None:
         """
         Copy a file from another bucket into this one
 
@@ -268,12 +201,12 @@ class Bucket:
         :type destination_bucket_filename: string
         :param destination_bucket_filename: The destination filename in this bucket
 
+        :type allow_overwrite: bool
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an base_exception will be thrown
+
         :return: None
         """
-        Log.trace('Copying EasyS3Bucket File Out: {bucket_name}:{base_path}'.format(
-            bucket_name=self.__bucket_name__,
-            base_path=self.__base_path__
-        ))
+        Log.trace('Copying File Out Of Bucket...')
 
         destination_bucket_filename = self.get_path_relative_to_base_path(bucket_filename=destination_bucket_filename)
 
@@ -281,7 +214,8 @@ class Bucket:
             source_bucket_name=source_bucket_name,
             source_bucket_filename=source_bucket_filename,
             destination_bucket_name=self.__bucket_name__,
-            destination_bucket_filename=destination_bucket_filename
+            destination_bucket_filename=destination_bucket_filename,
+            allow_overwrite=allow_overwrite
         )
 
     def file_download(self, bucket_filename, local_filename, allow_overwrite=True) -> None:
@@ -295,14 +229,11 @@ class Bucket:
         :param local_filename: Download filename on local filesystem
 
         :type allow_overwrite: bool
-        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be thrown
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an base_exception will be thrown
 
         :return: None
         """
-        Log.trace('Downloading File From EasyS3Bucket: {bucket_name}:{base_path}'.format(
-            bucket_name=self.__bucket_name__,
-            base_path=self.__base_path__
-        ))
+        Log.trace('Downloading File From Bucket...')
 
         bucket_filename = self.get_path_relative_to_base_path(bucket_filename=bucket_filename)
 
@@ -324,14 +255,11 @@ class Bucket:
         :param local_filename: File on local filesystem to be uploaded
 
         :type allow_overwrite: bool
-        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be thrown
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an base_exception will be thrown
 
         :return: EasyS3File
         """
-        Log.trace('Uploading file to S3 bucket: {bucket_name}:{base_path}'.format(
-            bucket_name=self.__bucket_name__,
-            base_path=self.__base_path__
-        ))
+        Log.trace('Uploading File To Bucket...')
 
         bucket_filename = self.get_path_relative_to_base_path(bucket_filename=bucket_filename)
 
@@ -354,10 +282,7 @@ class Bucket:
 
         :return: str
         """
-        Log.trace('Downloading String From EasyS3Bucket: {bucket_name}:{base_path}'.format(
-            bucket_name=self.__bucket_name__,
-            base_path=self.__base_path__
-        ))
+        Log.trace('Downloading String From Bucket...')
 
         bucket_filename = self.get_path_relative_to_base_path(bucket_filename=bucket_filename)
 
@@ -381,14 +306,11 @@ class Bucket:
         :param content_encoding: The strings content_encoding, defaults to UTF-8
 
         :type allow_overwrite: bool
-        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be thrown
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an base_exception will be thrown
 
         :return: None
         """
-        Log.trace('Uploading String To EasyS3Bucket: {bucket_name}:{base_path}'.format(
-            bucket_name=self.__bucket_name__,
-            base_path=self.__base_path__
-        ))
+        Log.trace('Uploading String To Bucket...')
 
         bucket_filename = self.get_path_relative_to_base_path(bucket_filename=bucket_filename)
 
@@ -409,17 +331,11 @@ class Bucket:
 
         :return: dict
         """
-        Log.trace('Retrieving EasyS3Bucket File Tags: {bucket_name}:{base_path}'.format(
-            bucket_name=self.__bucket_name__,
-            base_path=self.__base_path__
-        ))
+        Log.trace('Retrieving Bucket File Tags...')
 
         bucket_filename = self.get_path_relative_to_base_path(bucket_filename=bucket_filename)
 
-        return Client.get_file_tags(
-            bucket_name=self.__bucket_name__,
-            bucket_filename=bucket_filename
-        )
+        return Client.get_file_tags(bucket_name=self.__bucket_name__, bucket_filename=bucket_filename)
 
     def file_set_tags(self, bucket_filename, tags) -> None:
         """
@@ -433,10 +349,7 @@ class Bucket:
 
         :return: None
         """
-        Log.trace('Setting EasyS3Bucket File Tags: {bucket_name}:{base_path}'.format(
-            bucket_name=self.__bucket_name__,
-            base_path=self.__base_path__
-        ))
+        Log.trace('Setting Bucket File Tags...')
 
         bucket_filename = self.get_path_relative_to_base_path(bucket_filename=bucket_filename)
 
@@ -455,12 +368,8 @@ class Bucket:
 
         :return: bool
         """
-        Log.trace('Testing EasyS3Bucket Path Permissions: {bucket_name}:{base_path}'.format(
-            bucket_name=self.__bucket_name__,
-            base_path=self.__base_path__
-        ))
+        Log.trace('Testing Bucket Path Permissions...')
 
-        return Client.test_path_permissions(
-            bucket_name=self.__bucket_name__,
-            bucket_path=bucket_path
-        )
+        bucket_path = self.get_path_relative_to_base_path(bucket_filename=bucket_path)
+
+        return Client.test_client_path(bucket_name=self.__bucket_name__, bucket_path=bucket_path)

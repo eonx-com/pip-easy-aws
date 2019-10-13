@@ -151,15 +151,15 @@ class Log:
         )
 
     @staticmethod
-    def exception(message, exception) -> None:
+    def exception(message, base_exception=None) -> None:
         """
         Exception error logging function
 
         :type message: str
         :param message: Message to print
 
-        :type exception: Exception
-        :param exception: The exception error that was raised
+        :type base_exception: Exception or None
+        :param base_exception: The exception error that was raised
 
         :return: None
         """
@@ -167,7 +167,15 @@ class Log:
         stack_frame = inspect.stack()[1]
 
         Log.log(level=Log.LEVEL_EXCEPTION, stack_frame=stack_frame, message=message)
-        Log.log(level=Log.LEVEL_EXCEPTION, message=exception)
+
+        # If no base base_exception was sent through, throw the message as the base_exception
+        if base_exception is None:
+            raise Exception(message)
+
+        Log.log(level=Log.LEVEL_EXCEPTION, message=base_exception)
+
+        # Raise the base exception
+        raise base_exception
 
     @staticmethod
     def log(level, message, stack_frame=None) -> None:

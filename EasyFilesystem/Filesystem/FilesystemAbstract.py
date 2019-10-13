@@ -10,8 +10,8 @@ from EasyFilesystem import File
 class FilesystemAbstract:
     # Error constants
     ERROR_ITERATION_FAILURE = 'An unexpected error occurred during iteration of the current file'
-    ERROR_ITERATION_CALLBACK_EXCEPTION = 'The user callback function generated an exception error'
-    ERROR_ITERATION_CLEANUP_EXCEPTION = 'An unhandled exception occurred while attempting to cleanup an iterated file'
+    ERROR_ITERATION_CALLBACK_EXCEPTION = 'The user callback function generated an base_exception error'
+    ERROR_ITERATION_CLEANUP_EXCEPTION = 'An unhandled base_exception occurred while attempting to cleanup an iterated file'
 
     @abstractmethod
     def file_stake(self, filename, staking_strategy) -> File:
@@ -101,7 +101,7 @@ class FilesystemAbstract:
         :param local_filename: The destination on the local filesystem where the file will be downloaded to
 
         :type allow_overwrite: bool
-        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be thrown
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an base_exception will be thrown
 
         :return:
         """
@@ -119,7 +119,7 @@ class FilesystemAbstract:
         :param local_filename: The name of the local filesystem file that will be uploaded
 
         :type allow_overwrite: bool
-        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be thrown
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an base_exception will be thrown
 
         :return: File
         """

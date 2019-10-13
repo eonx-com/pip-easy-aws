@@ -110,7 +110,7 @@ class Iterator:
         # Retrieve list of sources
         sources = self.get_sources()
 
-        # If no sources have been defined raise an exception error
+        # If no sources have been defined raise an base_exception error
         count_sources = len(sources)
 
         if count_sources == 0:

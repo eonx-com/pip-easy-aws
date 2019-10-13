@@ -75,7 +75,7 @@ class Helpers:
                     Log.debug('Method found: {method_name}'.format(method_name=method_name))
                     return True
         except Exception as find_exception:
-            Log.exception('Unhandled exception while searching for method', find_exception)
+            Log.exception('Unhandled base_exception while searching for method', find_exception)
             return False
 
         Log.debug('Method not found: {method_name}'.format(method_name=method_name))
@@ -178,9 +178,12 @@ class Helpers:
         return filename
 
     @staticmethod
-    def create_unique_local_temp_path() -> str:
+    def create_unique_local_temp_path(make_path=True) -> str:
         """
         Create a new local path inside the system temp folder that is guaranteed to be unique
+
+        :type make_path: bool
+        :param make_path: Boolean flag indicating whether to create the filesystem file
 
         :return: str
         """
@@ -190,9 +193,28 @@ class Helpers:
         while True:
             count = count + 1
             local_path = '{temp_path}/{uuid}'.format(temp_path=temp_path, uuid=uuid.uuid4())
+
             if os.path.exists(local_path) is False:
+                if make_path is False:
+                    Log.debug('Not creating path...')
+                    return local_path
+
                 os.makedirs(local_path, exist_ok=False)
                 Log.debug('Created unique local temporary path: {local_path}'.format(local_path=local_path))
                 return local_path
             if count > 10:
                 raise Exception('Failed to create unique local filepath')
+
+    @staticmethod
+    def create_random_content() -> str:
+        """
+        Return random contents for use in test files
+
+        :return: str
+        """
+        content = ''
+
+        for i in range(1, 50):
+            content = content + str(uuid.uuid4())
+
+        return content
