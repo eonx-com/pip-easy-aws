@@ -1,10 +1,12 @@
 import os
+import tempfile
+import uuid
 
 from EasyLocalDisk.ClientError import ClientError
 from EasyLog.Log import Log
 
 
-# noinspection PyBroadException
+# noinspection PyBroadException,DuplicatedCode
 class Client:
     @staticmethod
     def path_create(path) -> None:
@@ -90,6 +92,27 @@ class Client:
         except Exception as cleanup_exception:
             # Unable to remove the file
             Log.exception(ClientError.ERROR_FILE_DELETE_UNHANDLED_EXCEPTION, cleanup_exception)
+
+    @staticmethod
+    def create_temp_folder() -> str:
+        """
+        Create a new local path inside the system temp folder that is guaranteed to be unique
+
+        :return: str
+        """
+        count = 0
+        temp_path = tempfile.gettempdir()
+
+        while True:
+            count = count + 1
+            local_path = '{temp_path}/{uuid}'.format(temp_path=temp_path, uuid=uuid.uuid4())
+
+            if os.path.exists(local_path) is False:
+                os.makedirs(local_path, exist_ok=False)
+                Log.debug('Created unique local temporary path: {local_path}'.format(local_path=local_path))
+                return local_path
+            if count > 10:
+                raise Exception('Failed to create unique local filepath')
 
     @staticmethod
     def file_create_from_string(filename, contents, allow_overwrite=True) -> None:
