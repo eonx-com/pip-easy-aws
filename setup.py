@@ -11,6 +11,7 @@ setup(
     packages=[
         'EasyCloudFormation',
         'EasyCloudWatch',
+        'EasyIterator',
         'EasyFilesystem',
         'EasyLambda',
         'EasyLocalDisk',

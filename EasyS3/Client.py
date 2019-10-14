@@ -241,7 +241,7 @@ class Client:
         Log.debug('Delete successful...')
 
     @staticmethod
-    def move_file(
+    def file_move(
             source_bucket_name,
             source_bucket_filename,
             destination_bucket_name,
@@ -287,7 +287,7 @@ class Client:
         # Copy the file
         try:
             Log.debug('Copying File To Destination...')
-            Client.copy_file(
+            Client.file_copy(
                 source_bucket_name=source_bucket_name,
                 source_bucket_filename=source_bucket_filename,
                 destination_bucket_name=destination_bucket_name,
@@ -307,7 +307,7 @@ class Client:
         Log.debug('Move Completed')
 
     @staticmethod
-    def copy_file(
+    def file_copy(
             source_bucket_name,
             source_bucket_filename,
             destination_bucket_name,
@@ -660,7 +660,7 @@ class Client:
         Log.debug('Upload Completed')
 
     @staticmethod
-    def get_file_tags(bucket_name, bucket_filename) -> dict:
+    def file_get_tags(bucket_name, bucket_filename) -> dict:
         """
         Return a list of tags on the specified file
 
@@ -714,7 +714,7 @@ class Client:
         return tags
 
     @staticmethod
-    def set_file_tags(bucket_name, bucket_filename, tags) -> None:
+    def file_set_tags(bucket_name, bucket_filename, tags) -> None:
         """
         Replace all tags on a file with those specified
 
@@ -760,7 +760,7 @@ class Client:
 
         # Retrieve the tags were written correctly
         Log.debug('Checking Tags...')
-        new_tags = Client.get_file_tags(bucket_name=bucket_name, bucket_filename=bucket_filename)
+        new_tags = Client.file_get_tags(bucket_name=bucket_name, bucket_filename=bucket_filename)
 
         # Validate the number of keys match
         if len(new_tags) != len(tags):

@@ -41,3 +41,6 @@ class ClientError:
     ERROR_FILE_UPLOAD_CALLBACK = 'An unexpected exception error occurred during file upload, user callback function generated an exception'
     ERROR_FILE_UPLOAD_TEMP_FOLDER = 'An unexpected exception error occurred during file upload, unable to create temporary folder'
 
+    ERROR_FILE_MOVE_SOURCE_NOT_FOUND = ''
+    ERROR_FILE_MOVE_DESTINATION_EXISTS = ''
+    ERROR_FILE_MOVE_FAILED = ''

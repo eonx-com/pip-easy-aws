@@ -502,6 +502,44 @@ class Client:
         if self.file_exists(remote_filename=remote_filename) is True:
             Log.exception(ClientError.ERROR_FILE_DELETE_FAILED)
 
+    def file_move(self, source_filename, destination_filename, allow_overwrite=True) -> None:
+        """
+        Move file inside SFTP server
+
+        :type source_filename: str
+        :param source_filename:
+
+        :type destination_filename: str
+        :param destination_filename:
+
+        :type allow_overwrite: bool
+        :param allow_overwrite:
+
+        :return: None
+        """
+        # Ensure the source file exists
+        Log.debug('Checking Source File Exists...')
+        if self.file_exists(remote_filename=source_filename) is False:
+            Log.exception(ClientError.ERROR_FILE_MOVE_SOURCE_NOT_FOUND)
+
+        # If allow overwrite is disabled, make sure the file doesn't already exist
+        Log.debug('Checking Destination File Does Not Exist...')
+        if self.file_exists(remote_filename=destination_filename) is True:
+            if allow_overwrite is False:
+                Log.exception(ClientError.ERROR_FILE_MOVE_DESTINATION_EXISTS)
+            else:
+                # Delete the destination file
+                Log.debug('Deleting Existing File...')
+                self.file_delete(remote_filename=destination_filename)
+
+        # Rename the file
+        Log.debug('Moving File...')
+        self.__connection__.rename(remote_src=source_filename, remote_dest=destination_filename)
+
+        # Make sure the file exists at the destination
+        if self.file_exists(remote_filename=destination_filename) is False:
+            Log.exception(ClientError.ERROR_FILE_MOVE_FAILED)
+
     def file_exists(self, remote_filename) -> bool:
         """
         Check if file exists

@@ -119,7 +119,7 @@ class Bucket:
 
         destination_bucket_filename = self.get_path_relative_to_base_path(bucket_filename=destination_bucket_filename)
 
-        Client.move_file(
+        Client.file_move(
             source_bucket_name=source_bucket_name,
             source_bucket_filename=source_bucket_filename,
             destination_bucket_name=self.__bucket_name__,
@@ -149,7 +149,7 @@ class Bucket:
 
         source_bucket_filename = self.get_path_relative_to_base_path(bucket_filename=source_bucket_filename)
 
-        Client.move_file(
+        Client.file_move(
             source_bucket_name=self.__bucket_name__,
             source_bucket_filename=source_bucket_filename,
             destination_bucket_name=destination_bucket_name,
@@ -180,7 +180,7 @@ class Bucket:
         source_bucket_filename = self.get_path_relative_to_base_path(bucket_filename=source_bucket_filename)
         destination_bucket_filename = self.get_path_relative_to_base_path(bucket_filename=destination_bucket_filename)
 
-        return Client.copy_file(
+        return Client.file_copy(
             source_bucket_name=self.__bucket_name__,
             source_bucket_filename=source_bucket_filename,
             destination_bucket_name=destination_bucket_name,
@@ -210,7 +210,7 @@ class Bucket:
 
         destination_bucket_filename = self.get_path_relative_to_base_path(bucket_filename=destination_bucket_filename)
 
-        return Client.copy_file(
+        return Client.file_copy(
             source_bucket_name=source_bucket_name,
             source_bucket_filename=source_bucket_filename,
             destination_bucket_name=self.__bucket_name__,
@@ -335,7 +335,7 @@ class Bucket:
 
         bucket_filename = self.get_path_relative_to_base_path(bucket_filename=bucket_filename)
 
-        return Client.get_file_tags(bucket_name=self.__bucket_name__, bucket_filename=bucket_filename)
+        return Client.file_get_tags(bucket_name=self.__bucket_name__, bucket_filename=bucket_filename)
 
     def file_set_tags(self, bucket_filename, tags) -> None:
         """
@@ -353,7 +353,7 @@ class Bucket:
 
         bucket_filename = self.get_path_relative_to_base_path(bucket_filename=bucket_filename)
 
-        Client.set_file_tags(
+        Client.file_set_tags(
             bucket_name=self.__bucket_name__,
             bucket_filename=bucket_filename,
             tags=tags

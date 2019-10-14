@@ -1,11 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import os
+import uuid
 
+from EasyLocalDisk.Client import Client as LocalDiskClient
 from EasyLog.Log import Log
 from EasySftp.Client import Client
+from EasySftp.ServerError import ServerError
 
 
 class Server:
+    ITERATE_STRATEGY_RENAME = 'RENAME'
+    ITERATE_STRATEGY_IGNORE = 'IGNORE'
+
     def __init__(
             self,
             address,
@@ -49,6 +56,9 @@ class Server:
         :param base_path: Base SFTP file path, all uploads/downloads will have this path prepended
         """
         Log.trace('Instantiating SFTP server class...')
+
+        self.__uuid__ = uuid.uuid4()
+        self.__callback__ = None
 
         # Store server details
         self.__address__ = address
@@ -116,28 +126,35 @@ class Server:
         """
         Log.trace('Connecting to SFTP server...')
 
-        if self.__rsa_private_key__ is not None:
-            # Connect using RSA private key
-            Log.debug('Connecting using RSA private key...')
-            return self.__sftp_client__.connect_rsa_private_key(
-                address=self.__address__,
-                port=self.__port__,
-                username=self.__username__,
-                rsa_private_key=self.__rsa_private_key__,
-                fingerprint=self.__fingerprint__,
-                fingerprint_type=self.__fingerprint_type__
-            )
-        else:
-            # Connect using sftp_username/password
-            Log.debug('Connecting using username/password key...')
-            return self.__sftp_client__.connect_password(
-                address=self.__address__,
-                port=self.__port__,
-                username=self.__username__,
-                password=self.__password__,
-                fingerprint=self.__fingerprint__,
-                fingerprint_type=self.__fingerprint_type__
-            )
+        # noinspection PyBroadException
+        try:
+            if self.__rsa_private_key__ is not None:
+                # Connect using RSA private key
+                Log.debug('Connecting using RSA private key...')
+                self.__sftp_client__.connect_rsa_private_key(
+                    address=self.__address__,
+                    port=self.__port__,
+                    username=self.__username__,
+                    rsa_private_key=self.__rsa_private_key__,
+                    fingerprint=self.__fingerprint__,
+                    fingerprint_type=self.__fingerprint_type__
+                )
+            else:
+                # Connect using sftp_username/password
+                Log.debug('Connecting using username/password key...')
+                self.__sftp_client__.connect_password(
+                    address=self.__address__,
+                    port=self.__port__,
+                    username=self.__username__,
+                    password=self.__password__,
+                    fingerprint=self.__fingerprint__,
+                    fingerprint_type=self.__fingerprint_type__
+                )
+        except Exception as connect_exception:
+            Log.error('Connection Failed: {connect_exception}'.format(connect_exception=connect_exception))
+            return False
+
+        return True
 
     def disconnect(self) -> None:
         """
@@ -181,7 +198,7 @@ class Server:
         returned_files = []
 
         for file in files:
-            returned_files.append(file[len(self.__base_path__)-1:])
+            returned_files.append(file[len(self.__base_path__) - 1:])
 
         return returned_files
 
@@ -330,7 +347,92 @@ class Server:
             allow_overwrite=allow_overwrite
         )
 
+    # Iteration functions
+
+    def iterate_files(self, callback, strategy, maximum_files=None):
+        """
+        :type maximum_files: int or None
+        :param maximum_files: Maximum number files to stake
+
+        :type callback: Callable
+        :param callback: User callback function executed on every successfully staked file
+
+        :type strategy: str
+        :param strategy: Staking strategy to use
+
+        :return: list
+        """
+        staked_files = []
+
+        staking_path = LocalDiskClient.create_temp_folder()
+
+        if callable(callback) is False:
+            Log.exception(ServerError.ERROR_ITERATE_CALLBACK_NOT_CALLABLE)
+
+        # Download all files
+        self.__sftp_client__.set_file_download_limit(maximum_files=maximum_files)
+
+        if strategy == Server.ITERATE_STRATEGY_IGNORE:
+            # Ignore unique staking requirement strategy
+            self.__sftp_client__.file_download_recursive(remote_path='/', local_path=staking_path, callback=self.__stake_ignore__)
+        elif strategy == Server.ITERATE_STRATEGY_RENAME:
+            # Rename files strategy
+            self.__sftp_client__.file_download_recursive(remote_path='/', local_path=staking_path, callback=self.__stake_rename__)
+        else:
+            # Unknown strategy
+            Log.exception(ServerError.ERROR_ITERATE_STRATEGY_UNKNOWN)
+
     # Internal helper methods
+
+    def __stake_ignore__(self, local_filename, remote_filename):
+        """
+        Handle staked files as they are downloaded
+
+        :type local_filename: str
+        :param local_filename:
+
+        :type remote_filename: str
+        :param remote_filename:
+
+        :return:
+        """
+        # Trigger callback without performing any kind of unique checks
+        self.__callback__(local_filename=local_filename, remote_filename=remote_filename, staked_filename=remote_filename)
+
+    def __stake_rename__(self, local_filename, remote_filename):
+        """
+        Handle staked files as they are downloaded, ensuring we are the only process actioning the file by performing a rename operation
+
+        :type local_filename: str
+        :param local_filename:
+
+        :type remote_filename: str
+        :param remote_filename:
+
+        :return:
+        """
+        try:
+            # Skip files that are already marked as staked
+            if remote_filename.endswith('.staked'):
+                os.unlink(local_filename)
+                return
+
+            # Rename the file on the remote server so it doesn't get picked up by another staking operation
+            staked_filename = '{remote_filename}.{uuid}.staked'.format(remote_filename=remote_filename, uuid=self.__uuid__)
+            self.__sftp_client__.file_move(source_filename=remote_filename, destination_filename=staked_filename)
+
+            # Make sure we managed to rename the file before anybody else
+            if self.__sftp_client__.file_exists(remote_filename=staked_filename) is False:
+                # Somebody else got it first
+                os.unlink(local_filename)
+                return
+
+            # Trigger callback function
+            self.__callback__(local_filename=local_filename, remote_filename=remote_filename, staked_filename=staked_filename)
+        except Exception as staking_exception:
+            # If anything goes wrong during staking, just ignore it and move on
+            Log.warning('Staking Failed, Skipping File: {staking_exception}'.format(staking_exception=staking_exception))
+            os.unlink(local_filename)
 
     def __get_relative_base_path__(self, path) -> str:
         """

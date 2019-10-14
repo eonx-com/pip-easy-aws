@@ -1,6 +1,7 @@
 import os
 import tempfile
 import uuid
+from shutil import copyfile
 
 from EasyLocalDisk.ClientError import ClientError
 from EasyLog.Log import Log
@@ -45,6 +46,76 @@ class Client:
             return os.path.exists(filename)
         except Exception as exists_exception:
             Log.exception(ClientError.ERROR_FILE_EXISTS_UNHANDLED_EXCEPTION, exists_exception)
+
+    @staticmethod
+    def file_move(source_filename, destination_filename, allow_overwrite=True):
+        """
+        Move/rename a file
+
+        :type source_filename: str
+        :param source_filename:
+
+        :type destination_filename: str
+        :param destination_filename:
+
+        :type allow_overwrite: bool
+        :param allow_overwrite:
+
+        :return: None
+        """
+        Log.trace("Moving File...")
+
+        if allow_overwrite is False:
+            Log.debug('Checking If File Already Exists...')
+            if Client.file_exists(filename=source_filename) is True:
+                Log.exception(ClientError.ERROR_FILE_MOVE_ALREADY_EXISTS)
+
+        os.replace(source_filename, destination_filename)
+
+        # Make sure the file moved to the destination
+        if Client.file_exists(destination_filename) is False:
+            Log.exception(ClientError.ERROR_FILE_MOVE_FAILED)
+
+        # Make sure the source no longer exists
+        if Client.file_exists(source_filename) is True:
+            Log.exception(ClientError.ERROR_FILE_MOVE_FAILED)
+
+        # Make sure the destination is readable
+        if Client.file_readable(destination_filename) is False:
+            Log.exception(ClientError.ERROR_FILE_MOVE_FAILED)
+
+    @staticmethod
+    def file_copy(source_filename, destination_filename, allow_overwrite=True):
+        """
+        Copy a file
+
+        :type source_filename: str
+        :param source_filename:
+
+        :type destination_filename: str
+        :param destination_filename:
+
+        :type allow_overwrite: bool
+        :param allow_overwrite:
+
+        :return: None
+        """
+        Log.trace("Copying File...")
+
+        if allow_overwrite is False:
+            Log.debug('Checking If File Already Exists...')
+            if Client.file_exists(filename=source_filename) is True:
+                Log.exception(ClientError.ERROR_FILE_MOVE_ALREADY_EXISTS)
+
+        copyfile(source_filename, destination_filename)
+
+        # Make sure the file moved to the destination
+        if Client.file_exists(destination_filename) is False:
+            Log.exception(ClientError.ERROR_FILE_MOVE_FAILED)
+
+        # Make sure the destination is readable
+        if Client.file_readable(destination_filename) is False:
+            Log.exception(ClientError.ERROR_FILE_MOVE_FAILED)
 
     @staticmethod
     def file_readable(filename) -> bool:
