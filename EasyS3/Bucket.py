@@ -1,11 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from EasyLocalDisk.Client import Client as LocalDiskClient
 from EasyLog.Log import Log
+from EasyS3.BucketError import BucketError
 from EasyS3.Client import Client
 
 
+# noinspection DuplicatedCode
 class Bucket:
+    ITERATE_STRATEGY_RENAME = 'RENAME'
+    ITERATE_STRATEGY_IGNORE = 'IGNORE'
+    ITERATE_STRATEGY_TAG = 'TAG'
+
     def __init__(self, bucket_name, base_path=''):
         """
         :type bucket_name: str
@@ -373,3 +380,82 @@ class Bucket:
         bucket_path = self.get_path_relative_to_base_path(bucket_filename=bucket_path)
 
         return Client.test_client_path(bucket_name=self.__bucket_name__, bucket_path=bucket_path)
+
+    # Iteration functions
+
+    def iterate_files(self, callback, strategy, maximum_files=None) -> None:
+        """
+        :type maximum_files: int or None
+        :param maximum_files: Maximum number files to stake
+
+        :type callback: Callable
+        :param callback: User callback function executed on every successfully staked file
+
+        :type strategy: str
+        :param strategy: Staking strategy to use
+
+        :return: None
+        """
+        staking_path = LocalDiskClient.create_temp_folder()
+
+        if callable(callback) is False:
+            Log.exception(BucketError.ERROR_ITERATE_CALLBACK_NOT_CALLABLE)
+
+        self.__sftp_client__.set_file_download_limit(maximum_files=maximum_files)
+
+        if strategy == Bucket.ITERATE_STRATEGY_IGNORE:
+            callback = self.__stake_ignore__
+        elif strategy == Bucket.ITERATE_STRATEGY_RENAME:
+            callback = self.__stake_rename__
+        elif strategy == Bucket.ITERATE_STRATEGY_TAG:
+            callback = self.__stake_tag__
+        else:
+            Log.exception(BucketError.ERROR_ITERATE_STRATEGY_UNKNOWN)
+
+        self.file_download_recursive(
+            remote_path='',
+            local_path=staking_path,
+            callback=callback
+        )
+
+    def __stake_ignore__(self, local_filename, remote_filename):
+        """
+        Handle staked files as they are downloaded
+
+        :type local_filename: str
+        :param local_filename:
+
+        :type remote_filename: str
+        :param remote_filename:
+
+        :return:
+        """
+        pass
+
+    def __stake_rename__(self, local_filename, remote_filename):
+        """
+        Handle staked files as they are downloaded, ensuring we are the only process actioning the file by performing a rename operation
+
+        :type local_filename: str
+        :param local_filename:
+
+        :type remote_filename: str
+        :param remote_filename:
+
+        :return:
+        """
+        pass
+
+    def __stake_tag__(self, local_filename, remote_filename):
+        """
+        Handle staked files as they are downloaded, ensuring we are the only process actioning the file by performing a rename operation
+
+        :type local_filename: str
+        :param local_filename:
+
+        :type remote_filename: str
+        :param remote_filename:
+
+        :return:
+        """
+        pass

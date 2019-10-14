@@ -349,7 +349,7 @@ class Server:
 
     # Iteration functions
 
-    def iterate_files(self, callback, strategy, maximum_files=None):
+    def iterate_files(self, callback, strategy, maximum_files=None) -> None:
         """
         :type maximum_files: int or None
         :param maximum_files: Maximum number files to stake
@@ -360,29 +360,23 @@ class Server:
         :type strategy: str
         :param strategy: Staking strategy to use
 
-        :return: list
+        :return: None
         """
-        staked_files = []
-
         staking_path = LocalDiskClient.create_temp_folder()
 
         if callable(callback) is False:
             Log.exception(ServerError.ERROR_ITERATE_CALLBACK_NOT_CALLABLE)
 
-        # Download all files
         self.__sftp_client__.set_file_download_limit(maximum_files=maximum_files)
 
         if strategy == Server.ITERATE_STRATEGY_IGNORE:
-            # Ignore unique staking requirement strategy
-            self.__sftp_client__.file_download_recursive(remote_path='/', local_path=staking_path, callback=self.__stake_ignore__)
+            callback = self.__stake_ignore__
         elif strategy == Server.ITERATE_STRATEGY_RENAME:
-            # Rename files strategy
-            self.__sftp_client__.file_download_recursive(remote_path='/', local_path=staking_path, callback=self.__stake_rename__)
+            callback = self.__stake_rename__
         else:
-            # Unknown strategy
             Log.exception(ServerError.ERROR_ITERATE_STRATEGY_UNKNOWN)
 
-    # Internal helper methods
+        self.__sftp_client__.file_download_recursive(remote_path='/', local_path=staking_path, callback=callback)
 
     def __stake_ignore__(self, local_filename, remote_filename):
         """
@@ -433,6 +427,8 @@ class Server:
             # If anything goes wrong during staking, just ignore it and move on
             Log.warning('Staking Failed, Skipping File: {staking_exception}'.format(staking_exception=staking_exception))
             os.unlink(local_filename)
+
+    # Internal helper methods
 
     def __get_relative_base_path__(self, path) -> str:
         """
