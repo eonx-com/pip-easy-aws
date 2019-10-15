@@ -12,6 +12,8 @@ setup(
         'EasyCloudFormation',
         'EasyCloudWatch',
         'EasyFilesystem',
+        'EasyFilesystem.S3',
+        'EasyFilesystem.Sftp',
         'EasyLambda',
         'EasyLocalDisk',
         'EasyLog',
