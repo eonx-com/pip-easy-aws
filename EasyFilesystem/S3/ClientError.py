@@ -74,7 +74,7 @@ class ClientError:
     ERROR_FILE_DOWNLOAD = 'An unexpected error occurred while download a file from S3.'
     ERROR_FILE_DOWNLOAD_UNHANDLED_EXCEPTION = ERROR_FILE_DOWNLOAD + ERROR_UNHANDLED_EXCEPTION
     ERROR_FILE_DOWNLOAD_SOURCE_NOT_FOUND = ERROR_FILE_DOWNLOAD + ' The source file could not be found.'
-    ERROR_FILE_DOWNLOAD_CALLBACK_NOT_CALLABLE = ERROR_FILE_DOWNLOAD + ' The callback function was not a callable object.'
+    ERROR_FILE_DOWNLOAD_CALLBACK_NOT_CALLABLE = ERROR_FILE_DOWNLOAD + ' The callback_staked function was not a callable object.'
     ERROR_FILE_DOWNLOAD_ALREADY_EXISTS = ERROR_FILE_DOWNLOAD + ' The destination file already exists.'
     ERROR_FILE_DOWNLOAD_FAILED = ERROR_FILE_DOWNLOAD + ' The download failed.'
 

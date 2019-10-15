@@ -73,7 +73,7 @@ class Client:
         """
         Create path in remote filesystem
         
-        :type bucket: string
+        :type bucket:str
         :param bucket: The bucket in which the path will be created
 
         :type path: str
@@ -106,7 +106,7 @@ class Client:
         """
         Create a new temporary path that is guaranteed to be unique
 
-        :type bucket: string
+        :type bucket:str
         :param bucket: The bucket in which the path will be created
 
         :type prefix: str
@@ -178,10 +178,10 @@ class Client:
         """
         List the contents of the specified bucket/path
 
-        :type bucket: string
+        :type bucket:str
         :param bucket: The bucket from which the objects are to be listed
 
-        :type path: string
+        :type path:str
         :param path: The buckets path
 
         :type include_directories: bool
@@ -246,10 +246,10 @@ class Client:
         """
         Check if file exists in the specified bucket
 
-        :type bucket: string
+        :type bucket:str
         :param bucket: Bucket to be searched
 
-        :type path: string
+        :type path:str
         :param path: Path to search for in bucket
 
         :return: bool
@@ -273,10 +273,10 @@ class Client:
         """
         Check if file exists in the specified bucket
 
-        :type bucket: string
+        :type bucket:str
         :param bucket: Bucket to be searched
 
-        :type filename: string
+        :type filename:str
         :param filename: Path/filename to search for in bucket
 
         :return: bool
@@ -332,10 +332,10 @@ class Client:
         """
         Delete a file from S3 bucket
 
-        :type bucket: string
+        :type bucket:str
         :param bucket: Bucket from which the file should be deleted
 
-        :type filename: string
+        :type filename:str
         :param filename: Path of the S3 file to be deleted
 
         :type allow_missing: bool
@@ -367,16 +367,16 @@ class Client:
         """
         Move a file to the specified destination
 
-        :type source_bucket: string
+        :type source_bucket:str
         :param source_bucket: The bucket the file should be moved from
 
-        :type source_filename: string
+        :type source_filename:str
         :param source_filename: The source filename
 
-        :type destination_bucket: string
+        :type destination_bucket:str
         :param destination_bucket: The bucket the file should be moved to
 
-        :type destination_filename: string
+        :type destination_filename:str
         :param destination_filename: The destination filename
 
         :type allow_overwrite: bool
@@ -425,16 +425,16 @@ class Client:
         """
         Copy file to the specified destination
 
-        :type source_bucket: string
+        :type source_bucket:str
         :param source_bucket: The bucket the file should be copied from
 
-        :type source_filename: string
+        :type source_filename:str
         :param source_filename: The source path/filename
 
-        :type destination_bucket: string
+        :type destination_bucket:str
         :param destination_bucket: The bucket the file should be copied to
 
-        :type destination_filename: string
+        :type destination_filename:str
         :param destination_filename: The destination path.filename
 
         :type allow_overwrite: bool
@@ -472,10 +472,10 @@ class Client:
         """
         Download a file
 
-        :type bucket: string
+        :type bucket:str
         :param bucket: Bucket from which the file should be downloaded
 
-        :type remote_filename: string
+        :type remote_filename:str
         :param remote_filename: Path of the file to be downloaded in S3 bucket
 
         :type local_filename: str
@@ -530,7 +530,7 @@ class Client:
         :param local_path: Path on local file system where contents are to be downloaded
 
         :type callback: function/None
-        :param callback: Optional callback function to call after each file has downloaded successfully
+        :param callback: Optional callback_staked function to call after each file has downloaded successfully
 
         :type allow_overwrite: bool
         :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be thrown
@@ -561,11 +561,11 @@ class Client:
                 allow_overwrite=allow_overwrite
             )
 
-            # If a callback was supplied execute it
+            # If a callback_staked was supplied execute it
             if callback is not None:
                 if callable(callback) is False:
                     Log.exception(ClientError.ERROR_FILE_DOWNLOAD_CALLBACK_NOT_CALLABLE)
-                # If the callback returns false, stop iterating
+                # If the callback_staked returns false, stop iterating
                 if callback(local_filename=current_local_filename, remote_filename=current_remote_filename) is False:
                     break
 
@@ -573,10 +573,10 @@ class Client:
         """
         Upload a local file to the specified location
 
-        :type bucket: string
+        :type bucket:str
         :param bucket: Bucket where file should be uploaded
 
-        :type remote_filename: string
+        :type remote_filename:str
         :param remote_filename: Destination filename in S3 bucket
 
         :type local_filename: str
@@ -614,10 +614,10 @@ class Client:
         """
         Return a list of tags on the specified file
 
-        :type bucket: string
+        :type bucket:str
         :param bucket: Bucket in which the file is contained
 
-        :type filename: string
+        :type filename:str
         :param filename: Path of the S3 file
 
         :return: dict

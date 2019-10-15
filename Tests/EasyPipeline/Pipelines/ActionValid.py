@@ -1,16 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from EasyPipeline import ActionAbstract
+from EasyPipeline import BaseAction
 
 
-class Action(ActionAbstract):
+class Action(BaseAction):
     # noinspection PyMethodMayBeStatic
     def execute(self):
         return True
 
 
-class ActionOne(ActionAbstract):
+class ActionOne(BaseAction):
     def execute(self):
         """
         Take two inputs add them together and pass them on to the second action
@@ -37,7 +37,7 @@ class ActionOne(ActionAbstract):
         return True
 
 
-class ActionTwo(ActionAbstract):
+class ActionTwo(BaseAction):
     def execute(self):
         """
         Take the output from the first action and multiply it by two
@@ -53,7 +53,7 @@ class ActionTwo(ActionAbstract):
         return True
 
 
-class ActionStringLaunch(ActionAbstract):
+class ActionStringLaunch(BaseAction):
     """
     Action that launches 'action_success' by returning a string
     """
@@ -73,7 +73,7 @@ class ActionStringLaunch(ActionAbstract):
         return next_action
 
 
-class ActionFailure(ActionAbstract):
+class ActionFailure(BaseAction):
     """
     Action that returns failure
     """
@@ -88,7 +88,7 @@ class ActionFailure(ActionAbstract):
         return False
 
 
-class ActionSuccess(ActionAbstract):
+class ActionSuccess(BaseAction):
     """
     Action that returns success
     """

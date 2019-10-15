@@ -3,6 +3,7 @@
 
 from EasyFilesystem.BaseFilesystem import BaseFilesystem
 from EasyFilesystem.S3.Client import Client
+from EasyLog.Log import Log
 
 
 class Filesystem(BaseFilesystem):
@@ -149,7 +150,7 @@ class Filesystem(BaseFilesystem):
         """
         Delete a file
 
-        :type filename: string
+        :type filename:str
         :param filename: Path of the file to be deleted
 
         :type allow_missing: bool
@@ -163,10 +164,10 @@ class Filesystem(BaseFilesystem):
         """
         Move a file to the specified destination
 
-        :type source_filename: string
+        :type source_filename:str
         :param source_filename: The source filename
 
-        :type destination_filename: string
+        :type destination_filename:str
         :param destination_filename: The destination filename
 
         :type allow_overwrite: bool
@@ -181,10 +182,10 @@ class Filesystem(BaseFilesystem):
         """
         Copy file to the specified destination
 
-        :type source_filename: string
+        :type source_filename:str
         :param source_filename: The source path/filename
 
-        :type destination_filename: string
+        :type destination_filename:str
         :param destination_filename: The destination path.filename
 
         :type allow_overwrite: bool
@@ -225,15 +226,15 @@ class Filesystem(BaseFilesystem):
         :param local_path: Path on local file system where file is to be downloaded
 
         :type callback: Callable or None
-        :param callback: Optional callback function to call after each file has downloaded
+        :param callback: Optional callback_staked function to call after each file has downloaded
 
         :type allow_overwrite: bool
         :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be thrown
 
         :return: None
         """
+        Log.test('Recursive Download Starting...')
         remote_path = self.__rebase_path__(remote_path)
-
         self.__client__.file_download_recursive(
             bucket=self.__bucket__,
             remote_path=remote_path,

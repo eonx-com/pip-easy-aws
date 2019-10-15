@@ -23,6 +23,9 @@ class EasyFilesystemTest(unittest.TestCase):
     TEST_BUCKET_BASE_PATH = 'easy-filesystem'
 
     callback_files = []
+    files_processed = []
+    files_success = []
+    files_error = []
 
     def test_filesystems(self):
         """
@@ -30,11 +33,11 @@ class EasyFilesystemTest(unittest.TestCase):
         """
         test_filesystems = []
 
-        Log.test('Creating S3 Filesystem...')
-        test_filesystems.append(FilesystemS3(
-            bucket_name=EasyFilesystemTest.TEST_BUCKET_NAME,
-            base_path=EasyFilesystemTest.TEST_BUCKET_BASE_PATH
-        ))
+        # Log.test('Creating S3 Filesystem...')
+        # test_filesystems.append(FilesystemS3(
+        #     bucket_name=EasyFilesystemTest.TEST_BUCKET_NAME,
+        #     base_path=EasyFilesystemTest.TEST_BUCKET_BASE_PATH
+        # ))
 
         Log.test('Creating SFTP Filesystem...')
         test_filesystems.append(FilesystemSftp(
@@ -146,9 +149,84 @@ class EasyFilesystemTest(unittest.TestCase):
             Log.test('Comparing: {filename_current}'.format(filename_current=filename_current['local_filename']))
             filecmp.cmp(f1=filename_current['local_filename'], f2=local_temp_filename)
 
+        EasyFilesystemTest.files_processed = []
+        EasyFilesystemTest.files_success = []
+        EasyFilesystemTest.files_error = []
+
+        Log.test('Testing Iterator...')
+        filesystem.iterate_files(
+            staking_strategy=BaseFilesystem.ITERATE_STRATEGY_RENAME,
+            callback_staked=self.iterate_callback_staked,
+            callback_success=self.iterate_callback_success,
+            callback_error=self.iterate_callback_error,
+            maximum_files=5
+        )
+
+        Log.test('Checking Iterator Results...')
+
+        print(EasyFilesystemTest.files_processed)
+        print(EasyFilesystemTest.files_success)
+        print(EasyFilesystemTest.files_error)
+
+        self.assertEqual(len(EasyFilesystemTest.files_processed), 5)
+        self.assertEqual(len(EasyFilesystemTest.files_success), 5)
+        self.assertEqual(len(EasyFilesystemTest.files_error), 0)
+
+    def iterate_callback_staked(self, filesystem, local_filename, remote_filename, staked_filename) -> None:
+        """
+        Process iterator callback on successful staking of a file
+
+        :param filesystem:
+        :param local_filename:
+        :param remote_filename:
+        :param staked_filename:
+        """
+        Log.test('Iterator Callback ...')
+        EasyFilesystemTest.files_processed.append({
+            'filesystem': filesystem,
+            'local_filename': local_filename,
+            'remote_filename': remote_filename,
+            'staked_filename': staked_filename
+        })
+
+    def iterate_callback_success(self, filesystem, local_filename, remote_filename, staked_filename) -> None:
+        """
+        Process iterator callback on successful staking of a file
+
+        :param filesystem:
+        :param local_filename:
+        :param remote_filename:
+        :param staked_filename:
+        """
+        Log.test('Iterator Success Callback...')
+        EasyFilesystemTest.files_success.append({
+            'filesystem': filesystem,
+            'local_filename': local_filename,
+            'remote_filename': remote_filename,
+            'staked_filename': staked_filename
+        })
+
+    def iterate_callback_error(self, filesystem, local_filename, remote_filename, staked_filename, staking_exception) -> None:
+        """
+        Process iterator callback on successful staking of a file
+
+        :param filesystem:
+        :param local_filename:
+        :param remote_filename:
+        :param staked_filename:
+        :param staking_exception:
+        """
+        Log.test('Iterator Error Callback...')
+        EasyFilesystemTest.files_error.append({
+            'filesystem': filesystem,
+            'local_filename': local_filename,
+            'remote_filename': remote_filename,
+            'staked_filename': staked_filename
+        })
+
     def recursive_download_callback(self, local_filename, remote_filename) -> bool:
         """
-        Test recursive download callback
+        Test recursive download callback_staked
 
         :type local_filename: str
         :param local_filename:

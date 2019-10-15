@@ -441,7 +441,7 @@ class Client:
         :param local_path: Path on local file system where contents are to be downloaded
 
         :type callback: function/None
-        :param callback: Optional callback function to call after each file has downloaded successfully
+        :param callback: Optional callback_staked function to call after each file has downloaded successfully
 
         :type allow_overwrite: bool
         :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be thrown
@@ -455,6 +455,7 @@ class Client:
         # List files in current path
         files_found = self.file_list(path=remote_path, recursive=True)
 
+        Log.test('Found {count} File(s)'.format(count=len(files_found)))
         # Iterate these files
         for current_remote_filename in files_found:
             # The local filename will stored in the same folder structure as on the SFTP server
@@ -467,11 +468,11 @@ class Client:
             # Download the current file
             self.file_download(local_filename=current_local_filename, remote_filename=current_remote_filename, allow_overwrite=allow_overwrite)
 
-            # If a callback was supplied execute it
+            # If a callback_staked was supplied execute it
             if callback is not None:
                 if callable(callback) is False:
                     Log.exception(ClientError.ERROR_FILE_DOWNLOAD_CALLBACK_NOT_CALLABLE)
-                # If the callback returns false, stop iterating
+                # If the callback_staked returns false, stop iterating
                 if callback(local_filename=current_local_filename, remote_filename=current_remote_filename) is False:
                     break
 

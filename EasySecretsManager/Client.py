@@ -90,7 +90,7 @@ class Client:
         """
         Get the requested secrets value
 
-        :type name: string
+        :type name:str
         :param name: The name of the secret to be retrieved
 
         :type cache: bool

@@ -4,7 +4,7 @@
 from abc import abstractmethod
 
 
-class ActionAbstract:
+class BaseAction:
     def __init__(self):
         """
         """

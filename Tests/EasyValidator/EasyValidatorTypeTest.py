@@ -1,7 +1,7 @@
 import unittest
 
 from EasyLog.Log import Log
-from EasyValidator.EasyValidator import EasyValidator
+from EasyValidator.Client import EasyValidator
 
 
 class EasyValidatorTypeTest(unittest.TestCase):

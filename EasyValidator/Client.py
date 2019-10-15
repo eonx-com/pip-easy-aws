@@ -4,7 +4,7 @@
 from EasyLog.Log import Log
 
 
-class EasyValidator:
+class Client:
     # Validation rule types
     RULE_ALL = 'ALL'
     RULE_ALL_OR_NOTHING = 'ALL_OR_NOTHING'
@@ -15,6 +15,67 @@ class EasyValidator:
 
     # Error constants
     ERROR_MALFORMED_RULESET = 'The validation ruleset was invalid'
+
+    @staticmethod
+    def validate(ruleset, data) -> bool:
+        """
+        Perform validation
+
+        :type ruleset: list
+        :param ruleset: The rules to be applied
+
+        :type data: dict
+        :param data: The data to be validated
+
+        :return: bool
+        """
+        Log.trace('Validating data...')
+
+        error = False
+
+        # Validate the ruleset before we start validation
+        Client.validate_ruleset(ruleset)
+
+        # Iterate through each rule in ruleset
+        for rule in ruleset:
+            # Get rule type and its configuration
+            rule_type = rule['type']
+
+            # Validate each rule passes, as soon as one fails- everything fails
+            if rule_type == Client.RULE_ANY:
+                Log.debug('Validating any rule...')
+                if Client.validate_any(rule=rule, data=data) is False:
+                    Log.debug('Validation of any rule failed')
+                    error = True
+            elif rule_type == Client.RULE_ALL:
+                Log.debug('Validating all rule...')
+                if Client.validate_all(rule=rule, data=data) is False:
+                    Log.debug('Validation of all rule failed')
+                    error = True
+            elif rule_type == Client.RULE_ALL_OR_NOTHING:
+                Log.debug('Validating all or nothing rule...')
+                if Client.validate_all_any_nothing(rule=rule, data=data) is False:
+                    Log.debug('Validation of all or nothing rule failed')
+                    error = True
+            elif rule_type == Client.RULE_NONE:
+                Log.debug('Validating none rule...')
+                if Client.validate_none(rule=rule, data=data) is False:
+                    Log.debug('Validation of none rule failed')
+                    error = True
+            elif rule_type == Client.RULE_TYPE:
+                Log.debug('Validating type rule...')
+                if Client.validate_type(rule=rule, data=data) is False:
+                    Log.debug('Validation of type rule failed')
+                    error = True
+            elif rule_type == Client.RULE_CALLBACK:
+                Log.debug('Validating using custom callback_staked...')
+                validation_function = rule['validation_function']
+                if validation_function() is False:
+                    Log.debug('Validation by custom callback_staked failed')
+                    error = True
+
+        # Validation was successful
+        return error
 
     @staticmethod
     def validate_ruleset(ruleset) -> bool:
@@ -37,40 +98,40 @@ class EasyValidator:
         for rule in ruleset:
             # Make sure rule is a dictionary type object
             if isinstance(rule, dict) is False:
-                Log.error(EasyValidator.ERROR_MALFORMED_RULESET)
+                Log.error(Client.ERROR_MALFORMED_RULESET)
                 return False
 
             # Each rule must have a type specified
             if 'type' not in rule:
-                Log.error(EasyValidator.ERROR_MALFORMED_RULESET)
+                Log.error(Client.ERROR_MALFORMED_RULESET)
                 return False
 
             # Ensure rule is of a known type
             if rule['type'] not in (
-                    EasyValidator.RULE_ALL,
-                    EasyValidator.RULE_ALL_OR_NOTHING,
-                    EasyValidator.RULE_ANY,
-                    EasyValidator.RULE_CALLBACK,
-                    EasyValidator.RULE_NONE
+                    Client.RULE_ALL,
+                    Client.RULE_ALL_OR_NOTHING,
+                    Client.RULE_ANY,
+                    Client.RULE_CALLBACK,
+                    Client.RULE_NONE
             ):
-                Log.error(EasyValidator.ERROR_MALFORMED_RULESET)
+                Log.error(Client.ERROR_MALFORMED_RULESET)
                 return False
 
             # Make sure values are defined for these rule types
             if rule['type'] in (
-                    EasyValidator.RULE_ALL,
-                    EasyValidator.RULE_ALL_OR_NOTHING,
-                    EasyValidator.RULE_ANY,
-                    EasyValidator.RULE_NONE
+                    Client.RULE_ALL,
+                    Client.RULE_ALL_OR_NOTHING,
+                    Client.RULE_ANY,
+                    Client.RULE_NONE
             ):
                 if 'values' not in rule:
-                    Log.error(EasyValidator.ERROR_MALFORMED_RULESET)
+                    Log.error(Client.ERROR_MALFORMED_RULESET)
                     return False
 
-            # Make sure a callback function is supplied for this rule type
-            if rule['type'] == EasyValidator.RULE_CALLBACK:
+            # Make sure a callback_staked function is supplied for this rule type
+            if rule['type'] == Client.RULE_CALLBACK:
                 if callable(rule['validation_function']) is False:
-                    Log.error(EasyValidator.ERROR_MALFORMED_RULESET)
+                    Log.error(Client.ERROR_MALFORMED_RULESET)
                     return False
 
         return True
@@ -215,64 +276,3 @@ class EasyValidator:
 
         # Return validation result
         return count_found == 0 or count_found == count_maximum
-
-    @staticmethod
-    def validate(ruleset, data) -> bool:
-        """
-        Perform validation
-
-        :type ruleset: list
-        :param ruleset: The rules to be applied
-
-        :type data: dict
-        :param data: The data to be validated
-
-        :return: bool
-        """
-        Log.trace('Validating data...')
-
-        error = False
-
-        # Validate the ruleset before we start validation
-        EasyValidator.validate_ruleset(ruleset)
-
-        # Iterate through each rule in ruleset
-        for rule in ruleset:
-            # Get rule type and its configuration
-            rule_type = rule['type']
-
-            # Validate each rule passes, as soon as one fails- everything fails
-            if rule_type == EasyValidator.RULE_ANY:
-                Log.debug('Validating any rule...')
-                if EasyValidator.validate_any(rule=rule, data=data) is False:
-                    Log.debug('Validation of any rule failed')
-                    error = True
-            elif rule_type == EasyValidator.RULE_ALL:
-                Log.debug('Validating all rule...')
-                if EasyValidator.validate_all(rule=rule, data=data) is False:
-                    Log.debug('Validation of all rule failed')
-                    error = True
-            elif rule_type == EasyValidator.RULE_ALL_OR_NOTHING:
-                Log.debug('Validating all or nothing rule...')
-                if EasyValidator.validate_all_any_nothing(rule=rule, data=data) is False:
-                    Log.debug('Validation of all or nothing rule failed')
-                    error = True
-            elif rule_type == EasyValidator.RULE_NONE:
-                Log.debug('Validating none rule...')
-                if EasyValidator.validate_none(rule=rule, data=data) is False:
-                    Log.debug('Validation of none rule failed')
-                    error = True
-            elif rule_type == EasyValidator.RULE_TYPE:
-                Log.debug('Validating type rule...')
-                if EasyValidator.validate_type(rule=rule, data=data) is False:
-                    Log.debug('Validation of type rule failed')
-                    error = True
-            elif rule_type == EasyValidator.RULE_CALLBACK:
-                Log.debug('Validating using custom callback...')
-                validation_function = rule['validation_function']
-                if validation_function() is False:
-                    Log.debug('Validation by custom callback failed')
-                    error = True
-
-        # Validation was successful
-        return error
