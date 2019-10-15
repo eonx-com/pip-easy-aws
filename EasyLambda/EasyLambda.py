@@ -20,7 +20,13 @@ class EasyLambda:
 
         # Set log level
         if 'log_level' in self.__aws_event__:
-            Log.set_level(self.__aws_event__['log_level'])
+            # noinspection PyBroadException
+            try:
+                level = int(self.__aws_event__['log_level'])
+                Log.set_level(level)
+            except Exception:
+                Log.error('An unexpected error occurred while attempting to set desired logging level.')
+                pass
 
         try:
             Log.trace('Executing user initialization function...')
