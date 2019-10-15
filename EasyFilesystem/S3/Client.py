@@ -620,7 +620,7 @@ class Client:
         :type filename:str
         :param filename: Path of the S3 file
 
-        :return: dict
+        :return: Dictionary of key/value pairs representing the files tags
         """
         # Sanitize the bucket path
         filename = Client.sanitize_filename(filename)
@@ -674,7 +674,7 @@ class Client:
         :param filename: Name of the file
 
         :type tags: dict
-        :param tags: Dictionary of tags to set on the file, this will overwrite all existing tags
+        :param tags: Dictionary of key/value pairs that represent that tags to set
 
         :return: None
         """

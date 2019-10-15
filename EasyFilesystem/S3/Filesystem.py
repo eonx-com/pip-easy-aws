@@ -267,6 +267,38 @@ class Filesystem(BaseFilesystem):
             allow_overwrite=allow_overwrite
         )
 
+    # S3 specific method
+
+    def file_get_tags(self, filename) -> dict:
+        """
+        Return a list of tags on the specified file
+
+        :type filename:str
+        :param filename: Path of the S3 file
+
+        :return: Dictionary of key/value pairs representing the files tags
+        """
+        return self.__client__.file_get_tags(
+            bucket=self.__bucket__,
+            filename=filename
+        )
+
+    def file_put_tags(self, filename, tags) -> None:
+        """
+        Replace all tags on a file with those specified
+
+        :type filename: str
+        :param filename: Name of the file
+
+        :type tags: dict
+        :param tags: Dictionary of key/value pairs that represent that tags to set
+        """
+        self.__client__.file_set_tags(
+            bucket=self.__bucket__,
+            filename=filename,
+            tags=tags
+        )
+
     # Internal helper methods
 
     def __rebase_path__(self, filename) -> str:
