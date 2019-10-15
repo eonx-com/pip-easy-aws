@@ -16,7 +16,6 @@ setup(
         'EasyLocalDisk',
         'EasyLog',
         'EasyPipeline',
-        'EasyS3',
         'EasySecretsManager',
         'EasyValidator'
     ],
