@@ -3,9 +3,9 @@
 
 from EasyIterator.ClientError import ClientError
 from EasyLog.Log import Log
-from EasyS3.Bucket import Bucket as S3Bucket
+from EasyFilesystem.S3.Bucket import Bucket as S3Bucket
 from EasySecretsManager.Client import Client as SecretsManagerClient
-from EasySftp.Server import Server as SftpServer
+from EasyFilesystem.Sftp.Server import Server as SftpServer
 from time import strftime
 
 

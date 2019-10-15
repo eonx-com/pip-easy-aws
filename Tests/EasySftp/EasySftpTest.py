@@ -2,8 +2,8 @@ import os
 import unittest
 
 from EasyLog.Log import Log
-from EasySftp.Client import Client
-from EasySftp.ClientError import ClientError
+from EasyFilesystem.Sftp.Client import Client
+from EasyFilesystem.Sftp.ClientError import ClientError
 from Tests.Helpers import Helpers
 
 
@@ -29,7 +29,7 @@ class EasySftpTest(unittest.TestCase):
         # Get SFTP client (there is no need to explicitly enable host key checking as it should be on by default)
         sftp_client = Client()
 
-        # Connect with username/password and assert we receive an base_exception error
+        # Connect with username/password and assert we receive an exception error
         exception = None
 
         try:
@@ -83,7 +83,7 @@ class EasySftpTest(unittest.TestCase):
 
         Log.test('Listing files...')
         files = sftp_client.file_list(
-            remote_path=EasySftpTest.sftp_base_path,
+            path=EasySftpTest.sftp_base_path,
             recursive=True
         )
 
@@ -113,7 +113,7 @@ class EasySftpTest(unittest.TestCase):
             remote_path = os.path.dirname(remote_filenames[i])
             Log.test('Listing files in remote path: {remote_path}...'.format(remote_path=remote_path))
 
-            files = sftp_client.file_list(remote_path=remote_path, recursive=False)
+            files = sftp_client.file_list(path=remote_path, recursive=False)
             found_filename = False
             for filename in files:
                 if filename == remote_filenames[i]:
@@ -126,7 +126,7 @@ class EasySftpTest(unittest.TestCase):
         # Assert we can find all the files by performing a recursive search of the base directory
         Log.test('Testing recursive directory listing...')
         Log.test('Listing files in remote path: {remote_path}...'.format(remote_path=EasySftpTest.sftp_base_path))
-        files = sftp_client.file_list(remote_path=EasySftpTest.sftp_base_path, recursive=True)
+        files = sftp_client.file_list(path=EasySftpTest.sftp_base_path, recursive=True)
 
         Log.test('Searching for test files...')
         found_files = 0
@@ -145,7 +145,7 @@ class EasySftpTest(unittest.TestCase):
         # Assert we can find all the files by performing a recursive search of the base directory
         Log.test('Testing non-recursive directory listing...')
         Log.test('Listing files in remote path: {remote_path}...'.format(remote_path=EasySftpTest.sftp_base_path))
-        files = sftp_client.file_list(remote_path=EasySftpTest.sftp_base_path, recursive=False)
+        files = sftp_client.file_list(path=EasySftpTest.sftp_base_path, recursive=False)
 
         Log.test('Searching for test files...')
         found_files = 0
@@ -216,7 +216,7 @@ class EasySftpTest(unittest.TestCase):
                 exception = str(download_exception)
 
                 Log.test('Asserting expected base_exception received...')
-                self.assertEqual(ClientError.ERROR_FILE_DOWNLOAD_DESTINATION_EXISTS, exception)
+                self.assertEqual(ClientError.ERROR_FILE_DOWNLOAD_ALREADY_EXISTS, exception)
 
             # Perform the same download, with allow overwrite enabled
             Log.test('Downloading same test file again with allow overwrite enabled...')

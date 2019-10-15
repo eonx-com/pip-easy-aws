@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from EasyS3.Client import Client
+from EasyFilesystem.Sftp.Server import Server as Server
 from EasyLocalDisk.Client import Client as LocalDiskClient
 from EasyLog.Log import Log
 
@@ -12,16 +12,16 @@ class File:
     ERROR_REPLACE_SOURCE_NOT_FOUND = ''
     ERROR_REPLACE_SOURCE_UNREADABLE = ''
 
-    def __init__(self, bucket_name, bucket_filename):
+    def __init__(self, sftp_server, filename):
         """
-        :type bucket_name: str
-        :param bucket_name:
+        :type sftp_server: Server
+        :param sftp_server: The server on which the file is located
 
-        :type bucket_filename: str
-        :param bucket_filename:
+        :type filename: str
+        :param filename: The path/filename
         """
-        self.__bucket_name__ = bucket_name
-        self.__bucket_filename__ = bucket_filename
+        self.__sftp_server__ = sftp_server
+        self.__filename__ = filename
 
     def replace(self, local_filename) -> None:
         """
@@ -37,13 +37,12 @@ class File:
             Log.exception(File.ERROR_REPLACE_SOURCE_NOT_FOUND)
 
         Log.debug('Validating Source Readable...')
-        if LocalDiskClient.file_readable(filename=local_filename) is False:
+        if LocalDiskClient.is_file_readable(filename=local_filename) is False:
             Log.exception(File.ERROR_REPLACE_SOURCE_UNREADABLE)
 
         Log.debug('Uploading...')
-        Client.file_upload(
+        Server.file_upload(
             local_filename=local_filename,
-            bucket_name=self.__bucket_name__,
-            bucket_filename=self.__bucket_filename__,
+            remote_filename=self.__filename__,
             allow_overwrite=True
         )

@@ -9,7 +9,7 @@ from Tests.Helpers import Helpers
 
 # noinspection DuplicatedCode
 class EasyLocalDiskTest(unittest.TestCase):
-    def test_path_create(self) -> None:
+    def test_create_path(self) -> None:
         """
         Test creation of a path on the local filesystem
 
@@ -25,13 +25,13 @@ class EasyLocalDiskTest(unittest.TestCase):
         self.assertFalse(path_exists)
 
         Log.test('Creating path...')
-        Client.path_create(test_path)
+        Client.create_path(test_path)
 
         Log.test('Asserting path exists...')
         self.assertTrue(os.path.exists(test_path))
 
         Log.test('Asserting subsequent call successful...')
-        Client.path_create(test_path)
+        Client.create_path(test_path)
         self.assertTrue(os.path.exists(test_path))
 
     def test_file_exists(self) -> None:
@@ -47,7 +47,7 @@ class EasyLocalDiskTest(unittest.TestCase):
         self.assertFalse(Client.file_exists(test_filename))
 
         Log.test('Creating file...')
-        Client.file_create_from_string(filename=test_filename, contents=test_content)
+        Client.file_create_from_string(filename=test_filename, content=test_content)
 
         Log.test('Asserting file does exist...')
         self.assertTrue(Client.file_exists(test_filename))
@@ -65,13 +65,13 @@ class EasyLocalDiskTest(unittest.TestCase):
         self.assertFalse(Client.file_exists(test_filename))
 
         Log.test('Creating file...')
-        Client.file_create_from_string(filename=test_filename, contents=test_content)
+        Client.file_create_from_string(filename=test_filename, content=test_content)
 
         Log.test('Asserting file does exist...')
         self.assertTrue(Client.file_exists(test_filename))
 
         Log.test('Asserting file is readable...')
-        self.assertTrue(Client.file_readable(test_filename))
+        self.assertTrue(Client.is_file_readable(test_filename))
 
         Log.test('Deleting test file...')
         Client.file_delete(test_filename)
@@ -89,7 +89,7 @@ class EasyLocalDiskTest(unittest.TestCase):
         self.assertFalse(Client.file_exists(test_filename))
 
         Log.test('Creating file...')
-        Client.file_create_from_string(filename=test_filename, contents=test_content)
+        Client.file_create_from_string(filename=test_filename, content=test_content)
 
         Log.test('Asserting file does exist...')
         self.assertTrue(Client.file_exists(test_filename))
@@ -110,7 +110,7 @@ class EasyLocalDiskTest(unittest.TestCase):
         test_filename = Helpers.create_unique_local_filename()
 
         Log.test('Creating test file...')
-        Client.file_create_from_string(filename=test_filename, contents=test_contents)
+        Client.file_create_from_string(filename=test_filename, content=test_contents)
 
         Log.test('Loading test file contents...')
         file = open(test_filename, "rt")

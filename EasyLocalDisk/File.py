@@ -36,7 +36,7 @@ class File:
             Log.exception(File.ERROR_REPLACE_SOURCE_NOT_FOUND)
 
         Log.debug('Validating Source Readable...')
-        if Client.file_readable(filename=local_filename) is False:
+        if Client.is_file_readable(filename=local_filename) is False:
             Log.exception(File.ERROR_REPLACE_SOURCE_UNREADABLE)
 
         Log.debug('Copying...')

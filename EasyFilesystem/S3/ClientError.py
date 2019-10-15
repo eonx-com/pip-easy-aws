@@ -16,7 +16,7 @@ class ClientError:
 
     # File Delete Errors
     ERROR_FILE_DELETE_UNHANDLED_EXCEPTION = 'An unexpected error occurred while deleting S3 file'
-    ERROR_FILE_DELETE_SOURCE_NOT_FOUND = 'The file you are attempting to delete does not exist'
+    ERROR_FILE_DELETE_NOT_FOUND = 'The file you are attempting to delete does not exist'
     ERROR_FILE_DELETE_FAILED = 'The file you are attempting to delete was not successfully deleted'
 
     # Read Tags Errors
@@ -31,13 +31,20 @@ class ClientError:
     ERROR_FILE_COPY_UNHANDLED_EXCEPTION = 'An unexpected error occurred while copying S3 file'
     ERROR_FILE_COPY_SOURCE_DESTINATION_SAME = 'The source and destination of the file copy cannot be the same'
     ERROR_FILE_COPY_SOURCE_NOT_FOUND = 'The requested file did not exist in the source bucket'
-    ERROR_FILE_COPY_DESTINATION_EXISTS = 'The requested file already exists in the destination bucket'
+    ERROR_FILE_COPY_ALREADY_EXISTS = 'The requested file already exists in the destination bucket'
     ERROR_FILE_COPY_FAILED = 'The requested file could not be found in the destination bucket after the file copy'
 
     # File Move Errors
     ERROR_FILE_MOVE_UNHANDLED_EXCEPTION = 'An unexpected error occurred while moving S3 file'
     ERROR_FILE_MOVE_COPY_EXCEPTION = 'An unexpected error occurred while moving S3 file, copying to the destination failed'
+    ERROR_FILE_MOVE_COPY_FAILED = ''
     ERROR_FILE_MOVE_DELETE_EXCEPTION = 'An unexpected error occurred while moving S3 file, deleting original file after copy failed'
+    ERROR_FILE_MOVE_SOURCE_NOT_FOUND = ''
+    ERROR_FILE_MOVE_ALREADY_EXISTS = ''
+    ERROR_FILE_MOVE_DELETE_FAILED = ''
+    ERROR_FILE_MOVE_SOURCE_DESTINATION_SAME = ''
+    ERROR_FILE_MOVE_COPY_UNHANDLED_EXCEPTION = ''
+    ERROR_FILE_MOVE_DELETE_UNHANDLED_EXCEPTION = ''
 
     # File Upload Errors
     ERROR_FILE_UPLOAD_UNHANDLED_EXCEPTION = 'An unexpected error occurred while uploading file to S3'
@@ -47,6 +54,8 @@ class ClientError:
     ERROR_FILE_UPLOAD_EXISTS = 'The file upload failed as the file already exists and allow overwrite was not enabled'
     ERROR_FILE_UPLOAD_SOURCE_TO_ARRAY_ERROR = "An unexpected error occurred while converting the supplied string to a byte array, please check the selected encoding"
     ERROR_FILE_UPLOAD_SOURCE_TO_FILE_OBJECT_ERROR = "An unexpected error occurred while converting the supplied string to a file object"
+    ERROR_FILE_UPLOAD_ALREADY_EXISTS = ''
+    ERROR_FILE_UPLOAD_FAILED = ''
 
     # File Download Errors
     ERROR_FILE_DOWNLOAD_UNHANDLED_EXCEPTION = 'An unexpected error occurred while downloading file from S3'
@@ -57,3 +66,13 @@ class ClientError:
     ERROR_FILE_DOWNLOAD_READ_EXCEPTION = 'An unexpected error occurred while attempting to read downloaded file body'
     ERROR_FILE_DOWNLOAD_DECODE_EXCEPTION = 'An unexpected error occurred while attempting to decode the downloaded file to a string'
     ERROR_FILE_DOWNLOAD_DESTINATION_NOT_READABLE = 'An unexpected error occurred while attempting to download the file, the downloaded file was not readable'
+    ERROR_FILE_DOWNLOAD_CALLBACK_NOT_CALLABLE = ''
+    ERROR_FILE_DOWNLOAD_ALREADY_EXISTS = ''
+    ERROR_FILE_DOWNLOAD_FAILED = ''
+
+    ERROR_CREATE_PATH_ALREADY_EXISTS = ''
+    ERROR_CREATE_PATH_UNHANDLED_EXCEPTION = ''
+    ERROR_CREATE_PATH_FAILED = ''
+
+    ERROR_CREATE_TEMP_PATH_FAILED = ''
+    ERROR_CREATE_TEMP_PATH_FOLDER_NOT_FOUND = ''

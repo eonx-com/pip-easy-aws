@@ -115,12 +115,12 @@ class EasyIteratorTest(unittest.TestCase):
         test_local_path = LazyHelpers.create_unique_local_temp_path()
         test_uuid = uuid.uuid4()
 
-        base_path_local = EasySftp.sanitize_path('/{test_uuid}'.format(test_uuid=test_uuid))
+        base_path_local = EasySftp.sanitize_filename('/{test_uuid}'.format(test_uuid=test_uuid))
         base_path_remote = '/{base_path}/{local_base_path}'.format(base_path=EasyIteratorTest.sftp_base_path, local_base_path=base_path_local)
 
-        test_source_path = EasySftp.sanitize_path('/{remote_base_path}/source'.format(remote_base_path=base_path_remote))
-        test_destination_success_path = EasySftp.sanitize_path('/{remote_base_path}//destination-success'.format(remote_base_path=base_path_remote))
-        test_destination_failure_path = EasySftp.sanitize_path('/{remote_base_path}//destination-failure'.format(remote_base_path=base_path_remote))
+        test_source_path = EasySftp.sanitize_filename('/{remote_base_path}/source'.format(remote_base_path=base_path_remote))
+        test_destination_success_path = EasySftp.sanitize_filename('/{remote_base_path}//destination-success'.format(remote_base_path=base_path_remote))
+        test_destination_failure_path = EasySftp.sanitize_filename('/{remote_base_path}//destination-failure'.format(remote_base_path=base_path_remote))
 
         Log.test('Local test path: {test_local_path}'.format(test_local_path=test_local_path))
         Log.test('Remote source: {test_source_path}'.format(test_source_path=test_source_path))
@@ -215,7 +215,7 @@ class EasyIteratorTest(unittest.TestCase):
         Log.test('Uploading test files to SFTP server...')
         remote_filenames = {}
         for i in range(0, test_file_count):
-            remote_filenames[i] = EasySftp.sanitize_path('/{test_source_path}/{i}/{local_filename}'.format(
+            remote_filenames[i] = EasySftp.sanitize_filename('/{test_source_path}/{i}/{local_filename}'.format(
                 i=i,
                 test_source_path=test_source_path,
                 local_filename=local_test_filename
