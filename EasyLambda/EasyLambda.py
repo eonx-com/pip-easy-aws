@@ -25,8 +25,8 @@ class EasyLambda:
                 level = self.get_aws_event_parameter('log_level')
                 level = int(level)
                 Log.set_level(level)
-            except Exception:
-                Log.error('An unexpected error occurred while attempting to set desired logging level.')
+            except Exception as log_exception:
+                Log.error('An unexpected error occurred while attempting to set desired logging level: '.format(log_exception=log_exception))
                 pass
 
         try:
