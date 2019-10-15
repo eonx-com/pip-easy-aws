@@ -13,7 +13,7 @@ class BaseFilesystem:
 
     def __init__(self):
         """
-        Initialize common filesystem variables
+        Initialize common sftp_filesystem variables
         """
         self.__uuid__ = uuid.uuid4()
         self.__file_download_limit__ = None
@@ -26,7 +26,7 @@ class BaseFilesystem:
     @abstractmethod
     def create_path(self, path, allow_overwrite=False) -> None:
         """
-        Create path in remote filesystem
+        Create path in remote sftp_filesystem
 
         :type path: str
         :param path: The path to create
@@ -154,7 +154,7 @@ class BaseFilesystem:
         Download a file
 
         :type local_filename: str
-        :param local_filename: Filename/path to destination on local filesystem where the file will be downloaded to
+        :param local_filename: Filename/path to destination on local sftp_filesystem where the file will be downloaded to
 
         :type remote_filename: str
         :param remote_filename: Filename/path of the remote file to be downloaded
@@ -190,10 +190,10 @@ class BaseFilesystem:
     @abstractmethod
     def file_upload(self, local_filename, remote_filename, allow_overwrite=True) -> None:
         """
-        Upload a file to remote filesystem
+        Upload a file to remote sftp_filesystem
 
         :type local_filename: str
-        :param local_filename: Filename/path of file to be uploaded from local filesystem
+        :param local_filename: Filename/path of file to be uploaded from local sftp_filesystem
 
         :type remote_filename: str
         :param remote_filename: Filename/path where the file should be uploaded
@@ -272,7 +272,7 @@ class BaseFilesystem:
             maximum_files=None
     ) -> None:
         """
-        Iterate filesystem triggering user callback on each file
+        Iterate sftp_filesystem triggering user callback on each file
 
         :type maximum_files: int or None
         :param maximum_files: Maximum number files to stake
@@ -359,7 +359,7 @@ class BaseFilesystem:
         """
         Log.test('Rename Callback Triggered...')
 
-        staking_extension = 'easy-filesystem.staked'
+        staking_extension = 'easy-sftp_filesystem.staked'
 
         # If the file is always staked- ignore it
         if remote_filename.endswith(staking_extension) is True:

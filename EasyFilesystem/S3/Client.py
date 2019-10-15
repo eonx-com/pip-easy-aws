@@ -71,7 +71,7 @@ class Client:
 
     def create_path(self, bucket, path, allow_overwrite=False) -> None:
         """
-        Create path in remote filesystem
+        Create path in remote sftp_filesystem
         
         :type bucket:str
         :param bucket: The bucket in which the path will be created
@@ -479,7 +479,7 @@ class Client:
         :param remote_filename: Path of the file to be downloaded in S3 bucket
 
         :type local_filename: str
-        :param local_filename: Download filename on local filesystem
+        :param local_filename: Download filename on local sftp_filesystem
 
         :type allow_overwrite: bool
         :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be thrown
@@ -580,7 +580,7 @@ class Client:
         :param remote_filename: Destination filename in S3 bucket
 
         :type local_filename: str
-        :param local_filename: File on local filesystem to be uploaded
+        :param local_filename: File on local sftp_filesystem to be uploaded
 
         :type allow_overwrite: bool
         :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be thrown

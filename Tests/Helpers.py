@@ -183,7 +183,7 @@ class Helpers:
         Create a new local path inside the system temp folder that is guaranteed to be unique
 
         :type make_path: bool
-        :param make_path: Boolean flag indicating whether to create the filesystem file
+        :param make_path: Boolean flag indicating whether to create the sftp_filesystem file
 
         :return: str
         """

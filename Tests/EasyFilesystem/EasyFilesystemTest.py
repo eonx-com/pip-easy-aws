@@ -20,7 +20,7 @@ class EasyFilesystemTest(unittest.TestCase):
     TEST_SFTP_PASSWORD = 'sftp'
 
     TEST_BUCKET_NAME = 'easy-lambda.test.eonx.com'
-    TEST_BUCKET_BASE_PATH = 'easy-filesystem'
+    TEST_BUCKET_BASE_PATH = 'easy-sftp_filesystem'
 
     callback_files = []
     files_processed = []
@@ -56,7 +56,7 @@ class EasyFilesystemTest(unittest.TestCase):
 
     def execute_filesystem_test(self, filesystem) -> None:
         """
-        Test SFTP filesystem path creation
+        Test SFTP sftp_filesystem path creation
         """
         test_uuid = uuid.uuid4()
 
@@ -183,7 +183,7 @@ class EasyFilesystemTest(unittest.TestCase):
         """
         Log.test('Iterator Callback ...')
         EasyFilesystemTest.files_processed.append({
-            'filesystem': filesystem,
+            'sftp_filesystem': filesystem,
             'local_filename': local_filename,
             'remote_filename': remote_filename,
             'staked_filename': staked_filename
@@ -200,7 +200,7 @@ class EasyFilesystemTest(unittest.TestCase):
         """
         Log.test('Iterator Success Callback...')
         EasyFilesystemTest.files_success.append({
-            'filesystem': filesystem,
+            'sftp_filesystem': filesystem,
             'local_filename': local_filename,
             'remote_filename': remote_filename,
             'staked_filename': staked_filename
@@ -218,7 +218,7 @@ class EasyFilesystemTest(unittest.TestCase):
         """
         Log.test('Iterator Error Callback...')
         EasyFilesystemTest.files_error.append({
-            'filesystem': filesystem,
+            'sftp_filesystem': filesystem,
             'local_filename': local_filename,
             'remote_filename': remote_filename,
             'staked_filename': staked_filename

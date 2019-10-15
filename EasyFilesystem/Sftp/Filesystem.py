@@ -63,7 +63,7 @@ class Filesystem(BaseFilesystem):
 
     def __del__(self):
         """
-        Cleanup filesystem, removing any temporary files and shutdown connection
+        Cleanup sftp_filesystem, removing any temporary files and shutdown connection
         """
         # Delete all temp folders
         for temp_path in self.__temp_paths__:
@@ -74,7 +74,7 @@ class Filesystem(BaseFilesystem):
 
     def create_path(self, path, allow_overwrite=False) -> None:
         """
-        Create path in remote filesystem
+        Create path in remote sftp_filesystem
 
         :type path: str
         :param path: The path to create
@@ -105,10 +105,10 @@ class Filesystem(BaseFilesystem):
 
     def file_list(self, path, recursive=False) -> list:
         """
-        List a list of all files accessible in the filesystem filesystem
+        List a list of all files accessible in the sftp_filesystem sftp_filesystem
 
         :type path: str
-        :param path: The path in the filesystem to list
+        :param path: The path in the sftp_filesystem to list
 
         :type recursive: bool
         :param recursive: If True the listing will proceed recursively down through all sub-folders
@@ -207,7 +207,7 @@ class Filesystem(BaseFilesystem):
         Download a file from SFTP server
 
         :type local_filename: str
-        :param local_filename: Filename/path of the destination on the local filesystem
+        :param local_filename: Filename/path of the destination on the local sftp_filesystem
 
         :type remote_filename: str
         :param remote_filename: Filename/path of the file to download from the SFTP server
@@ -252,10 +252,10 @@ class Filesystem(BaseFilesystem):
 
     def file_upload(self, remote_filename, local_filename, allow_overwrite=True) -> None:
         """
-        Upload a file to remote filesystem
+        Upload a file to remote sftp_filesystem
 
         :type local_filename: str
-        :param local_filename: Filename/path of file to be uploaded from local filesystem
+        :param local_filename: Filename/path of file to be uploaded from local sftp_filesystem
 
         :type remote_filename: str
         :param remote_filename: Filename/path where the file should be uploaded

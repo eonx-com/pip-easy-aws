@@ -9,13 +9,13 @@ from EasyLog.Log import Log
 class Filesystem(BaseFilesystem):
     def __init__(self, bucket_name, base_path=''):
         """
-        Instantiate S3 filesystem
+        Instantiate S3 sftp_filesystem
 
         :type bucket_name: str
         :param bucket_name: The name of the S3 bucket
 
         :type base_path: str
-        :param base_path: Base path inside the the bucket to serve as the filesystem root
+        :param base_path: Base path inside the the bucket to serve as the sftp_filesystem root
         """
         super().__init__()
 
@@ -30,7 +30,7 @@ class Filesystem(BaseFilesystem):
 
     def __del__(self):
         """
-        Cleanup filesystem, removing any temporary files
+        Cleanup sftp_filesystem, removing any temporary files
         """
         for temp_path in self.__temp_paths__:
             self.__client__.path_delete(
@@ -41,7 +41,7 @@ class Filesystem(BaseFilesystem):
 
     def create_path(self, path, allow_overwrite=False) -> None:
         """
-        Create path in remote filesystem
+        Create path in remote sftp_filesystem
 
         :type path: str
         :param path: The path to create
@@ -80,17 +80,17 @@ class Filesystem(BaseFilesystem):
             auto_create=auto_create
         )
 
-        # Store the temp path so it can be removed when the filesystem is deleted
+        # Store the temp path so it can be removed when the sftp_filesystem is deleted
         self.__temp_paths__.append(temp_path)
 
         return temp_path
 
     def file_list(self, path, recursive=False) -> list:
         """
-        List a list of all files accessible in the filesystem filesystem
+        List a list of all files accessible in the sftp_filesystem sftp_filesystem
 
         :type path: str
-        :param path: The path in the filesystem to list
+        :param path: The path in the sftp_filesystem to list
 
         :type recursive: bool
         :param recursive: If True the listing will proceed recursively down through all sub-folders
@@ -201,7 +201,7 @@ class Filesystem(BaseFilesystem):
         Download a file from SFTP server
 
         :type local_filename: str
-        :param local_filename: Filename/path of the destination on the local filesystem
+        :param local_filename: Filename/path of the destination on the local sftp_filesystem
 
         :type remote_filename: str
         :param remote_filename: Filename/path of the file to download from the SFTP server
@@ -245,10 +245,10 @@ class Filesystem(BaseFilesystem):
 
     def file_upload(self, remote_filename, local_filename, allow_overwrite=True) -> None:
         """
-        Upload a file to remote filesystem
+        Upload a file to remote sftp_filesystem
 
         :type local_filename: str
-        :param local_filename: Filename/path of file to be uploaded from local filesystem
+        :param local_filename: Filename/path of file to be uploaded from local sftp_filesystem
 
         :type remote_filename: str
         :param remote_filename: Filename/path where the file should be uploaded

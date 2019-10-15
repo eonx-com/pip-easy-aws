@@ -4,10 +4,10 @@
 
 class ClientError:
     # File Exists Errors
-    ERROR_FILE_EXISTS_UNHANDLED_EXCEPTION = 'An unexpected error occurred during test of file existence on local filesystem'
+    ERROR_FILE_EXISTS_UNHANDLED_EXCEPTION = 'An unexpected error occurred during test of file existence on local sftp_filesystem'
 
     # File Readable Error
-    ERROR_FILE_READABLE_UNHANDLED_EXCEPTION = 'An unexpected error occurred during test of file readability on local filesystem'
+    ERROR_FILE_READABLE_UNHANDLED_EXCEPTION = 'An unexpected error occurred during test of file readability on local sftp_filesystem'
 
     # File Create Error
     ERROR_FILE_CREATE_UNHANDLED_EXCEPTION = ''

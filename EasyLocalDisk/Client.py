@@ -16,7 +16,7 @@ class Client:
     @staticmethod
     def create_path(path, allow_overwrite=False) -> None:
         """
-        Create path in the filesystem
+        Create path in the sftp_filesystem
 
         :type path: str
         :param path: The path to create
@@ -293,12 +293,12 @@ class Client:
         # Concatenate them together
         return '{path}{filename}'.format(path=path, filename=filename)
 
-    # Local filesystem specific
+    # Local sftp_filesystem specific
 
     @staticmethod
     def is_file_readable(filename) -> bool:
         """
-        Check if the file is readable on local filesystem
+        Check if the file is readable on local sftp_filesystem
 
         :type filename: str
         :param filename: The full path/filename to check
@@ -308,7 +308,7 @@ class Client:
         # Sanitize the filename
         filename = Client.sanitize_filename(filename)
 
-        # Test file can be read using local filesystem
+        # Test file can be read using local sftp_filesystem
         file_readable = False
         try:
             file = open(filename, "r")

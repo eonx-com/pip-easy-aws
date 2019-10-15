@@ -60,7 +60,7 @@ class Client:
         path = path.strip('/')
 
         # Add slash to end of string before returning
-        return '{path}/'.format(path=path)
+        return '/{path}/'.format(path=path)
 
     @staticmethod
     def sanitize_filename(filename) -> str:
@@ -86,7 +86,7 @@ class Client:
 
     def create_path(self, path, allow_overwrite=False) -> None:
         """
-        Create path in remote filesystem
+        Create path in remote sftp_filesystem
 
         :type path: str
         :param path: The path to create
@@ -156,10 +156,10 @@ class Client:
 
     def file_list(self, path, recursive=False):
         """
-        List a list of all files accessible in the filesystem filesystem
+        List a list of all files accessible in the sftp_filesystem sftp_filesystem
 
         :type path: str
-        :param path: The path in the filesystem to list
+        :param path: The path in the sftp_filesystem to list
 
         :type recursive: bool
         :param recursive: If True the listing will proceed recursively down through all sub-folders
@@ -288,13 +288,13 @@ class Client:
 
     def file_move(self, source_filename, destination_filename, allow_overwrite=True) -> None:
         """
-        Move a file from one location in the filesystem to another
+        Move a file from one location in the sftp_filesystem to another
 
         :type source_filename: str
         :param source_filename: Path/filename to be moved
 
         :type destination_filename: str
-        :param destination_filename: Destination path/filename within the same filesystem
+        :param destination_filename: Destination path/filename within the same sftp_filesystem
 
         :type allow_overwrite: bool
         :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be thrown
@@ -334,13 +334,13 @@ class Client:
 
     def file_copy(self, source_filename, destination_filename, allow_overwrite=True) -> None:
         """
-        Copy a file from one location in the filesystem to another
+        Copy a file from one location in the sftp_filesystem to another
 
         :type source_filename: str
         :param source_filename: Path/filename to be moved
 
         :type destination_filename: str
-        :param destination_filename: Destination path/filename within the same filesystem
+        :param destination_filename: Destination path/filename within the same sftp_filesystem
 
 
         :type allow_overwrite: bool
@@ -395,7 +395,7 @@ class Client:
         Download a file
 
         :type local_filename: str
-        :param local_filename: Filename/path to destination on local filesystem where the file will be downloaded to
+        :param local_filename: Filename/path to destination on local sftp_filesystem where the file will be downloaded to
 
         :type remote_filename: str
         :param remote_filename: Filename/path of the remote file to be downloaded
@@ -478,10 +478,10 @@ class Client:
 
     def file_upload(self, local_filename, remote_filename, allow_overwrite=True) -> None:
         """
-        Upload a file to remote filesystem
+        Upload a file to remote sftp_filesystem
 
         :type local_filename: str
-        :param local_filename: Filename/path of file to be uploaded from local filesystem
+        :param local_filename: Filename/path of file to be uploaded from local sftp_filesystem
 
         :type remote_filename: str
         :param remote_filename: Filename/path where the file should be uploaded
