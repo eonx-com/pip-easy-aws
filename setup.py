@@ -11,7 +11,6 @@ setup(
     packages=[
         'EasyCloudFormation',
         'EasyCloudWatch',
-        'EasyIterator',
         'EasyFilesystem',
         'EasyLambda',
         'EasyLocalDisk',
@@ -19,7 +18,6 @@ setup(
         'EasyPipeline',
         'EasyS3',
         'EasySecretsManager',
-        'EasySftp',
         'EasyValidator'
     ],
     zip_safe=False,
