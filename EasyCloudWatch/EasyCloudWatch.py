@@ -42,7 +42,7 @@ class EasyCloudWatch:
         """
         Log.trace('Putting AWS CloudWatch metric: {metric_name}...'.format(metric_name=metric_name))
         EasyCloudWatch.get_cloudwatch_client().put_metric_data(
-            Namespace=os.environ('AWS_LAMBDA_FUNCTION_NAME'),
+            Namespace=os.environ.get('AWS_LAMBDA_FUNCTION_NAME'),
             MetricData=[{'MetricName': metric_name, 'Unit': unit, 'Value': value}]
         )
 
@@ -58,6 +58,6 @@ class EasyCloudWatch:
         """
         Log.trace('Incrementing AWS CloudWatch counter: {metric_name}...'.format(metric_name=metric_name))
         EasyCloudWatch.get_cloudwatch_client().put_metric_data(
-            Namespace=os.environ('AWS_LAMBDA_FUNCTION_NAME'),
+            Namespace=os.environ.get('AWS_LAMBDA_FUNCTION_NAME'),
             MetricData=[{'MetricName': metric_name, 'Unit': 'Count', 'Value': 1.0}]
         )
