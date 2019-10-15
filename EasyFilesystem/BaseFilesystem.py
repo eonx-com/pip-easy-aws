@@ -11,6 +11,7 @@ class BaseFilesystem:
         self.__uuid__ = uuid.uuid4()
         self.__file_download_limit__ = None
         self.__file_download_count__ = 0
+        self.__temp_paths__ = []
 
     @abstractmethod
     def create_path(self, path, allow_overwrite=False) -> None:

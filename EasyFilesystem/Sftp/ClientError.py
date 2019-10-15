@@ -13,11 +13,21 @@ class ClientError:
     ERROR_FILE_EXISTS = 'An unexpected error occurred during test of file existence in S3 bucket.'
     ERROR_FILE_EXISTS_UNHANDLED_EXCEPTION = ERROR_FILE_EXISTS
 
+    # Path Exists Errors
+    ERROR_PATH_EXISTS = 'An unexpected error occurred during test of path existence in S3 bucket.'
+    ERROR_PATH_EXISTS_UNHANDLED_EXCEPTION = ERROR_PATH_EXISTS
+
     # File Delete Errors
     ERROR_FILE_DELETE = 'An unexpected error occurred while deleting S3 file.'
     ERROR_FILE_DELETE_UNHANDLED_EXCEPTION = ERROR_FILE_DELETE + ERROR_UNHANDLED_EXCEPTION
     ERROR_FILE_DELETE_FAILED = ERROR_FILE_DELETE + ' The deleted file still exists.'
     ERROR_FILE_DELETE_NOT_FOUND = ERROR_FILE_DELETE + ' The file to delete could not be found.'
+
+    # Path Delete Errors
+    ERROR_PATH_DELETE = 'An unexpected error occurred while deleting S3 path.'
+    ERROR_PATH_DELETE_UNHANDLED_EXCEPTION = ERROR_PATH_DELETE + ERROR_UNHANDLED_EXCEPTION
+    ERROR_PATH_DELETE_FAILED = ERROR_PATH_DELETE + ' The deleted path still exists.'
+    ERROR_PATH_DELETE_NOT_FOUND = ERROR_PATH_DELETE + ' The path to delete could not be found.'
 
     # File Copy Errors
     ERROR_FILE_COPY = 'An unexpected error occurred while copying S3 file.'

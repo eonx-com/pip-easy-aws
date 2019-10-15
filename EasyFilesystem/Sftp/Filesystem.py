@@ -60,6 +60,17 @@ class Filesystem(BaseFilesystem):
             fingerprint_type=fingerprint_type
         )
 
+    def __del__(self):
+        """
+        Cleanup filesystem, removing any temporary files and shutdown connection
+        """
+        # Delete all temp folders
+        for temp_path in self.__temp_paths__:
+            self.__client__.path_delete(
+                path=temp_path,
+                allow_missing=True
+            )
+
     def create_path(self, path, allow_overwrite=False) -> None:
         """
         Create path in remote filesystem
@@ -105,6 +116,17 @@ class Filesystem(BaseFilesystem):
         """
         return self.__client__.file_list(path=self.__rebase_path__(path), recursive=recursive)
 
+    def path_exists(self, path) -> bool:
+        """
+        Check if path exists
+
+        :type path: str
+        :param path: Path to check
+
+        :return: bool
+        """
+        return self.file_exists(path)
+
     def file_exists(self, filename) -> bool:
         """
         Check if file exists
@@ -114,7 +136,20 @@ class Filesystem(BaseFilesystem):
 
         :return: bool
         """
-        return self.__client__.file_exists(filename=self.__rebase_path__(filename))
+        filename = self.__rebase_path__(filename)
+        return self.__client__.file_exists(filename=filename)
+
+    def path_delete(self, path, allow_missing=False) -> None:
+        """
+        Delete a path
+
+        :type path: string
+        :param path: Path to be deleted
+
+        :type allow_missing: bool
+        :param allow_missing: Boolean flag, if False and the file cannot be found to delete an exception will be raised
+        """
+        self.__client__.path_delete(path=self.__rebase_path__(path), allow_missing=allow_missing)
 
     def file_delete(self, filename, allow_missing=False) -> None:
         """
@@ -126,7 +161,7 @@ class Filesystem(BaseFilesystem):
         :type allow_missing: bool
         :param allow_missing: Boolean flag, if False and the file cannot be found to delete an exception will be raised
         """
-        self.__client__.file_delete(filename=self.__rebase_path__(filename))
+        self.__client__.file_delete(filename=self.__rebase_path__(filename), allow_missing=allow_missing)
 
     def file_move(self, source_filename, destination_filename, allow_overwrite=True) -> None:
         """
@@ -244,5 +279,12 @@ class Filesystem(BaseFilesystem):
 
         :return: str
         """
+        base_path_length = len(self.__base_path__)
+        prefix = filename[:base_path_length]
+
+        if prefix == self.__base_path__:
+            # Already relative to base path
+            return filename
+
         relative_filename = '{base_path}{filename}'.format(base_path=self.__base_path__, filename=filename)
         return Client.sanitize_filename(relative_filename)

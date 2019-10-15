@@ -27,6 +27,17 @@ class Filesystem(BaseFilesystem):
         # Store bucket name
         self.__bucket__ = bucket_name
 
+    def __del__(self):
+        """
+        Cleanup filesystem, removing any temporary files
+        """
+        for temp_path in self.__temp_paths__:
+            self.__client__.path_delete(
+                bucket=self.__bucket__,
+                path=temp_path,
+                allow_missing=True
+            )
+
     def create_path(self, path, allow_overwrite=False) -> None:
         """
         Create path in remote filesystem
@@ -41,7 +52,7 @@ class Filesystem(BaseFilesystem):
 
         self.__client__.create_path(bucket=self.__bucket__, path=path, allow_overwrite=allow_overwrite)
 
-    def create_temp_path(self, prefix='', temp_path=None) -> str:
+    def create_temp_path(self, prefix='', temp_path=None, auto_create=True) -> str:
         """
         Create a new temporary path that is guaranteed to be unique
 
@@ -51,14 +62,27 @@ class Filesystem(BaseFilesystem):
         :type temp_path: str or None
         :param temp_path: The base path for all temporary files. If None a sensible default should be set
 
+        :type auto_create: bool
+        :param auto_create: If the temp path doesn't exist- automatically create it
+
         :return: The path that was created
         """
         if temp_path is None:
-            temp_path = '{base_path}/tmp/'.format(base_path=self.__base_path__)
+            temp_path = self.__rebase_path__('/tmp/')
         else:
             temp_path = self.__rebase_path__(temp_path)
 
-        return self.__client__.create_temp_path(bucket=self.__bucket__, prefix=prefix, temp_path=temp_path)
+        temp_path = self.__client__.create_temp_path(
+            bucket=self.__bucket__,
+            prefix=prefix,
+            temp_path=temp_path,
+            auto_create=auto_create
+        )
+
+        # Store the temp path so it can be removed when the filesystem is deleted
+        self.__temp_paths__.append(temp_path)
+
+        return temp_path
 
     def file_list(self, path, recursive=False) -> list:
         """
@@ -74,7 +98,25 @@ class Filesystem(BaseFilesystem):
         """
         path = self.__rebase_path__(path)
 
-        return self.__client__.file_list(bucket=self.__bucket__, path=path, recursive=recursive)
+        return self.__client__.file_list(
+            bucket=self.__bucket__,
+            path=path,
+            recursive=recursive
+        )
+
+    def path_exists(self, path) -> bool:
+        """
+        Check if path exists
+
+        :type path: str
+        :param path: Path to check
+
+        :return: bool
+        """
+        return self.__client__.path_exists(
+            bucket=self.__bucket__,
+            path=path
+        )
 
     def file_exists(self, filename) -> bool:
         """
@@ -89,6 +131,20 @@ class Filesystem(BaseFilesystem):
 
         return self.__client__.file_exists(bucket=self.__bucket__, filename=filename)
 
+    def path_delete(self, path, allow_missing=False) -> None:
+        """
+        Delete a path
+
+        :type path: str
+        :param path: Path to be deleted
+
+        :type allow_missing: bool
+        :param allow_missing: Boolean flag, if False and the file cannot be found to delete an exception will be raised
+        """
+        path = self.__rebase_path__(path)
+
+        self.__client__.path_delete(bucket=self.__bucket__, path=path, allow_missing=allow_missing)
+
     def file_delete(self, filename, allow_missing=False) -> None:
         """
         Delete a file
@@ -101,7 +157,7 @@ class Filesystem(BaseFilesystem):
         """
         filename = self.__rebase_path__(filename)
 
-        self.__client__.file_delete(bucket=self.__bucket__, filename=filename)
+        self.__client__.file_delete(bucket=self.__bucket__, filename=filename, allow_missing=allow_missing)
 
     def file_move(self, source_filename, destination_filename, allow_overwrite=True) -> None:
         """
@@ -178,7 +234,13 @@ class Filesystem(BaseFilesystem):
         """
         remote_path = self.__rebase_path__(remote_path)
 
-        self.__client__.file_download_recursive(bucket=self.__bucket__, remote_path=remote_path, local_path=local_path, callback=callback, allow_overwrite=allow_overwrite)
+        self.__client__.file_download_recursive(
+            bucket=self.__bucket__,
+            remote_path=remote_path,
+            local_path=local_path,
+            callback=callback,
+            allow_overwrite=allow_overwrite
+        )
 
     def file_upload(self, remote_filename, local_filename, allow_overwrite=True) -> None:
         """
@@ -197,7 +259,12 @@ class Filesystem(BaseFilesystem):
         """
         remote_filename = self.__rebase_path__(remote_filename)
 
-        return self.__client__.file_upload(bucket=self.__bucket__, local_filename=local_filename, remote_filename=remote_filename, allow_overwrite=allow_overwrite)
+        return self.__client__.file_upload(
+            bucket=self.__bucket__,
+            local_filename=local_filename,
+            remote_filename=remote_filename,
+            allow_overwrite=allow_overwrite
+        )
 
     # Internal helper methods
 
@@ -210,5 +277,14 @@ class Filesystem(BaseFilesystem):
 
         :return: str
         """
+        # Make sure it hasn't already been sanitized
+
+        base_path_length = len(self.__base_path__)
+        prefix = filename[:base_path_length]
+
+        if prefix == self.__base_path__:
+            # Already relative to base path
+            return filename
+
         relative_filename = '{base_path}{filename}'.format(base_path=self.__base_path__, filename=filename)
         return Client.sanitize_filename(relative_filename)

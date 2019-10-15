@@ -187,6 +187,23 @@ class Client:
 
         return files
 
+    def path_exists(self, path) -> bool:
+        """
+        Check if path exists
+
+        :type path: str
+        :param path: Path to check
+
+        :return: bool
+        """
+        # Sanitize the filename
+        path = Client.sanitize_path(path)
+
+        try:
+            return self.__sftp_connection__.exists(remotepath=path)
+        except Exception as exists_exception:
+            Log.exception(ClientError.ERROR_PATH_EXISTS_UNHANDLED_EXCEPTION, exists_exception)
+
     def file_exists(self, filename) -> bool:
         """
         Check if file exists
@@ -203,6 +220,39 @@ class Client:
             return self.__sftp_connection__.exists(remotepath=filename)
         except Exception as exists_exception:
             Log.exception(ClientError.ERROR_FILE_EXISTS_UNHANDLED_EXCEPTION, exists_exception)
+
+    def path_delete(self, path, allow_missing=False) -> None:
+        """
+        Delete a path from S3 bucket
+
+        :type path: str
+        :param path: Path to be deleted
+
+        :type allow_missing: bool
+        :param allow_missing: Boolean flag, if False and the file cannot be found to delete an exception will be raised
+
+        :return: None
+        """
+        # Sanitize the path
+        path = self.sanitize_path(path)
+
+        # Make sure the file exists before we try to delete it
+        if self.path_exists(path=path) is False:
+            # If this is fine, get out of here- the file is already gone
+            if allow_missing is True:
+                return
+
+            Log.exception(ClientError.ERROR_PATH_DELETE_NOT_FOUND)
+
+        # Delete the path
+        try:
+            self.__sftp_connection__.rmdir(path)
+        except Exception as delete_exception:
+            Log.exception(ClientError.ERROR_PATH_DELETE_UNHANDLED_EXCEPTION, delete_exception)
+
+        # Make sure the file no longer exists after deleting
+        if self.path_exists(path=path) is True:
+            Log.exception(ClientError.ERROR_PATH_DELETE_FAILED)
 
     def file_delete(self, filename, allow_missing=False) -> None:
         """
@@ -408,8 +458,8 @@ class Client:
         # Iterate these files
         for current_remote_filename in files_found:
             # The local filename will stored in the same folder structure as on the SFTP server
-            current_local_path = Client.sanitize_path(local_path + os.path.dirname(current_remote_filename))
-            current_local_filename = Client.sanitize_filename(current_local_path + os.path.basename(current_remote_filename))
+            current_local_path = LocalDiskClient.sanitize_path(local_path + os.path.dirname(current_remote_filename))
+            current_local_filename = LocalDiskClient.sanitize_filename(current_local_path + os.path.basename(current_remote_filename))
 
             # Make sure the current files path exists locally before we start downloading
             LocalDiskClient.create_path(path=current_local_path, allow_overwrite=True)

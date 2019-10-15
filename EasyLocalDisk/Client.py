@@ -76,7 +76,7 @@ class Client:
                 # noinspection PyBroadException
                 try:
                     os.makedirs(local_path, exist_ok=False)
-                    return local_path
+                    return Client.sanitize_path(local_path)
                 except Exception:
                     # If creation fails its likely because it exists- so we will just try again next time
                     pass
@@ -268,8 +268,8 @@ class Client:
         # Strip all leading/trailing directory separators
         path = path.strip(os.sep)
 
-        # Add directory separator to end of string before returning
-        return '{path}{separator}'.format(path=path, separator=os.sep)
+        # Add directory separator to start and end of string before returning
+        return '{separator}{path}{separator}'.format(path=path, separator=os.sep)
 
     @staticmethod
     def sanitize_filename(filename) -> str:

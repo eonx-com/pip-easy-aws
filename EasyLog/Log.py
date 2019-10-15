@@ -158,7 +158,7 @@ class Log:
         :type message: str
         :param message: Message to print
 
-        :type base_exception: Exception or None
+        :type base_exception: Exception or str or None
         :param base_exception: The exception error that was raised
 
         :return: None
@@ -175,7 +175,7 @@ class Log:
         Log.log(level=Log.LEVEL_EXCEPTION, message=base_exception)
 
         # Raise the base exception
-        raise base_exception
+        raise Exception(str(base_exception))
 
     @staticmethod
     def log(level, message, stack_frame=None) -> None:

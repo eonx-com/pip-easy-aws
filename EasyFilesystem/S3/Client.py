@@ -99,10 +99,10 @@ class Client:
             Log.exception(ClientError.ERROR_CREATE_PATH_UNHANDLED_EXCEPTION, create_path_exception)
 
         # Make sure the path exists
-        if self.file_exists(bucket=bucket, filename=path) is False:
+        if self.path_exists(bucket=bucket, path=path) is False:
             Log.exception(ClientError.ERROR_CREATE_PATH_FAILED)
 
-    def create_temp_path(self, bucket, prefix='', temp_path=None) -> str:
+    def create_temp_path(self, bucket, prefix='', temp_path=None, auto_create=True) -> str:
         """
         Create a new temporary path that is guaranteed to be unique
 
@@ -115,6 +115,9 @@ class Client:
         :type temp_path: str
         :param temp_path: The base path for all temporary files
 
+        :type auto_create: bool
+        :param auto_create: If the temp path doesn't exist- automatically create it
+
         :return: str
         """
         # If not temp path is set, set a sensible default
@@ -126,14 +129,18 @@ class Client:
 
         # Make sure the temporary folder exists
         if self.file_exists(bucket=bucket, filename=temp_path) is False:
-            Log.exception(ClientError.ERROR_CREATE_TEMP_PATH_FOLDER_NOT_FOUND)
+            # If auto create is enabled, create it- otherwise raise an exception
+            if auto_create is False:
+                Log.exception(ClientError.ERROR_CREATE_TEMP_PATH_FOLDER_NOT_FOUND)
+
+            self.create_path(bucket=bucket, path=temp_path)
 
         # Enter a loop until we find a folder name that doesn't already exist
         count_attempts = 0
         while True:
             count_attempts += 1
             path = '{temp_path}{prefix}{uuid}'.format(temp_path=temp_path, prefix=prefix, uuid=uuid.uuid4())
-            if self.file_exists(bucket=bucket, filename=path) is False:
+            if self.path_exists(bucket=bucket, path=path) is False:
                 # noinspection PyBroadException
                 try:
                     self.create_path(bucket=bucket, path=path, allow_overwrite=False)
@@ -167,7 +174,7 @@ class Client:
         except Exception as list_exception:
             Log.exception(ClientError.ERROR_BUCKET_LIST_UNHANDLED_EXCEPTION, list_exception)
 
-    def file_list(self, bucket, path, recursive=False) -> list:
+    def file_list(self, bucket, path, include_directories=False, recursive=False) -> list:
         """
         List the contents of the specified bucket/path
 
@@ -176,6 +183,9 @@ class Client:
 
         :type path: string
         :param path: The buckets path
+
+        :type include_directories: bool
+        :param include_directories: If true, directories will be included in the results
 
         :type recursive: bool
         :param recursive: If true all sub-folder of the path will be iterated
@@ -194,8 +204,8 @@ class Client:
             while True:
                 # Make sure the result contains the expected contents key
                 if 'Contents' not in list_objects_result:
-                    # The result did not contain the required key, throw an exception
-                    Log.exception(ClientError.ERROR_FILE_LIST_INVALID_RESULT)
+                    # The result did not contain any contents, get out of here
+                    break
 
                 # Iterate through the content of the most recent search results
                 for object_details in list_objects_result['Contents']:
@@ -204,17 +214,20 @@ class Client:
                         # The result did not contain the required key, throw an exception
                         Log.exception(ClientError.ERROR_FILE_LIST_INVALID_RESULT)
 
-                    # Ignore anything with zero file size (as it is most likely a directory)
-                    if 'Size' in object_details and object_details['Size'] > 0:
-                        # Check if we are performing a recursive search
-                        if recursive is False:
-                            # We are not recursively searching, make the file is in the required path
-                            if os.path.dirname(object_details['Key']) != path:
-                                # Skip this file
-                                continue
+                    # Check if we are performing a recursive search
+                    if recursive is False:
+                        # We are not recursively searching, make sure the file is in the required path
+                        if Client.sanitize_path(os.path.dirname(object_details['Key'])) != path:
+                            # Skip this file
+                            continue
 
-                        # Add the file to the list we will return
-                        files.append(object_details['Key'])
+                    # Handle directories
+                    if str(object_details['Key']).endswith('/') is True:
+                        if include_directories is False:
+                            continue
+
+                    # Add the file to the list we will return
+                    files.append(object_details['Key'])
 
                 # Check if the search results indicated there were more results
                 if 'NextMarker' not in list_objects_result:
@@ -228,6 +241,33 @@ class Client:
 
         # Return files we found
         return files
+
+    def path_exists(self, bucket, path) -> bool:
+        """
+        Check if file exists in the specified bucket
+
+        :type bucket: string
+        :param bucket: Bucket to be searched
+
+        :type path: string
+        :param path: Path to search for in bucket
+
+        :return: bool
+        """
+        # Sanitize the path
+        path = Client.sanitize_path(path)
+
+        file_list_result = []
+        try:
+            file_list_result = self.file_list(
+                bucket=bucket,
+                path=path,
+                include_directories=True
+            )
+        except Exception as exists_exception:
+            Log.exception(ClientError.ERROR_PATH_EXISTS_UNHANDLED_EXCEPTION, exists_exception)
+
+        return path in file_list_result
 
     def file_exists(self, bucket, filename) -> bool:
         """
@@ -246,11 +286,47 @@ class Client:
 
         file_list_result = []
         try:
-            file_list_result = self.file_list(bucket=bucket, path=filename)
+            file_list_result = self.file_list(bucket=bucket, path=Client.sanitize_path(os.path.dirname(filename)))
         except Exception as exists_exception:
             Log.exception(ClientError.ERROR_FILE_EXISTS_UNHANDLED_EXCEPTION, exists_exception)
 
         return filename in file_list_result
+
+    def path_delete(self, bucket, path, allow_missing=False) -> None:
+        """
+        Delete a path from S3 bucket
+
+        :type bucket: str
+        :param bucket: Bucket from which the file should be deleted
+
+        :type path: str
+        :param path: Path to be deleted
+
+        :type allow_missing: bool
+        :param allow_missing: Boolean flag, if False and the file cannot be found to delete an exception will be raised
+
+        :return: None
+        """
+        # Sanitize the path
+        path = self.sanitize_path(path)
+
+        # Make sure the file exists before we try to delete it
+        if self.path_exists(bucket=bucket, path=path) is False:
+            # If this is fine, get out of here- the file is already gone
+            if allow_missing is True:
+                return
+
+            Log.exception(ClientError.ERROR_PATH_DELETE_NOT_FOUND)
+
+        # Delete the path
+        try:
+            self.__get_boto3_s3_client__().delete_object(Bucket=bucket, Key=path)
+        except Exception as delete_exception:
+            Log.exception(ClientError.ERROR_PATH_DELETE_UNHANDLED_EXCEPTION, delete_exception)
+
+        # Make sure the file no longer exists after deleting
+        if self.path_exists(bucket=bucket, path=path) is True:
+            Log.exception(ClientError.ERROR_PATH_DELETE_FAILED)
 
     def file_delete(self, bucket, filename, allow_missing=False) -> None:
         """
@@ -427,7 +503,12 @@ class Client:
             # Make sure the local download path exists
             destination_path = LocalDiskClient.sanitize_path(os.path.dirname(local_filename))
             LocalDiskClient.create_path(destination_path, allow_overwrite=True)
-            self.__get_boto3_s3_client__().download_file(Bucket=bucket, Key=remote_filename, Filename=local_filename)
+
+            self.__get_boto3_s3_client__().download_file(
+                Bucket=bucket,
+                Key=remote_filename,
+                Filename=local_filename
+            )
         except Exception as download_exception:
             Log.exception(ClientError.ERROR_FILE_DOWNLOAD_UNHANDLED_EXCEPTION, download_exception)
 
@@ -466,14 +547,19 @@ class Client:
         # Iterate these files
         for current_remote_filename in files_found:
             # The local filename will stored in the same folder structure as on the SFTP server
-            current_local_path = self.sanitize_path(local_path + os.path.dirname(current_remote_filename))
-            current_local_filename = self.sanitize_filename(current_local_path + os.path.basename(current_remote_filename))
+            current_local_path = LocalDiskClient.sanitize_path(local_path + os.path.dirname(current_remote_filename))
+            current_local_filename = LocalDiskClient.sanitize_filename(current_local_path + os.path.basename(current_remote_filename))
 
             # Make sure the current files path exists locally before we start downloading
             LocalDiskClient.create_path(path=current_local_path, allow_overwrite=True)
 
             # Download the current file
-            self.file_download(bucket=bucket, remote_filename=current_remote_filename, local_filename=current_local_filename, allow_overwrite=allow_overwrite)
+            self.file_download(
+                bucket=bucket,
+                remote_filename=current_remote_filename,
+                local_filename=current_local_filename,
+                allow_overwrite=allow_overwrite
+            )
 
             # If a callback was supplied execute it
             if callback is not None:
@@ -522,7 +608,7 @@ class Client:
 
         # Make sure the uploaded file exists
         if self.file_exists(bucket=bucket, filename=remote_filename) is False:
-            raise Exception(ClientError.ERROR_FILE_UPLOAD_FAILED)
+            Log.exception(ClientError.ERROR_FILE_UPLOAD_FAILED, remote_filename)
 
     def file_get_tags(self, bucket, filename) -> dict:
         """
