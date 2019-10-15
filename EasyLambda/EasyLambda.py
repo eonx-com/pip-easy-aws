@@ -23,7 +23,6 @@ class EasyLambda:
             # noinspection PyBroadException
             try:
                 log_level = self.get_aws_event_parameter('log_level')
-                Log.debug('Requested Log Level: {log_level}'.format(log_level=log_level))
                 Log.set_level(int(log_level))
             except Exception as log_exception:
                 print('An unexpected error occurred while attempting to set desired logging level.')
