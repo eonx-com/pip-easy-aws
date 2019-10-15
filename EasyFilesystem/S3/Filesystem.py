@@ -2,10 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from EasyFilesystem.BaseFilesystem import BaseFilesystem
-from EasyFilesystem.FilesystemError import FilesystemError
 from EasyFilesystem.S3.Client import Client
-from EasyLocalDisk.Client import Client as LocalDiskClient
-from EasyLog.Log import Log
 
 
 class Filesystem(BaseFilesystem):
@@ -21,10 +18,13 @@ class Filesystem(BaseFilesystem):
         """
         super().__init__()
 
+        # Grab S3 client
         self.__client__ = Client()
 
-        # Store bucket details
+        # Sanitize the supplied base path
         self.__base_path__ = Client.sanitize_path(base_path)
+
+        # Store bucket name
         self.__bucket__ = bucket_name
 
     def create_path(self, path, allow_overwrite=False) -> None:
@@ -37,7 +37,7 @@ class Filesystem(BaseFilesystem):
         :type allow_overwrite: bool
         :param allow_overwrite: Flag indicating the path is allowed to be overwritten if it already exists. If False, and the path exists an exception will be thrown
         """
-        path = self.__make_relative_path__(path)
+        path = self.__rebase_path__(path)
 
         self.__client__.create_path(bucket=self.__bucket__, path=path, allow_overwrite=allow_overwrite)
 
@@ -56,7 +56,7 @@ class Filesystem(BaseFilesystem):
         if temp_path is None:
             temp_path = '{base_path}/tmp/'.format(base_path=self.__base_path__)
         else:
-            temp_path = self.__make_relative_path__(temp_path)
+            temp_path = self.__rebase_path__(temp_path)
 
         return self.__client__.create_temp_path(bucket=self.__bucket__, prefix=prefix, temp_path=temp_path)
 
@@ -72,7 +72,7 @@ class Filesystem(BaseFilesystem):
 
         :return: list
         """
-        path = self.__make_relative_path__(path)
+        path = self.__rebase_path__(path)
 
         return self.__client__.file_list(bucket=self.__bucket__, path=path, recursive=recursive)
 
@@ -85,7 +85,7 @@ class Filesystem(BaseFilesystem):
 
         :return: bool
         """
-        filename = self.__make_relative_path__(filename)
+        filename = self.__rebase_path__(filename)
 
         return self.__client__.file_exists(bucket=self.__bucket__, filename=filename)
 
@@ -99,7 +99,7 @@ class Filesystem(BaseFilesystem):
         :type allow_missing: bool
         :param allow_missing: Boolean flag, if False and the file cannot be found to delete an exception will be raised
         """
-        filename = self.__make_relative_path__(filename)
+        filename = self.__rebase_path__(filename)
 
         self.__client__.file_delete(bucket=self.__bucket__, filename=filename)
 
@@ -116,8 +116,8 @@ class Filesystem(BaseFilesystem):
         :type allow_overwrite: bool
         :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be thrown
         """
-        source_filename = self.__make_relative_path__(source_filename)
-        destination_filename = self.__make_relative_path__(destination_filename)
+        source_filename = self.__rebase_path__(source_filename)
+        destination_filename = self.__rebase_path__(destination_filename)
 
         self.__client__.file_move(source_bucket=self.__bucket__, source_filename=source_filename, destination_bucket=self.__bucket__, destination_filename=destination_filename, allow_overwrite=allow_overwrite)
 
@@ -134,8 +134,8 @@ class Filesystem(BaseFilesystem):
         :type allow_overwrite: bool
         :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be thrown
         """
-        source_filename = self.__make_relative_path__(source_filename)
-        destination_filename = self.__make_relative_path__(destination_filename)
+        source_filename = self.__rebase_path__(source_filename)
+        destination_filename = self.__rebase_path__(destination_filename)
 
         self.__client__.file_copy(source_bucket=self.__bucket__, source_filename=source_filename, destination_bucket=self.__bucket__, destination_filename=destination_filename, allow_overwrite=allow_overwrite)
 
@@ -154,7 +154,7 @@ class Filesystem(BaseFilesystem):
 
         :return: None
         """
-        remote_filename = self.__make_relative_path__(remote_filename)
+        remote_filename = self.__rebase_path__(remote_filename)
 
         return self.__client__.file_download(bucket=self.__bucket__, local_filename=local_filename, remote_filename=remote_filename, allow_overwrite=allow_overwrite)
 
@@ -176,11 +176,11 @@ class Filesystem(BaseFilesystem):
 
         :return: None
         """
-        remote_path = self.__make_relative_path__(remote_path)
+        remote_path = self.__rebase_path__(remote_path)
 
         self.__client__.file_download_recursive(bucket=self.__bucket__, remote_path=remote_path, local_path=local_path, callback=callback, allow_overwrite=allow_overwrite)
 
-    def file_upload(self, remote_filename, local_filename, callback=None, allow_overwrite=True) -> None:
+    def file_upload(self, remote_filename, local_filename, allow_overwrite=True) -> None:
         """
         Upload a file to remote filesystem
 
@@ -190,21 +190,18 @@ class Filesystem(BaseFilesystem):
         :type remote_filename: str
         :param remote_filename: Filename/path where the file should be uploaded
 
-        :type callback: function/None
-        :param callback: Optional callback function on successful upload
-
         :type allow_overwrite: bool
         :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be raised
 
         :return: None
         """
-        remote_filename = self.__make_relative_path__(remote_filename)
+        remote_filename = self.__rebase_path__(remote_filename)
 
         return self.__client__.file_upload(bucket=self.__bucket__, local_filename=local_filename, remote_filename=remote_filename, allow_overwrite=allow_overwrite)
 
     # Internal helper methods
 
-    def __make_relative_path__(self, filename) -> str:
+    def __rebase_path__(self, filename) -> str:
         """
         Rebase the supplied filename relative to base path
 

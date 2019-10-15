@@ -1,78 +1,74 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-class ClientError:
-    # File List Errors
-    ERROR_FILE_LIST_UNHANDLED_EXCEPTION = 'An unexpected exception error occurred while listing files'
 
-    # Make Directory Errors
-    ERROR_MAKE_PATH_FAILED = 'An unexpected exception error occurred while attempting to ensure directory exists'
+class ClientError:
+    ERROR_UNHANDLED_EXCEPTION = ' Please review additional error messages.'
+
+    # File List Errors
+    ERROR_FILE_LIST = 'An unexpected error occurred during listing of files in S3 bucket.'
+    ERROR_FILE_LIST_UNHANDLED_EXCEPTION = ERROR_FILE_LIST + ERROR_UNHANDLED_EXCEPTION
 
     # File Exists Errors
-    ERROR_FILE_EXISTS_UNHANDLED_EXCEPTION = 'An unexpected error occurred during test of file existence on SFTP server'
+    ERROR_FILE_EXISTS = 'An unexpected error occurred during test of file existence in S3 bucket.'
+    ERROR_FILE_EXISTS_UNHANDLED_EXCEPTION = ERROR_FILE_EXISTS
 
-    ERROR_CONNECT_FAILED = 'Failed to connect to SFTP server'
-    ERROR_CONNECT_INVALID_FINGERPRINT = 'Failed to connect to SFTP server, invalid server fingerprint'
+    # File Delete Errors
+    ERROR_FILE_DELETE = 'An unexpected error occurred while deleting S3 file.'
+    ERROR_FILE_DELETE_UNHANDLED_EXCEPTION = ERROR_FILE_DELETE + ERROR_UNHANDLED_EXCEPTION
+    ERROR_FILE_DELETE_FAILED = ERROR_FILE_DELETE + ' The deleted file still exists.'
+    ERROR_FILE_DELETE_NOT_FOUND = ERROR_FILE_DELETE + ' The file to delete could not be found.'
 
-    ERROR_INVALID_FINGERPRINT = 'Failed to validate the SFTP server host key/fingerprint'
-    ERROR_INVALID_FINGERPRINT_TYPE = 'The specified sftp_fingerprint type was not known'
+    # File Copy Errors
+    ERROR_FILE_COPY = 'An unexpected error occurred while copying S3 file.'
+    ERROR_FILE_COPY_UNHANDLED_EXCEPTION = ERROR_FILE_COPY + ERROR_UNHANDLED_EXCEPTION
+    ERROR_FILE_COPY_FAILED = ERROR_FILE_COPY + ' Failed to copy the requested file.'
+    ERROR_FILE_COPY_SOURCE_DESTINATION_SAME = ERROR_FILE_COPY + ' The source and destination of the file copy cannot be the same.'
+    ERROR_FILE_COPY_SOURCE_NOT_FOUND = ERROR_FILE_COPY + ' The requested file did not exist in the source bucket.'
+    ERROR_FILE_COPY_ALREADY_EXISTS = ERROR_FILE_COPY + ' The requested file already exists in the destination bucket.'
 
-    ERROR_FILE_DELETE_UNHANDLED_EXCEPTION = 'An unexpected error occurred while deleting S3 file'
-    ERROR_FILE_DELETE_NOT_FOUND = 'The file you are attempting to delete does not exist'
-    ERROR_FILE_DELETE_FAILED = 'The file you are attempting to delete was not successfully deleted'
-
-    # File Download Errors
-    ERROR_FILE_DOWNLOAD_UNHANDLED_EXCEPTION = 'An unexpected error occurred while downloading file from S3'
-    ERROR_FILE_DOWNLOAD_ALREADY_EXISTS = 'The file download failed as the file already exists and allow overwrite was not enabled'
-    ERROR_FILE_DOWNLOAD_SOURCE_NOT_FOUND = 'The file download failed, the file could not be found in the destination folder'
-    ERROR_FILE_DOWNLOAD_DESTINATION_NOT_FOUND = 'The file download failed, the file could not be found in the destination folder'
-    ERROR_FILE_DOWNLOAD_BODY_EXCEPTION = 'An unexpected error occurred while attempting to retrieve downloaded file body'
-    ERROR_FILE_DOWNLOAD_READ_EXCEPTION = 'An unexpected error occurred while attempting to read downloaded file body'
-    ERROR_FILE_DOWNLOAD_DECODE_EXCEPTION = 'An unexpected error occurred while attempting to decode the downloaded file to a string'
-    ERROR_FILE_DOWNLOAD_DESTINATION_NOT_READABLE = 'An unexpected error occurred while attempting to download the file, the downloaded file was not readable'
-    ERROR_FILE_DOWNLOAD_CALLBACK_NOT_CALLABLE = ''
-    ERROR_FILE_DOWNLOAD_FAILED = ''
+    # File Move Errors
+    ERROR_FILE_MOVE = 'An unexpected error occurred while moving S3 file.'
+    ERROR_FILE_MOVE_UNHANDLED_EXCEPTION = ERROR_FILE_MOVE + ERROR_UNHANDLED_EXCEPTION
+    ERROR_FILE_MOVE_COPY_FAILED = ERROR_FILE_MOVE + ' Copying to the destination failed.'
+    ERROR_FILE_MOVE_SOURCE_NOT_FOUND = ERROR_FILE_MOVE + ' The source file could not be found.'
+    ERROR_FILE_MOVE_ALREADY_EXISTS = ERROR_FILE_MOVE + ' The destination file already exists.'
+    ERROR_FILE_MOVE_DELETE_FAILED = ERROR_FILE_MOVE + ' Deleting the source file failed.'
+    ERROR_FILE_MOVE_SOURCE_DESTINATION_SAME = ERROR_FILE_MOVE + ' The source and destination of the file move cannot be the same.'
 
     # File Upload Errors
-    ERROR_FILE_UPLOAD_UNHANDLED_EXCEPTION = 'An unexpected exception error occurred during file upload'
-    ERROR_FILE_UPLOAD_CREATE_PATH = 'An unexpected exception error occurred during file upload, failed to create destination folder'
-    ERROR_FILE_UPLOAD_EXISTS = 'The file upload failed as the file already exists and allow overwrite was not enabled'
-    ERROR_FILE_UPLOAD_TEMP_CREATE = 'An unexpected exception error occurred during file upload, unable to create temporary file'
-    ERROR_FILE_UPLOAD_TEMP_READABLE = 'An unexpected exception error occurred during file upload, unable to validate temporary file is readable'
-    ERROR_FILE_UPLOAD_TEMP_CLEANUP = 'An unexpected exception error occurred during file upload, unable to delete temporary file'
-    ERROR_FILE_UPLOAD_CALLBACK = 'An unexpected exception error occurred during file upload, user callback function generated an exception'
-    ERROR_FILE_UPLOAD_TEMP_FOLDER = 'An unexpected exception error occurred during file upload, unable to create temporary folder'
-    ERROR_FILE_UPLOAD_CALLBACK_NOT_CALLABLE = ''
-    ERROR_FILE_UPLOAD_SOURCE_NOT_FOUND = ''
-    ERROR_FILE_UPLOAD_ALREADY_EXISTS = ''
-    ERROR_FILE_UPLOAD_FAILED = ''
+    ERROR_FILE_UPLOAD = 'An unexpected error occurred while uploading file to S3.'
+    ERROR_FILE_UPLOAD_UNHANDLED_EXCEPTION = ERROR_FILE_UPLOAD + ERROR_UNHANDLED_EXCEPTION
+    ERROR_FILE_UPLOAD_SOURCE_NOT_FOUND = ERROR_FILE_UPLOAD + ' The source file could not be found.'
+    ERROR_FILE_UPLOAD_ALREADY_EXISTS = ERROR_FILE_UPLOAD + ' The destination file already exists.'
+    ERROR_FILE_UPLOAD_FAILED = ERROR_FILE_UPLOAD + ' The upload failed.'
 
-    ERROR_FILE_MOVE_SOURCE_NOT_FOUND = ''
-    ERROR_FILE_MOVE_DESTINATION_EXISTS = ''
-    ERROR_FILE_MOVE_ALREADY_EXISTS = ''
-    ERROR_FILE_MOVE_FAILED = ''
-    ERROR_FILE_MOVE_SOURCE_DESTINATION_SAME = ''
-    ERROR_FILE_MOVE_UNHANDLED_EXCEPTION = ''
-    ERROR_FILE_MOVE_DELETE_FAILED = ''
-    ERROR_FILE_MOVE_COPY_FAILED = ''
+    # File Download Errors
+    ERROR_FILE_DOWNLOAD = 'An unexpected error occurred while download a file from S3.'
+    ERROR_FILE_DOWNLOAD_UNHANDLED_EXCEPTION = ERROR_FILE_DOWNLOAD + ERROR_UNHANDLED_EXCEPTION
+    ERROR_FILE_DOWNLOAD_SOURCE_NOT_FOUND = ERROR_FILE_DOWNLOAD + ' The source file could not be found.'
+    ERROR_FILE_DOWNLOAD_CALLBACK_NOT_CALLABLE = ERROR_FILE_DOWNLOAD + ' The callback function was not a callable object.'
+    ERROR_FILE_DOWNLOAD_ALREADY_EXISTS = ERROR_FILE_DOWNLOAD + ' The destination file already exists.'
+    ERROR_FILE_DOWNLOAD_FAILED = ERROR_FILE_DOWNLOAD + ' The download failed.'
 
-    ERROR_FILE_COPY_ALREADY_EXISTS = ''
-    ERROR_FILE_COPY_CALLBACK_NOT_CALLABLE = ''
-    ERROR_FILE_COPY_UNHANDLED_EXCEPTION = ''
-    ERROR_FILE_COPY_SOURCE_NOT_FOUND = ''
-    ERROR_FILE_COPY_SOURCE_DESTINATION_SAME = ''
-    ERROR_FILE_COPY_FAILED = ''
+    # Create Path Errors
+    ERROR_CREATE_PATH = 'An unexpected error occurred while attempting to create a path in S3.'
+    ERROR_CREATE_PATH_UNHANDLED_EXCEPTION = ERROR_CREATE_PATH + ERROR_UNHANDLED_EXCEPTION
+    ERROR_CREATE_PATH_ALREADY_EXISTS = ERROR_CREATE_PATH + ' The path already exists.'
+    ERROR_CREATE_PATH_FAILED = ERROR_CREATE_PATH + ' Failed to create the requested path.'
 
-    ERROR_CREATE_PATH_UNHANDLED_EXCEPTION = ''
-    ERROR_CREATE_PATH_FAILED = ''
-    ERROR_CREATE_PATH_ALREADY_EXISTS = ''
+    # Create Temp Path Errors
+    ERROR_CREATE_TEMP_PATH = 'An unexpected error occurred while attempting to create a unique temp path in S3.'
+    ERROR_CREATE_TEMP_PATH_FOLDER_NOT_FOUND = ERROR_CREATE_PATH + ' The base temp folder path specified did not exist.'
+    ERROR_CREATE_TEMP_PATH_FAILED = ERROR_CREATE_PATH + ' Failed to create a unique temporary path.'
 
-    ERROR_CREATE_TEMP_PATH_FOLDER_NOT_FOUND = ''
-    ERROR_CREATE_TEMP_PATH_FAILED = ''
-
-    ERROR_SANITIZE_ADDRESS = ''
-    ERROR_SANITIZE_FINGERPRINT = ''
-    ERROR_SANITIZE_PRIVATE_KEY = ''
-    ERROR_SANITIZE_FINGERPRINT_TYPE = ''
-    ERROR_SANITIZE_PORT = ''
-    ERROR_SANITIZE_USERNAME = ''
+    # Server Connect Errors
+    ERROR_CONNECT = 'An unexpected error occurred while attempting to connect to the SFTP server.'
+    ERROR_CONNECT_FAILED = ERROR_CONNECT + ' Failed to connect successfully.'
+    ERROR_CONNECT_INVALID_FINGERPRINT = ERROR_CONNECT + ' An invalid server fingerprint was detected.'
+    ERROR_CONNECT_SANITIZE_ADDRESS = ERROR_CONNECT + ' The specified hostname could not be resolved to a valid address.'
+    ERROR_CONNECT_SANITIZE_FINGERPRINT = ERROR_CONNECT + ' The specified fingerprint was not valid'
+    ERROR_CONNECT_SANITIZE_PRIVATE_KEY = ERROR_CONNECT + ' The specified private key was not valid'
+    ERROR_CONNECT_SANITIZE_FINGERPRINT_TYPE = ERROR_CONNECT + ' The specified fingerprint type was not valid'
+    ERROR_CONNECT_SANITIZE_PORT = ERROR_CONNECT + ' The specified SFTP port was not valid'
+    ERROR_CONNECT_SANITIZE_USERNAME = ERROR_CONNECT + ' No username was supplied.'

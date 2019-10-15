@@ -16,7 +16,7 @@ class Client:
         """
         Setup S3 client
         """
-        self.__s3_client__ = None
+        self.__boto3_s3_client__ = None
 
     @staticmethod
     def sanitize_path(path) -> str:
@@ -94,7 +94,7 @@ class Client:
 
         # Create the path
         try:
-            self.__get_boto3_client__().put_object(Body='', Bucket=bucket, Key=path)
+            self.__get_boto3_s3_client__().put_object(Body='', Bucket=bucket, Key=path)
         except Exception as create_path_exception:
             Log.exception(ClientError.ERROR_CREATE_PATH_UNHANDLED_EXCEPTION, create_path_exception)
 
@@ -102,7 +102,7 @@ class Client:
         if self.file_exists(bucket=bucket, filename=path) is False:
             Log.exception(ClientError.ERROR_CREATE_PATH_FAILED)
 
-    def create_temp_path(self, bucket, prefix='', temp_path='tmp/') -> str:
+    def create_temp_path(self, bucket, prefix='', temp_path=None) -> str:
         """
         Create a new temporary path that is guaranteed to be unique
 
@@ -117,6 +117,10 @@ class Client:
 
         :return: str
         """
+        # If not temp path is set, set a sensible default
+        if temp_path is None:
+            temp_path = '/temp/'
+
         # Sanitize the supplied path
         temp_path = self.sanitize_path(temp_path)
 
@@ -141,6 +145,28 @@ class Client:
                 # If we fail to create a path more than 10 times, something is wrong
                 Log.exception(ClientError.ERROR_CREATE_TEMP_PATH_FAILED)
 
+    def bucket_list(self) -> list:
+        """
+        Return list all buckets names that are accessible
+
+        :return: List of bucket names
+        """
+        try:
+            # Request list of buckets
+            list_buckets_result = self.__get_boto3_s3_client__().bucket_list()
+            if 'Buckets' not in list_buckets_result:
+                Log.exception(ClientError.ERROR_BUCKET_LIST_INVALID_RESULT)
+
+            # Get all of the bucket names into a list and return them
+            buckets = []
+            for bucket in list_buckets_result['Buckets']:
+                if 'Name' not in bucket:
+                    Log.exception(ClientError.ERROR_BUCKET_LIST_INVALID_RESULT)
+                buckets.append(bucket['Name'])
+            return buckets
+        except Exception as list_exception:
+            Log.exception(ClientError.ERROR_BUCKET_LIST_UNHANDLED_EXCEPTION, list_exception)
+
     def file_list(self, bucket, path, recursive=False) -> list:
         """
         List the contents of the specified bucket/path
@@ -163,20 +189,20 @@ class Client:
 
         try:
             # Retrieve list of files
-            list_objects_result = self.__get_boto3_client__().list_objects_v2(Bucket=bucket, Prefix=path)
+            list_objects_result = self.__get_boto3_s3_client__().list_objects_v2(Bucket=bucket, Prefix=path)
 
             while True:
                 # Make sure the result contains the expected contents key
                 if 'Contents' not in list_objects_result:
                     # The result did not contain the required key, throw an exception
-                    Log.exception(ClientError.ERROR_FILE_LIST_KEY_NOT_FOUND)
+                    Log.exception(ClientError.ERROR_FILE_LIST_INVALID_RESULT)
 
                 # Iterate through the content of the most recent search results
                 for object_details in list_objects_result['Contents']:
                     # Make sure the result contains the expected filename key
                     if 'Key' not in object_details:
                         # The result did not contain the required key, throw an exception
-                        Log.exception(ClientError.ERROR_FILE_LIST_KEY_NOT_FOUND)
+                        Log.exception(ClientError.ERROR_FILE_LIST_INVALID_RESULT)
 
                     # Ignore anything with zero file size (as it is most likely a directory)
                     if 'Size' in object_details and object_details['Size'] > 0:
@@ -196,7 +222,7 @@ class Client:
 
                 # There were more results, rerun the search to get the next page of results
                 next_marker = list_objects_result['NextMarker']
-                list_objects_result = self.__get_boto3_client__().list_objects_v2(Bucket=bucket, NextMarker=next_marker)
+                list_objects_result = self.__get_boto3_s3_client__().list_objects_v2(Bucket=bucket, NextMarker=next_marker)
         except Exception as list_exception:
             Log.exception(ClientError.ERROR_FILE_LIST_UNHANDLED_EXCEPTION, list_exception)
 
@@ -253,7 +279,7 @@ class Client:
 
         # Delete the file
         try:
-            self.__get_boto3_client__().delete_object(Bucket=bucket, Key=filename)
+            self.__get_boto3_s3_client__().delete_object(Bucket=bucket, Key=filename)
         except Exception as delete_exception:
             Log.exception(ClientError.ERROR_FILE_DELETE_UNHANDLED_EXCEPTION, delete_exception)
 
@@ -358,7 +384,7 @@ class Client:
             Log.exception(ClientError.ERROR_FILE_COPY_SOURCE_NOT_FOUND)
 
         try:
-            self.__get_boto3_client__().copy(CopySource={'Bucket': source_bucket, 'Key': source_filename}, Bucket=destination_bucket, Key=destination_filename)
+            self.__get_boto3_s3_client__().copy(CopySource={'Bucket': source_bucket, 'Key': source_filename}, Bucket=destination_bucket, Key=destination_filename)
         except Exception as copy_exception:
             Log.exception(ClientError.ERROR_FILE_COPY_UNHANDLED_EXCEPTION, copy_exception)
 
@@ -401,7 +427,7 @@ class Client:
             # Make sure the local download path exists
             destination_path = LocalDiskClient.sanitize_path(os.path.dirname(local_filename))
             LocalDiskClient.create_path(destination_path, allow_overwrite=True)
-            self.__get_boto3_client__().download_file(Bucket=bucket, Key=remote_filename, Filename=local_filename)
+            self.__get_boto3_s3_client__().download_file(Bucket=bucket, Key=remote_filename, Filename=local_filename)
         except Exception as download_exception:
             Log.exception(ClientError.ERROR_FILE_DOWNLOAD_UNHANDLED_EXCEPTION, download_exception)
 
@@ -490,52 +516,13 @@ class Client:
 
         # Upload the file
         try:
-            self.__get_boto3_client__().upload_file(Bucket=bucket, Key=remote_filename, Filename=local_filename)
+            self.__get_boto3_s3_client__().upload_file(Bucket=bucket, Key=remote_filename, Filename=local_filename)
         except Exception as upload_exception:
             Log.exception(ClientError.ERROR_FILE_UPLOAD_UNHANDLED_EXCEPTION, upload_exception)
 
         # Make sure the uploaded file exists
         if self.file_exists(bucket=bucket, filename=remote_filename) is False:
             raise Exception(ClientError.ERROR_FILE_UPLOAD_FAILED)
-
-    def list_buckets(self) -> list:
-        """
-        Return an array containing the names of all buckets accessible by the client
-
-        :return: list[str]
-        """
-        buckets = []
-        list_buckets_result = []
-
-        try:
-            Log.trace('Listing S3 Buckets...')
-            list_buckets_result = self.__get_boto3_client__().list_buckets()
-        except Exception as list_exception:
-            # Failed to retrieve bucket list
-            Log.exception(ClientError.ERROR_BUCKET_LIST_UNHANDLED_EXCEPTION, list_exception)
-
-        # Make sure the result contains the expected key
-        Log.debug('Checking Result...')
-        if 'Buckets' not in list_buckets_result:
-            # Missing expected buckets key in response from S3
-            Log.exception(ClientError.ERROR_BUCKET_LIST_KEY_MISSING)
-
-        # Dump all files found for debugging purposes
-        if len(list_buckets_result) == 0:
-            Log.debug('No Buckets Found')
-        else:
-            Log.debug('Buckets Found: ')
-            for bucket in list_buckets_result:
-                # Make sure the name key exists in the result
-                if 'Name' in bucket is False:
-                    Log.exception(ClientError.ERROR_BUCKET_LIST_KEY_MISSING)
-
-                Log.debug('- {bucket}'.format(bucket=bucket['Name']))
-                buckets.append(bucket['Name'])
-
-        # Return the bucket names
-        Log.debug('Bucket List Completed')
-        return buckets
 
     def file_get_tags(self, bucket, filename) -> dict:
         """
@@ -560,17 +547,17 @@ class Client:
         Log.debug('Checking File Exists Before Reading Tags...')
         if self.file_exists(bucket=bucket, filename=filename) is False:
             # The file to be deleted did not exist
-            Log.exception(ClientError.ERROR_FILE_TAG_READ_SOURCE_NOT_FOUND)
+            Log.exception(ClientError.ERROR_FILE_GET_TAGS_SOURCE_NOT_FOUND)
 
         # Retrieve the existing tags
         keys = None
         object_tags = None
         try:
             Log.debug('Loading Tag Set...')
-            object_tags = self.__get_boto3_client__().get_object_tagging(Bucket=bucket, Key=filename)
+            object_tags = self.__get_boto3_s3_client__().get_object_tagging(Bucket=bucket, Key=filename)
             keys = object_tags.keys()
         except Exception as tag_exception:
-            Log.exception(ClientError.ERROR_FILE_TAG_READ_EXCEPTION, tag_exception)
+            Log.exception(ClientError.ERROR_FILE_GET_TAGS_UNHANDLED_EXCEPTION, tag_exception)
 
         # Check if any tags existed
         if 'TagSet' not in keys:
@@ -616,7 +603,7 @@ class Client:
         Log.debug('Checking File Exists Before Setting Tags...')
         if self.file_exists(bucket=bucket, filename=filename) is False:
             # The file to be deleted did not exist
-            Log.exception(ClientError.ERROR_FILE_TAG_READ_SOURCE_NOT_FOUND)
+            Log.exception(ClientError.ERROR_FILE_GET_TAGS_SOURCE_NOT_FOUND)
 
         # Create list object to pass to S3 with key/value pairs
         tag_set = []
@@ -626,13 +613,13 @@ class Client:
 
         try:
             Log.debug('Writing tags to S3 object...')
-            self.__get_boto3_client__().put_object_tagging(
+            self.__get_boto3_s3_client__().put_object_tagging(
                 Bucket=bucket,
                 Key=filename,
                 Tagging={'TagSet': tag_set}
             )
         except Exception as put_tag_exception:
-            Log.exception(ClientError.ERROR_FILE_TAG_WRITE_EXCEPTION, put_tag_exception)
+            Log.exception(ClientError.ERROR_FILE_PUT_TAGS_UNHANDLED_EXCEPTION, put_tag_exception)
 
         # Retrieve the tags were written correctly
         Log.debug('Checking Tags...')
@@ -640,24 +627,26 @@ class Client:
 
         # Validate the number of keys match
         if len(new_tags) != len(tags):
-            Log.exception(ClientError.ERROR_FILE_TAG_WRITE_FAILED)
+            Log.exception(ClientError.ERROR_FILE_PUT_TAGS_FAILED)
 
         # Validate each tag is present in the new values and the values match
         for key in tags.keys():
             if key not in new_tags:
                 # The tag did not exist
-                Log.exception(ClientError.ERROR_FILE_TAG_WRITE_FAILED)
+                Log.exception(ClientError.ERROR_FILE_PUT_TAGS_FAILED)
             if tags[key] != new_tags[key]:
                 # The values were not matched
-                Log.exception(ClientError.ERROR_FILE_TAG_WRITE_FAILED)
+                Log.exception(ClientError.ERROR_FILE_PUT_TAGS_FAILED)
 
     # Internal methods
 
-    def __get_boto3_client__(self):
+    def __get_boto3_s3_client__(self):
         """
         Retrieve Boto3 S3 client
-        """
-        if self.__s3_client__ is None:
-            self.__s3_client__ = boto3.session.Session().client('s3')
 
-        return self.__s3_client__
+        :return:
+        """
+        if self.__boto3_s3_client__ is None:
+            self.__boto3_s3_client__ = boto3.session.Session().client('s3')
+
+        return self.__boto3_s3_client__

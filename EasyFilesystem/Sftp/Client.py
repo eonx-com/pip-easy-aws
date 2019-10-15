@@ -114,7 +114,7 @@ class Client:
         if self.file_exists(filename=path) is False:
             Log.exception(ClientError.ERROR_CREATE_PATH_FAILED)
 
-    def create_temp_path(self, prefix='', temp_path='tmp/') -> str:
+    def create_temp_path(self, prefix='', temp_path=None) -> str:
         """
         Create a new temporary path that is guaranteed to be unique
 
@@ -126,6 +126,11 @@ class Client:
 
         :return: str
         """
+        # If not temp path is set, set a sensible default
+        if temp_path is None:
+            temp_path = '/temp/'
+
+        # Sanitize the supplied path
         temp_path = Client.sanitize_path(temp_path)
 
         # Make sure the temporary folder exists
@@ -197,7 +202,7 @@ class Client:
         try:
             return self.__sftp_connection__.exists(remotepath=filename)
         except Exception as exists_exception:
-            Log.exception(ClientError.ERROR_FILE_LIST_UNHANDLED_EXCEPTION, exists_exception)
+            Log.exception(ClientError.ERROR_FILE_EXISTS_UNHANDLED_EXCEPTION, exists_exception)
 
     def file_delete(self, filename, allow_missing=False) -> None:
         """
@@ -478,6 +483,38 @@ class Client:
         Log.trace('Disable Fingerprint Validation...')
         self.__fingerprint_validation__ = False
 
+    def connect(self, username, address, port, rsa_private_key=None, password=None, fingerprint=None, fingerprint_type=None) -> None:
+        """
+        Connect by inspecting which authentication details were supplied and selecting a best guess method
+
+        :type username: str
+        :param username: Username to be used in connection
+
+        :type address: str
+        :param address: SFTP server sftp_address/hostname
+
+        :type port: int
+        :param port: SFTP server sftp_port number (defaults to 22)
+
+        :type rsa_private_key: str
+        :param rsa_private_key: RSA private key to be used for authentication
+
+        :type password: str or None
+        :param password: Optional password used for authentication
+
+        :type fingerprint: str or None
+        :param fingerprint: SFTP server sftp_fingerprint used to validate server identity
+
+        :type fingerprint_type: str or None
+        :param fingerprint_type: SFTP server sftp_fingerprint type
+        """
+        if rsa_private_key is not None:
+            # Private key was set, use it and connecting using RSA authentication
+            self.connect_rsa_private_key(address=address, port=port, username=username, rsa_private_key=rsa_private_key, password=password, fingerprint=fingerprint, fingerprint_type=fingerprint_type)
+        else:
+            # Private key was not set, use a username/password
+            self.connect_password(address=address, port=port, username=username, password=password, fingerprint=fingerprint, fingerprint_type=fingerprint_type)
+
     def connect_rsa_private_key(self, username, address, port, rsa_private_key, password=None, fingerprint=None, fingerprint_type=None) -> None:
         """
         Connect to SFTP server using private key authentication
@@ -661,42 +698,6 @@ class Client:
 
     # Internal methods
 
-    def __get_connection_options__(self, address, fingerprint, fingerprint_type):
-        """
-        Get connection settings for pysftp client
-
-        :type address: str
-        :param address: SFTP server sftp_address/hostname
-
-        :type fingerprint: str/None
-        :param fingerprint: SFTP server sftp_fingerprint used to validate server identity. If not specified the known_hosts file on the host machine will be used
-
-        :type fingerprint_type: str/None
-        :param fingerprint_type: SFTP server sftp_fingerprint type (e.g. ssh-rsa, ssh-dss). This must be one of the key types supported by the underlying paramiko library
-
-        :return: obj
-        """
-        Log.trace('Retrieving Connection Options...')
-        options = CnOpts()
-
-        if self.__fingerprint_validation__ is False:
-            Log.warning('Host sftp_fingerprint checking disabled, this may be a security risk...')
-            options.hostkeys = None
-        else:
-            # If a valid sftp_fingerprint and type were specified, add these to the known hosts, otherwise pysftp will use
-            # the known_hosts file on the computer
-            if fingerprint is not None and fingerprint_type is not None:
-                Log.debug('Adding known host sftp_fingerprint to client...')
-                options.hostkeys.add(
-                    hostname=address,
-                    keytype=fingerprint_type,
-                    key=self.__fingerprint_to_paramiko_key__(fingerprint, fingerprint_type)
-                )
-            else:
-                Log.warning('No host fingerprints added, relying on known_hosts file')
-
-        return options
-
     @staticmethod
     def __assert_connection_warning__(warning) -> None:
         """
@@ -746,9 +747,9 @@ class Client:
             elif fingerprint_type in paramiko.ecdsakey.ECDSAKey.supported_key_format_identifiers():
                 return paramiko.ECDSAKey(data=base64.b64decode(fingerprint), validate_point=False)
         except Exception as key_exception:
-            Log.exception(ClientError.ERROR_INVALID_FINGERPRINT_TYPE, key_exception)
+            Log.exception(ClientError.ERROR_CONNECT_SANITIZE_FINGERPRINT_TYPE, key_exception)
 
-        Log.exception(ClientError.ERROR_INVALID_FINGERPRINT_TYPE)
+        Log.exception(ClientError.ERROR_CONNECT_SANITIZE_FINGERPRINT_TYPE)
 
     @staticmethod
     def __sanitize_sftp_port__(port):
@@ -762,22 +763,22 @@ class Client:
         """
         # If no port was specified generate an error
         if not port:
-            Log.exception(ClientError.ERROR_SANITIZE_PORT)
+            Log.exception(ClientError.ERROR_CONNECT_SANITIZE_PORT)
 
         # If the port number was passed in as a string, make sure it contains digits
         if type(port) is str:
             if not port.isdigit():
-                Log.exception(ClientError.ERROR_SANITIZE_PORT)
+                Log.exception(ClientError.ERROR_CONNECT_SANITIZE_PORT)
 
         # Cast value to an integer
         try:
             port = int(port)
         except ValueError:
-            Log.exception(ClientError.ERROR_SANITIZE_PORT)
+            Log.exception(ClientError.ERROR_CONNECT_SANITIZE_PORT)
 
         # Ensure port number is in valid range
         if port < 0 or port > 65535:
-            Log.exception(ClientError.ERROR_SANITIZE_PORT)
+            Log.exception(ClientError.ERROR_CONNECT_SANITIZE_PORT)
 
         # Return the valid sftp_port number as an integer value
         return port
@@ -802,7 +803,7 @@ class Client:
         # Make sure the key type is one of the acceptable values
         if fingerprint_type not in ['ssh-rsa', 'ssh-dss']:
             if fingerprint_type not in paramiko.ecdsakey.ECDSAKey.supported_key_format_identifiers():
-                Log.exception(ClientError.ERROR_SANITIZE_FINGERPRINT_TYPE)
+                Log.exception(ClientError.ERROR_CONNECT_SANITIZE_FINGERPRINT_TYPE)
 
         # Return the valid fingerprint type
         return fingerprint_type
@@ -819,7 +820,7 @@ class Client:
         """
         # If no username was specified generate an error
         if not sftp_username:
-            Log.exception(ClientError.ERROR_SANITIZE_USERNAME)
+            Log.exception(ClientError.ERROR_CONNECT_SANITIZE_USERNAME)
 
         # Return the username
         return str(sftp_username)
@@ -836,14 +837,14 @@ class Client:
         """
         # If no private key was specified generate an error
         if not sftp_private_key:
-            Log.exception(ClientError.ERROR_SANITIZE_PRIVATE_KEY)
+            Log.exception(ClientError.ERROR_CONNECT_SANITIZE_PRIVATE_KEY)
 
         # Convert the private key string to a paramiko RSA key that can be used by the underlying libra4y
         try:
             sftp_private_key_string_io = StringIO(str(sftp_private_key))
             return paramiko.RSAKey.from_private_key(sftp_private_key_string_io)
         except Exception as key_exception:
-            Log.exception(ClientError.ERROR_SANITIZE_PRIVATE_KEY, key_exception)
+            Log.exception(ClientError.ERROR_CONNECT_SANITIZE_PRIVATE_KEY, key_exception)
 
     @staticmethod
     def __sanitize_sftp_fingerprint__(fingerprint):
@@ -874,13 +875,49 @@ class Client:
         """
         # Validate host address was supplied
         if not address:
-            Log.exception(ClientError.ERROR_SANITIZE_ADDRESS)
+            Log.exception(ClientError.ERROR_CONNECT_SANITIZE_ADDRESS)
 
         # Validate host address can be resolved
         try:
             socket.gethostbyname(address)
         except socket.error:
-            Log.exception(ClientError.ERROR_SANITIZE_ADDRESS)
+            Log.exception(ClientError.ERROR_CONNECT_SANITIZE_ADDRESS)
 
         # Return the address
         return str(address)
+
+    def __get_connection_options__(self, address, fingerprint, fingerprint_type):
+        """
+        Get connection settings for pysftp client
+
+        :type address: str
+        :param address: SFTP server sftp_address/hostname
+
+        :type fingerprint: str/None
+        :param fingerprint: SFTP server sftp_fingerprint used to validate server identity. If not specified the known_hosts file on the host machine will be used
+
+        :type fingerprint_type: str/None
+        :param fingerprint_type: SFTP server sftp_fingerprint type (e.g. ssh-rsa, ssh-dss). This must be one of the key types supported by the underlying paramiko library
+
+        :return: obj
+        """
+        Log.trace('Retrieving Connection Options...')
+        options = CnOpts()
+
+        if self.__fingerprint_validation__ is False:
+            Log.warning('Host sftp_fingerprint checking disabled, this may be a security risk...')
+            options.hostkeys = None
+        else:
+            # If a valid sftp_fingerprint and type were specified, add these to the known hosts, otherwise pysftp will use
+            # the known_hosts file on the computer
+            if fingerprint is not None and fingerprint_type is not None:
+                Log.debug('Adding known host sftp_fingerprint to client...')
+                options.hostkeys.add(
+                    hostname=address,
+                    keytype=fingerprint_type,
+                    key=self.__fingerprint_to_paramiko_key__(fingerprint, fingerprint_type)
+                )
+            else:
+                Log.warning('No host fingerprints added, relying on known_hosts file')
+
+        return options
