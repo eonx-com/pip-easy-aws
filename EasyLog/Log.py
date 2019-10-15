@@ -31,15 +31,7 @@ class Log:
 
         :return: None
         """
-        if level not in (
-            Log.LEVEL_EXCEPTION,
-            Log.LEVEL_TEST,
-            Log.LEVEL_ERROR,
-            Log.LEVEL_INFO,
-            Log.LEVEL_WARNING,
-            Log.LEVEL_DEBUG,
-            Log.LEVEL_TRACE
-        ):
+        if level not in (Log.LEVEL_EXCEPTION, Log.LEVEL_TEST, Log.LEVEL_ERROR, Log.LEVEL_INFO, Log.LEVEL_WARNING, Log.LEVEL_DEBUG, Log.LEVEL_TRACE):
             raise Exception('Unknown logging level specified')
 
         Log.__level__ = level
