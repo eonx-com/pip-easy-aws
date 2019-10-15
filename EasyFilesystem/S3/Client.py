@@ -655,8 +655,8 @@ class Client:
         Log.debug('Tags Found')
         tags = {}
         for tag in object_tags['TagSet']:
-            key = tag['key']
-            value = tag['value']
+            key = tag['Key']
+            value = tag['Value']
             Log.debug('- {key}: {value}'.format(key=key, value=value))
             tags[key] = value
 
