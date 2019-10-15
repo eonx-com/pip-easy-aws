@@ -283,7 +283,7 @@ class Filesystem(BaseFilesystem):
             filename=filename
         )
 
-    def file_put_tags(self, filename, tags) -> None:
+    def file_set_tags(self, filename, tags) -> None:
         """
         Replace all tags on a file with those specified
 
