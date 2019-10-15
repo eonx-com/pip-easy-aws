@@ -18,6 +18,10 @@ class EasyLambda:
         self.__aws_event__ = aws_event
         self.__aws_context__ = aws_context
 
+        # Set log level
+        if 'log_level' in self.__aws_event__:
+            Log.set_level(self.__aws_event__['log_level'])
+
         try:
             Log.trace('Executing user initialization function...')
             self.init()
