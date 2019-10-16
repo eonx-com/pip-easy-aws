@@ -4,6 +4,7 @@
 import inspect
 import os
 
+from EasySlack.Client import Client as Slack
 from time import strftime
 
 
@@ -20,6 +21,9 @@ class Log:
     # Private class variables
     __history__ = []
     __level__ = None
+
+    __slack__ = None
+    __slack_channel__ = None
 
     @staticmethod
     def set_level(level) -> None:
@@ -74,6 +78,13 @@ class Log:
             message=message
         )
 
+        if Log.__slack__ is not None and Log.__slack_channel__ is not None:
+            # Send error messages to designated slack channel
+            Log.__slack__.send_message(
+                channel=Log.__slack_channel__,
+                message='EXCEPTION: {message}'.format(message=message)
+            )
+
     @staticmethod
     def warning(message) -> None:
         """
@@ -92,6 +103,13 @@ class Log:
             stack_frame=stack_frame,
             message=message
         )
+
+        if Log.__slack__ is not None and Log.__slack_channel__ is not None:
+            # Send error messages to designated slack channel
+            Log.__slack__.send_message(
+                channel=Log.__slack_channel__,
+                message='WARNING: {message}'.format(message=message)
+            )
 
     @staticmethod
     def debug(message) -> None:
@@ -174,6 +192,12 @@ class Log:
 
         Log.log(level=Log.LEVEL_EXCEPTION, message=base_exception)
 
+        if Log.__slack__ is not None and Log.__slack_channel__ is not None:
+            # Send error messages to designated slack channel
+            Log.__slack__.send_message(
+                channel=Log.__slack_channel__,
+                message='EXCEPTION: {message}'.format(message=message)
+            )
         # Raise the base exception
         raise Exception(str(base_exception))
 
@@ -205,7 +229,6 @@ class Log:
             raise Exception('Unknown logging level specified')
 
         return level_name
-
 
     @staticmethod
     def log(level, message, stack_frame=None) -> None:
@@ -274,6 +297,28 @@ class Log:
 
         # Add entry to the log
         Log.__history__.append(history)
+
+    @staticmethod
+    def set_slack_client(slack, channel=None) -> None:
+        """
+        Set Slack client for error/exception logging
+
+        :type slack: Slack or None
+        :param slack: The Slack client to use
+
+        :type channel: Optional[str]
+        :param channel: Then channel to send errors/exceptions to
+        """
+        if slack is not None:
+            if isinstance(slack, Slack) is False:
+                raise Exception('Invalid Slack client object supplied.')
+            if channel is None:
+                raise Exception('No Slack channel provided')
+        else:
+            channel = None
+
+        Log.__slack__ = slack
+        Log.__slack_channel__ = channel
 
     @staticmethod
     def clear_log_history() -> None:
