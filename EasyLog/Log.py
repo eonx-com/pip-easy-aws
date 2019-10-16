@@ -178,6 +178,36 @@ class Log:
         raise Exception(str(base_exception))
 
     @staticmethod
+    def get_log_level_name(level) -> str:
+        """
+        Retrieve the name fo the logging level
+
+        :type level: int
+        :param level: The levels integer ID
+
+        :return: The name of the logging level
+        """
+        if level == Log.LEVEL_TEST:
+            level_name = 'TEST'
+        elif level == Log.LEVEL_ERROR:
+            level_name = 'ERROR'
+        elif level == Log.LEVEL_EXCEPTION:
+            level_name = 'EXCEPTION'
+        elif level == Log.LEVEL_INFO:
+            level_name = 'INFO'
+        elif level == Log.LEVEL_WARNING:
+            level_name = 'WARNING'
+        elif level == Log.LEVEL_DEBUG:
+            level_name = 'DEBUG'
+        elif level == Log.LEVEL_TRACE:
+            level_name = 'TRACE'
+        else:
+            raise Exception('Unknown logging level specified')
+
+        return level_name
+
+
+    @staticmethod
     def log(level, message, stack_frame=None) -> None:
         # If no logging level is defined, select one based on the current context
         if Log.__level__ is None:
@@ -200,22 +230,7 @@ class Log:
                 Log.__level__ = Log.LEVEL_TRACE
 
         # Convert the log level to a human readable string
-        if level == Log.LEVEL_TEST:
-            level_name = 'TEST'
-        elif level == Log.LEVEL_ERROR:
-            level_name = 'ERROR'
-        elif level == Log.LEVEL_EXCEPTION:
-            level_name = 'EXCEPTION'
-        elif level == Log.LEVEL_INFO:
-            level_name = 'INFO'
-        elif level == Log.LEVEL_WARNING:
-            level_name = 'WARNING'
-        elif level == Log.LEVEL_DEBUG:
-            level_name = 'DEBUG'
-        elif level == Log.LEVEL_TRACE:
-            level_name = 'TRACE'
-        else:
-            raise Exception('Unknown logging level specified')
+        level_name = Log.get_log_level_name(Log.__level__)
 
         # Retrieve current timestamp
         timestamp = strftime("%Y-%m-%d %H:%M:%S")
