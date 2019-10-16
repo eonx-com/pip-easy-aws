@@ -3,7 +3,6 @@
 
 import slack
 
-from EasyLog.Log import Log
 from EasySlack.ClientError import ClientError
 
 
@@ -28,9 +27,9 @@ class Client:
         :type local_filename: str
         :param local_filename: Path/filename to upload
         """
-        Log.info('Sending File To Slack Channel...')
-        Log.info('Channel: {channel}'.format(channel=channel))
-        Log.info('Filename: {local_filename}'.format(local_filename=local_filename))
+        print('Sending File To Slack Channel...')
+        print('Channel: {channel}'.format(channel=channel))
+        print('Filename: {local_filename}'.format(local_filename=local_filename))
 
         try:
             response = self.__client__.files_upload(channel=channel, file=local_filename)
@@ -39,11 +38,11 @@ class Client:
                 assert response['ok']
             except AssertionError:
                 # Failed to asset message send correctly
-                Log.error(ClientError.ERROR_SLACK_SEND_FILE_FAILED)
+                print(ClientError.ERROR_SLACK_SEND_FILE_FAILED)
         except Exception as send_exception:
             # Failed to send message due to an unhandled exception
-            Log.error(ClientError.ERROR_SLACK_SEND_FILE_UNHANDLED_EXCEPTION)
-            Log.error(send_exception)
+            print(ClientError.ERROR_SLACK_SEND_FILE_UNHANDLED_EXCEPTION)
+            print(send_exception)
 
     def send_message(self, channel, message):
         """
@@ -55,9 +54,9 @@ class Client:
         :type message: str
         :param message: The message to send
         """
-        Log.info('Sending Message To Slack Channel...')
-        Log.info('Channel: {channel}'.format(channel=channel))
-        Log.info('Message: {message}'.format(message=message))
+        print('Sending Message To Slack Channel...')
+        print('Channel: {channel}'.format(channel=channel))
+        print('Message: {message}'.format(message=message))
 
         try:
             response = self.__client__.chat_postMessage(channel=channel, message=message)
@@ -67,9 +66,8 @@ class Client:
                 assert response['message']['text'] == message
             except AssertionError:
                 # Failed to asset message send correctly
-                Log.error(ClientError.ERROR_SLACK_SEND_MESSAGE_FAILED)
+                print(ClientError.ERROR_SLACK_SEND_MESSAGE_FAILED)
         except Exception as send_exception:
             # Failed to send message due to an unhandled exception
-            Log.error(ClientError.ERROR_SLACK_SEND_MESSAGE_UNHANDLED_EXCEPTION)
-            Log.error(send_exception)
-
+            print(ClientError.ERROR_SLACK_SEND_MESSAGE_UNHANDLED_EXCEPTION)
+            print(send_exception)
