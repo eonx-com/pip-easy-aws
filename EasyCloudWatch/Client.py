@@ -7,7 +7,7 @@ import os
 from EasyLog.Log import Log
 
 
-class EasyCloudWatch:
+class Client:
     # Cache for CloudWatch client
     __client__ = None
 
@@ -17,12 +17,12 @@ class EasyCloudWatch:
         Setup CloudWatch client
         """
         # If we haven't gotten a client yet- create one now and cache it for future calls
-        if EasyCloudWatch.__client__ is None:
+        if Client.__client__ is None:
             Log.trace('Instantiating AWS CloudWatch client...')
-            EasyCloudWatch.__client__ = boto3.session.Session().client('cloudwatch')
+            Client.__client__ = boto3.session.Session().client('cloudwatch')
 
         # Return the cached client
-        return EasyCloudWatch.__client__
+        return Client.__client__
 
     @staticmethod
     def put_metric(metric_name, value, unit):
@@ -41,7 +41,7 @@ class EasyCloudWatch:
         :return: None
         """
         Log.trace('Putting AWS CloudWatch metric: {metric_name}...'.format(metric_name=metric_name))
-        EasyCloudWatch.get_cloudwatch_client().put_metric_data(
+        Client.get_cloudwatch_client().put_metric_data(
             Namespace=os.environ.get('AWS_LAMBDA_FUNCTION_NAME'),
             MetricData=[{'MetricName': metric_name, 'Unit': unit, 'Value': value}]
         )
@@ -57,7 +57,7 @@ class EasyCloudWatch:
         :return: None
         """
         Log.trace('Incrementing AWS CloudWatch counter: {metric_name}...'.format(metric_name=metric_name))
-        EasyCloudWatch.get_cloudwatch_client().put_metric_data(
+        Client.get_cloudwatch_client().put_metric_data(
             Namespace=os.environ.get('AWS_LAMBDA_FUNCTION_NAME'),
             MetricData=[{'MetricName': metric_name, 'Unit': 'Count', 'Value': 1.0}]
         )

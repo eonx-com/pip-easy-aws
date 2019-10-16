@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from abc import abstractmethod
-from EasyCloudWatch.EasyCloudWatch import EasyCloudWatch
+from EasyCloudWatch.EasyCloudWatch import Client
 from EasyLog.Log import Log
 
 
@@ -49,7 +49,7 @@ class EasyLambda:
         # Execution completed, log out the time remaining- this may be useful for tracking bloat/performance degradation over the life of the Lambda function
         time_remaining = self.get_aws_time_remaining()
         Log.info('Execution completed with {time_remaining} seconds remaining'.format(time_remaining=time_remaining/1000))
-        EasyCloudWatch.put_metric('lambda_time_remaining', time_remaining, 'Milliseconds')
+        Client.put_metric('lambda_time_remaining', time_remaining, 'Milliseconds')
 
     @abstractmethod
     def init(self) -> None:
