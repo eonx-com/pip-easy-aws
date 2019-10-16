@@ -48,7 +48,7 @@ class EasyLambda:
 
         # Execution completed, log out the time remaining- this may be useful for tracking bloat/performance degradation over the life of the Lambda function
         time_remaining = self.get_aws_time_remaining()
-        Log.info('Execution completed with {time_remaining} milliseconds remaining'.format(time_remaining=time_remaining))
+        Log.info('Execution completed with {time_remaining} seconds remaining'.format(time_remaining=time_remaining/1000))
         EasyCloudWatch.put_metric('lambda_time_remaining', time_remaining, 'Milliseconds')
 
     @abstractmethod
