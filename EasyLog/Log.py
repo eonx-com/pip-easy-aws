@@ -41,6 +41,28 @@ class Log:
         Log.__level__ = level
 
     @staticmethod
+    def slack_message(message) -> None:
+        """
+        Sent Slack message if it has been configured
+
+        :type message: str
+        :param message: The message to send
+        """
+        if Log.__slack__ is not None and Log.__slack_channel__ is not None:
+            Log.__slack__.send_message(channel=Log.__slack_channel__, message=message)
+
+    @staticmethod
+    def slack_file(local_filename) -> None:
+        """
+        Sent file to Slack if it has been configured
+
+        :type local_filename: str
+        :param local_filename: The path/filename to send
+        """
+        if Log.__slack__ is not None and Log.__slack_channel__ is not None:
+            Log.__slack__.send_file(channel=Log.__slack_channel__, local_filename=local_filename)
+
+    @staticmethod
     def info(message) -> None:
         """
         Info level logging function
