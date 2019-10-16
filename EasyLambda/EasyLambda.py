@@ -2,7 +2,10 @@
 # -*- coding: utf-8 -*-
 
 from abc import abstractmethod
+from typing import Optional
+
 from EasyCloudWatch.Client import Client as CloudWatch
+from EasySlack.Client import Client as Slack
 from EasyLog.Log import Log
 
 
@@ -30,6 +33,10 @@ class EasyLambda:
                 print('An unexpected error occurred while attempting to set desired logging level.')
                 raise Exception(log_exception)
 
+        if 'slack_token' in self.__aws_event__:
+            Log.debug('Setting up Slack client...')
+            self.__slack__ = Slack(token=self.__aws_event__['slack_token'])
+
         try:
             Log.trace('Executing user initialization function...')
             self.init()
@@ -48,7 +55,7 @@ class EasyLambda:
 
         # Execution completed, log out the time remaining- this may be useful for tracking bloat/performance degradation over the life of the Lambda function
         time_remaining = self.get_aws_time_remaining()
-        Log.info('Execution completed with {time_remaining} seconds remaining'.format(time_remaining=time_remaining/1000))
+        Log.info('Execution completed with {time_remaining} seconds remaining'.format(time_remaining=time_remaining / 1000))
         CloudWatch.put_metric('lambda_time_remaining', time_remaining, 'Milliseconds')
 
     @abstractmethod
@@ -129,3 +136,11 @@ class EasyLambda:
         :return: int
         """
         return self.__aws_context__.get_remaining_time_in_millis()
+
+    def get_slack_client(self) -> Optional[Slack]:
+        """
+        Return Slack client if available
+
+        :return: Slack client (if token was provided) or None
+        """
+        return self.__slack__
