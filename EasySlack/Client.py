@@ -59,7 +59,7 @@ class Client:
         print('Message: {message}'.format(message=message))
 
         try:
-            response = self.__client__.chat_postMessage(channel=channel, message=message)
+            response = self.__client__.chat_postMessage(channel=channel, text=message)
 
             try:
                 assert response['ok']
