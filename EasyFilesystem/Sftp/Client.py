@@ -956,7 +956,6 @@ class Client:
         options = CnOpts()
 
         if self.__fingerprint_validation__ is False:
-            Log.warning('Host sftp_fingerprint checking disabled, this may be a security risk...')
             options.hostkeys = None
         else:
             # If a valid sftp_fingerprint and type were specified, add these to the known hosts, otherwise pysftp will use

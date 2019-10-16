@@ -27,10 +27,6 @@ class Client:
         :type local_filename: str
         :param local_filename: Path/filename to upload
         """
-        print('Sending File To Slack Channel...')
-        print('Channel: {channel}'.format(channel=channel))
-        print('Filename: {local_filename}'.format(local_filename=local_filename))
-
         try:
             response = self.__client__.files_upload(channel=channel, file=local_filename)
 
@@ -54,10 +50,6 @@ class Client:
         :type message: str
         :param message: The message to send
         """
-        print('Sending Message To Slack Channel...')
-        print('Channel: {channel}'.format(channel=channel))
-        print('Message: {message}'.format(message=message))
-
         try:
             response = self.__client__.chat_postMessage(channel=channel, text=message)
 
