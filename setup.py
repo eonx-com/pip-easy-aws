@@ -19,6 +19,7 @@ setup(
         'EasyLog',
         'EasyPipeline',
         'EasySecretsManager',
+        'EasySlack',
         'EasyValidator'
     ],
     zip_safe=False,
@@ -27,6 +28,7 @@ setup(
         'boto3',
         'botocore',
         'pysftp',
-        'paramiko'
+        'paramiko',
+        'slackclient'
     ]
 )
