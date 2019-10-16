@@ -8,6 +8,7 @@ from EasySlack.Client import Client as Slack
 from time import strftime
 
 
+# noinspection DuplicatedCode
 class Log:
     # Logging level constants
     LEVEL_EXCEPTION = -2
@@ -102,9 +103,10 @@ class Log:
 
         if Log.__slack__ is not None and Log.__slack_channel__ is not None:
             # Send error messages to designated slack channel
+            message_formatted = Log.format_message(level=Log.LEVEL_ERROR, message=message, stack_frame=stack_frame)
             Log.__slack__.send_message(
                 channel=Log.__slack_channel__,
-                message='EXCEPTION: {message}'.format(message=message)
+                message=message_formatted
             )
 
     @staticmethod
@@ -128,9 +130,10 @@ class Log:
 
         if Log.__slack__ is not None and Log.__slack_channel__ is not None:
             # Send error messages to designated slack channel
+            message_formatted = Log.format_message(level=Log.LEVEL_WARNING, message=message, stack_frame=stack_frame)
             Log.__slack__.send_message(
                 channel=Log.__slack_channel__,
-                message='WARNING: {message}'.format(message=message)
+                message=message_formatted
             )
 
     @staticmethod
@@ -216,9 +219,10 @@ class Log:
 
         if Log.__slack__ is not None and Log.__slack_channel__ is not None:
             # Send error messages to designated slack channel
+            message_formatted = Log.format_message(level=Log.LEVEL_EXCEPTION, message=message, stack_frame=stack_frame)
             Log.__slack__.send_message(
                 channel=Log.__slack_channel__,
-                message='EXCEPTION: {message}'.format(message=message)
+                message=message_formatted
             )
         # Raise the base exception
         raise Exception(str(base_exception))
@@ -275,7 +279,7 @@ class Log:
                 Log.__level__ = Log.LEVEL_TRACE
 
         # Convert the log level to a human readable string
-        level_name = Log.get_log_level_name(Log.__level__)
+        level_name = Log.get_log_level_name(level)
 
         # Retrieve current timestamp
         timestamp = strftime("%Y-%m-%d %H:%M:%S")
@@ -319,6 +323,25 @@ class Log:
 
         # Add entry to the log
         Log.__history__.append(history)
+
+    @staticmethod
+    def format_message(level, message, stack_frame=None) -> str:
+        # Create a display formatted version of the message
+        message_formatted = message
+        timestamp = strftime("%Y-%m-%d %H:%M:%S")
+        level_name = Log.get_log_level_name(level)
+
+        # If we received a stack frame, add its details to the log entry
+        if stack_frame is not None:
+            message_formatted = '[{level_name}: {filename}] {function}():{line_number} - {message_formatted}'.format(
+                level_name=level_name,
+                filename=stack_frame.filename,
+                function=stack_frame.function,
+                line_number=stack_frame.lineno,
+                message_formatted=message_formatted
+            )
+
+        return '[{timestamp}] {message_formatted}'.format(timestamp=timestamp, message_formatted=message_formatted)
 
     @staticmethod
     def set_slack_client(slack, channel=None) -> None:
