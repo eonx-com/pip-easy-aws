@@ -33,9 +33,10 @@ class EasyLambda:
                 print('An unexpected error occurred while attempting to set desired logging level.')
                 raise Exception(log_exception)
 
-        if 'slack_token' in self.__aws_event__:
-            Log.debug('Setting up Slack client...')
+        if 'slack_token' in self.__aws_event__ and 'slack_channel' in self.__aws_event__:
+            Log.info('Setting up Slack client...')
             self.__slack__ = Slack(token=self.__aws_event__['slack_token'])
+            Log.set_slack_client(slack=self.__slack__, channel=self.__aws_event__['slack_channel'])
 
         try:
             Log.trace('Executing user initialization function...')
