@@ -510,10 +510,6 @@ class Client:
         except Exception as upload_exception:
             Log.exception(ClientError.ERROR_FILE_UPLOAD_UNHANDLED_EXCEPTION, upload_exception)
 
-        # Make sure the uploaded file exists
-        if self.file_exists(remote_filename) is False:
-            raise Exception(ClientError.ERROR_FILE_UPLOAD_FAILED)
-
     def enable_fingerprint_validation(self) -> None:
         """
         Enable host fingerprint checking on connection
