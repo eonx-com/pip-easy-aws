@@ -278,9 +278,11 @@ class Filesystem(BaseFilesystem):
 
         :return: Dictionary of key/value pairs representing the files tags
         """
+        remote_filename = self.__rebase_path__(filename)
+
         return self.__client__.file_get_tags(
             bucket=self.__bucket__,
-            filename=filename
+            filename=remote_filename
         )
 
     def file_set_tags(self, filename, tags) -> None:
@@ -293,9 +295,11 @@ class Filesystem(BaseFilesystem):
         :type tags: dict
         :param tags: Dictionary of key/value pairs that represent that tags to set
         """
+        remote_filename = self.__rebase_path__(filename)
+
         self.__client__.file_set_tags(
             bucket=self.__bucket__,
-            filename=filename,
+            filename=remote_filename,
             tags=tags
         )
 
