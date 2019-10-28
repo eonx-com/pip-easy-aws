@@ -506,8 +506,6 @@ class Client:
 
         # Upload the file
         try:
-            # Make sure the destination path exists on the SFTP server
-            self.create_path(os.path.dirname(remote_filename), allow_overwrite=True)
             self.__sftp_connection__.put(localpath=local_filename, remotepath=remote_filename, confirm=False)
         except Exception as upload_exception:
             Log.exception(ClientError.ERROR_FILE_UPLOAD_UNHANDLED_EXCEPTION, upload_exception)
