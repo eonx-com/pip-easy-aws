@@ -34,9 +34,10 @@ class EasyLambda:
                 raise Exception(log_exception)
 
         if 'slack_token' in self.__aws_event__ and 'slack_channel' in self.__aws_event__:
-            Log.info('Setting up Slack client...')
-            self.__slack__ = Slack(token=self.__aws_event__['slack_token'])
-            Log.set_slack_client(slack=self.__slack__, channel=self.__aws_event__['slack_channel'])
+            if str(self.__aws_event__['slack_token']).strip() != '' and str(self.__aws_event__['slack_channel']).strip() != '':
+                Log.info('Setting up Slack client...')
+                self.__slack__ = Slack(token=self.__aws_event__['slack_token'])
+                Log.set_slack_client(slack=self.__slack__, channel=self.__aws_event__['slack_channel'])
 
         try:
             Log.trace('Executing user initialization function...')

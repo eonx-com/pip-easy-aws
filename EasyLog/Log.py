@@ -50,7 +50,8 @@ class Log:
         :param message: The message to send
         """
         if Log.__slack__ is not None and Log.__slack_channel__ is not None:
-            Log.__slack__.send_message(channel=Log.__slack_channel__, message=message)
+            if str(Log.__slack_channel__).strip() != '':
+                Log.__slack__.send_message(channel=Log.__slack_channel__, message=message)
 
     @staticmethod
     def slack_file(local_filename) -> None:
@@ -61,7 +62,8 @@ class Log:
         :param local_filename: The path/filename to send
         """
         if Log.__slack__ is not None and Log.__slack_channel__ is not None:
-            Log.__slack__.send_file(channel=Log.__slack_channel__, local_filename=local_filename)
+            if str(Log.__slack_channel__).strip() != '':
+                Log.__slack__.send_file(channel=Log.__slack_channel__, local_filename=local_filename)
 
     @staticmethod
     def info(message) -> None:
