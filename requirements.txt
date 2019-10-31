@@ -4,3 +4,4 @@ botocore
 pysftp
 paramiko
 slackclient
+opsgenie-sdk

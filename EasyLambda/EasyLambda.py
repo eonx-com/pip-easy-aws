@@ -6,6 +6,7 @@ from typing import Optional
 
 from EasyCloudWatch.Client import Client as CloudWatch
 from EasySlack.Client import Client as Slack
+from EasyGenie.Client import Client as Genie
 from EasyLog.Log import Log
 
 
@@ -21,7 +22,7 @@ class EasyLambda:
         self.__aws_event__ = aws_event
         self.__aws_context__ = aws_context
 
-        Log.set_function(self.get_aws_function_name())
+        Log.set_function_name(self.get_aws_function_name())
 
         # Set log level
         if 'log_level' in self.__aws_event__:
@@ -51,6 +52,27 @@ class EasyLambda:
                 Log.info('Setting up Slack client...')
                 self.__slack__ = Slack(token=self.__aws_event__['slack_token'])
                 Log.set_slack_client(slack=self.__slack__, channel=self.__aws_event__['slack_channel'])
+
+        if 'genie_log_level' in self.__aws_event__:
+            print('Retrieving requested OpsGenie logging level from Lambda function parameters...')
+            # noinspection PyBroadException
+            try:
+                genie_log_level = int(self.__aws_event__['genie_log_level'])
+                print('Requested logging level: {genie_log_level}'.format(genie_log_level=Log.get_log_level_name(genie_log_level)))
+                Log.set_genie_level(genie_log_level)
+            except Exception as log_exception:
+                print('An unexpected error occurred while attempting to set desired Genie logging level.')
+                raise Exception(log_exception)
+
+        if 'genie_key' in self.__aws_event__ and 'genie_team' in self.__aws_event__ and 'genie_alias' in self.__aws_event__:
+            if str(self.__aws_event__['genie_key']).strip() != '' and str(self.__aws_event__['genie_team']).strip() != '':
+                Log.info('Setting up Genie client...')
+                self.__genie__ = Genie(key=self.__aws_event__['genie_key'])
+                Log.set_genie_client(
+                    genie=self.__genie__,
+                    team=self.__aws_event__['genie_team'],
+                    alias=self.__aws_event__['genie_alias']
+                )
 
         try:
             Log.trace('Executing user initialization function...')

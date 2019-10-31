@@ -5,6 +5,7 @@ import inspect
 import os
 
 from EasySlack.Client import Client as Slack
+from EasyGenie.Client import Client as Genie
 from time import strftime
 
 
@@ -23,19 +24,25 @@ class Log:
     __history__ = []
     __level__ = None
 
-    __function__ = None
+    __function_name__ = None
+
+    __genie__ = None
+    __genie_level__ = None
+    __genie_alias__ = None
+    __genie_team__ = None
 
     __slack_level__ = None
     __slack__ = None
     __slack_channel__ = None
 
-    def set_function(function) -> None:
+    @staticmethod
+    def set_function_name(function_name) -> None:
         """
         Set function name for prefixing in log
 
         :return: None
         """
-        Log.__function__ = function
+        Log.__function_name__ = function_name
 
     @staticmethod
     def set_level(level) -> None:
@@ -53,9 +60,27 @@ class Log:
         Log.__level__ = level
 
     @staticmethod
-    def set_slack_level(level) -> None:
+    def set_genie_client(genie, alias, team) -> None:
         """
-        Set logging display level for slack messages
+        Set OpsGenie client for use in messaging
+
+        :type genie: Genie
+        :param genie: The client
+
+        :type alias: str
+        :param alias: Alert alias
+
+        :type team: str
+        :param team: Name of team to alert
+        """
+        Log.__genie__ = genie
+        Log.set_genie_alias(alias)
+        Log.set_genie_team(team)
+
+    @staticmethod
+    def set_genie_level(level) -> None:
+        """
+        Set logging display level for OpsGenie alerts
 
         :type level: int
         :param level: Logging level, one of the LEVEL class constants
@@ -65,31 +90,52 @@ class Log:
         if level not in (Log.LEVEL_EXCEPTION, Log.LEVEL_TEST, Log.LEVEL_ERROR, Log.LEVEL_INFO, Log.LEVEL_WARNING, Log.LEVEL_DEBUG, Log.LEVEL_TRACE):
             raise Exception('Unknown logging level specified')
 
-        Log.__slack_level__ = level
+        Log.__genie_level__ = level
+        
+    @staticmethod
+    def set_genie_alias(alias) -> None:
+        """
+        Set the OpsGenie alias
+
+        :type alias: str
+        :param alias: OpsGenie Alias
+        """
+        Log.__genie_alias = alias
 
     @staticmethod
-    def slack_message(message) -> None:
+    def set_genie_team(team) -> None:
         """
-        Sent Slack message if it has been configured
+        Set the OpsGenie team
+    
+        :type team: str
+        :param team: OpsGenie Team
+        """
+        Log.__genie_team = team
+
+    @staticmethod
+    def genie_alert(priority, message, details=None) -> None:
+        """
+        Sent OpsGenie alert if it has been configured
+
+        :type priority: str
+        :param priority: Alert priority
 
         :type message: str
-        :param message: The message to send
-        """
-        if Log.__slack__ is not None and Log.__slack_channel__ is not None:
-            if str(Log.__slack_channel__).strip() != '':
-                Log.__slack__.send_message(channel=Log.__slack_channel__, message=message)
+        :param message: Message
 
-    @staticmethod
-    def slack_file(local_filename) -> None:
+        :type details: dict or None
+        :param details: Optional details
         """
-        Sent file to Slack if it has been configured
-
-        :type local_filename: str
-        :param local_filename: The path/filename to send
-        """
-        if Log.__slack__ is not None and Log.__slack_channel__ is not None:
-            if str(Log.__slack_channel__).strip() != '':
-                Log.__slack__.send_file(channel=Log.__slack_channel__, local_filename=local_filename)
+        if Log.__genie__ is not None and Log.__genie_team__ is not None and Log.__genie_alias__ is not None:
+            if str(Log.__genie_team__).strip() != '':
+                if str(Log.__genie_alias__).strip() != '':
+                    Log.__genie__.send_alert(
+                        Log.__genie_team__,
+                        alias=Log.__genie_alias__,
+                        priority=priority,
+                        message=message,
+                        details=details
+                    )
 
     @staticmethod
     def info(message) -> None:
@@ -129,14 +175,6 @@ class Log:
             message=message
         )
 
-        if Log.__slack__ is not None and Log.__slack_channel__ is not None:
-            # Send error messages to designated slack channel
-            message_formatted = Log.format_message(level=Log.LEVEL_ERROR, message=message, stack_frame=stack_frame)
-            Log.__slack__.send_message(
-                channel=Log.__slack_channel__,
-                message=message_formatted
-            )
-
     @staticmethod
     def warning(message) -> None:
         """
@@ -155,14 +193,6 @@ class Log:
             stack_frame=stack_frame,
             message=message
         )
-
-        if Log.__slack__ is not None and Log.__slack_channel__ is not None:
-            # Send error messages to designated slack channel
-            message_formatted = Log.format_message(level=Log.LEVEL_WARNING, message=message, stack_frame=stack_frame)
-            Log.__slack__.send_message(
-                channel=Log.__slack_channel__,
-                message=message_formatted
-            )
 
     @staticmethod
     def debug(message) -> None:
@@ -237,7 +267,11 @@ class Log:
         # This has to be the first line in the function otherwise this will return the wrong stack frame
         stack_frame = inspect.stack()[1]
 
-        Log.log(level=Log.LEVEL_EXCEPTION, stack_frame=stack_frame, message=message)
+        Log.log(
+            level=Log.LEVEL_EXCEPTION,
+            stack_frame=stack_frame,
+            message=message
+        )
 
         # If no base base_exception was sent through, throw the message as the base_exception
         if base_exception is None:
@@ -245,13 +279,6 @@ class Log:
 
         Log.log(level=Log.LEVEL_EXCEPTION, message=base_exception)
 
-        if Log.__slack__ is not None and Log.__slack_channel__ is not None:
-            # Send error messages to designated slack channel
-            message_formatted = Log.format_message(level=Log.LEVEL_EXCEPTION, message=message, stack_frame=stack_frame)
-            Log.__slack__.send_message(
-                channel=Log.__slack_channel__,
-                message=message_formatted
-            )
         # Raise the base exception
         raise Exception(str(base_exception))
 
@@ -344,8 +371,8 @@ class Log:
 
         message_formatted = '[{timestamp}] {message_formatted}'.format(timestamp=timestamp, message_formatted=message_formatted)
 
-        if Log.__function__ is not None:
-            message_formatted = "{function} - {message_formatted}".format(function=Log.__function__, message_formatted=message_formatted)
+        if Log.__function_name__ is not None:
+            message_formatted = "{function} - {message_formatted}".format(function=Log.__function_name__, message_formatted=message_formatted)
 
         history['message_formatted'] = message_formatted
 
@@ -355,6 +382,23 @@ class Log:
 
         if Log.__slack_level__ is None or Log.__slack_level__ >= level:
             Log.slack_message(message_formatted)
+
+        if Log.__genie_level__ is None or Log.__genie_level__ >= level:
+            if level == Log.LEVEL_EXCEPTION:
+                priority = 'P1'
+            elif level == Log.LEVEL_ERROR:
+                priority = 'P2'
+            elif level == Log.LEVEL_WARNING:
+                priority = 'P3'
+            elif level == Log.LEVEL_INFO:
+                priority = 'P4'
+            else:
+                priority = 'P5'
+
+            Log.genie_alert(
+                priority=priority,
+                message=message_formatted
+            )
 
         # Add entry to the log
         Log.__history__.append(history)
@@ -399,6 +443,45 @@ class Log:
 
         Log.__slack__ = slack
         Log.__slack_channel__ = channel
+
+    @staticmethod
+    def set_slack_level(level) -> None:
+        """
+        Set logging display level for slack messages
+
+        :type level: int
+        :param level: Logging level, one of the LEVEL class constants
+
+        :return: None
+        """
+        if level not in (Log.LEVEL_EXCEPTION, Log.LEVEL_TEST, Log.LEVEL_ERROR, Log.LEVEL_INFO, Log.LEVEL_WARNING, Log.LEVEL_DEBUG, Log.LEVEL_TRACE):
+            raise Exception('Unknown logging level specified')
+
+        Log.__slack_level__ = level
+
+    @staticmethod
+    def slack_message(message) -> None:
+        """
+        Sent Slack message if it has been configured
+
+        :type message: str
+        :param message: The message to send
+        """
+        if Log.__slack__ is not None and Log.__slack_channel__ is not None:
+            if str(Log.__slack_channel__).strip() != '':
+                Log.__slack__.send_message(channel=Log.__slack_channel__, message=message)
+
+    @staticmethod
+    def slack_file(local_filename) -> None:
+        """
+        Sent file to Slack if it has been configured
+
+        :type local_filename: str
+        :param local_filename: The path/filename to send
+        """
+        if Log.__slack__ is not None and Log.__slack_channel__ is not None:
+            if str(Log.__slack_channel__).strip() != '':
+                Log.__slack__.send_file(channel=Log.__slack_channel__, local_filename=local_filename)
 
     @staticmethod
     def clear_log_history() -> None:

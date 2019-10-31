@@ -20,7 +20,7 @@ class Filesystem(BaseFilesystem):
         super().__init__()
 
         # Grab S3 client
-        self.__client__ = Client(assumed_role=assumed_role)
+        self.__client__ = Client(assumed_role_arn=assumed_role)
 
         # Sanitize the supplied base path
         self.__base_path__ = Client.sanitize_path(base_path)
