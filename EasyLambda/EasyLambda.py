@@ -33,6 +33,17 @@ class EasyLambda:
                 print('An unexpected error occurred while attempting to set desired logging level.')
                 raise Exception(log_exception)
 
+        if 'slack_log_level' in self.__aws_event__:
+            print('Retrieving requested Slack logging level from Lambda function parameters...')
+            # noinspection PyBroadException
+            try:
+                slack_log_level = int(self.__aws_event__['slack_log_level'])
+                print('Requested logging level: {slack_log_level}'.format(slack_log_level=Log.get_log_level_name(slack_log_level)))
+                Log.set_slack_level(slack_log_level)
+            except Exception as log_exception:
+                print('An unexpected error occurred while attempting to set desired Slack logging level.')
+                raise Exception(log_exception)
+
         if 'slack_token' in self.__aws_event__ and 'slack_channel' in self.__aws_event__:
             if str(self.__aws_event__['slack_token']).strip() != '' and str(self.__aws_event__['slack_channel']).strip() != '':
                 Log.info('Setting up Slack client...')

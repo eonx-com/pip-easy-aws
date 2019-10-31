@@ -23,6 +23,7 @@ class Log:
     __history__ = []
     __level__ = None
 
+    __slack_level__ = None
     __slack__ = None
     __slack_channel__ = None
 
@@ -40,6 +41,21 @@ class Log:
             raise Exception('Unknown logging level specified')
 
         Log.__level__ = level
+
+    @staticmethod
+    def set_slack_level(level) -> None:
+        """
+        Set logging display level for slack messages
+
+        :type level: int
+        :param level: Logging level, one of the LEVEL class constants
+
+        :return: None
+        """
+        if level not in (Log.LEVEL_EXCEPTION, Log.LEVEL_TEST, Log.LEVEL_ERROR, Log.LEVEL_INFO, Log.LEVEL_WARNING, Log.LEVEL_DEBUG, Log.LEVEL_TRACE):
+            raise Exception('Unknown logging level specified')
+
+        Log.__slack_level__ = level
 
     @staticmethod
     def slack_message(message) -> None:
@@ -322,6 +338,9 @@ class Log:
         # Display the message if appropriate based on the current log level
         if Log.__level__ is None or Log.__level__ >= level:
             print(message_formatted)
+
+        if Log.__slack_level__ is None or Log.__slack_level__ >= level:
+            Log.slack_message(message_formatted)
 
         # Add entry to the log
         Log.__history__.append(history)
