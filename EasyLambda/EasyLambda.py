@@ -21,6 +21,8 @@ class EasyLambda:
         self.__aws_event__ = aws_event
         self.__aws_context__ = aws_context
 
+        Log.set_function(self.get_aws_function_name())
+
         # Set log level
         if 'log_level' in self.__aws_event__:
             print('Retrieving requested logging level from Lambda function parameters...')

@@ -23,9 +23,19 @@ class Log:
     __history__ = []
     __level__ = None
 
+    __function__ = None
+
     __slack_level__ = None
     __slack__ = None
     __slack_channel__ = None
+
+    def set_function(function) -> None:
+        """
+        Set function name for prefixing in log
+
+        :return: None
+        """
+        Log.__function__ = function
 
     @staticmethod
     def set_level(level) -> None:
@@ -333,6 +343,10 @@ class Log:
             )
 
         message_formatted = '[{timestamp}] {message_formatted}'.format(timestamp=timestamp, message_formatted=message_formatted)
+
+        if Log.__function__ is not None:
+            message_formatted = "{function} - {message_formatted}".format(function=Log.__function__, message_formatted=message_formatted)
+
         history['message_formatted'] = message_formatted
 
         # Display the message if appropriate based on the current log level
