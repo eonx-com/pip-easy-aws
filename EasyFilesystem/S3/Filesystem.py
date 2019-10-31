@@ -7,7 +7,7 @@ from EasyLog.Log import Log
 
 
 class Filesystem(BaseFilesystem):
-    def __init__(self, bucket_name, base_path=''):
+    def __init__(self, bucket_name, base_path='', assumed_role=None):
         """
         Instantiate S3 sftp_filesystem
 
@@ -20,7 +20,7 @@ class Filesystem(BaseFilesystem):
         super().__init__()
 
         # Grab S3 client
-        self.__client__ = Client()
+        self.__client__ = Client(assumed_role=assumed_role)
 
         # Sanitize the supplied base path
         self.__base_path__ = Client.sanitize_path(base_path)

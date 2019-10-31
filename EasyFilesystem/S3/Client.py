@@ -12,11 +12,12 @@ from EasyFilesystem.S3.ClientError import ClientError
 
 # noinspection DuplicatedCode
 class Client:
-    def __init__(self):
+    def __init__(self, assumed_role=None):
         """
         Setup S3 client
         """
         self.__boto3_s3_client__ = None
+        self.__assumed_role__ = assumed_role
 
     @staticmethod
     def sanitize_path(path) -> str:
@@ -733,6 +734,20 @@ class Client:
         :return:
         """
         if self.__boto3_s3_client__ is None:
-            self.__boto3_s3_client__ = boto3.session.Session().client('s3')
+            if self.__assumed_role__ is not None:
+                sts_default_provider_chain = boto3.client('sts')
+                response = sts_default_provider_chain.assume_role(
+                    RoleArn=self.__assumed_role__,
+                    RoleSessionName='assumed-role-' + str(uuid.uuid4())
+                )
+                credentials = response['Credentials']
+                self.__boto3_s3_client__ = boto3.session.Session().client(
+                    's3',
+                    aws_access_key_id=credentials['AccessKeyId'],
+                    aws_secret_access_key=credentials['SecretAccessKey'],
+                    aws_session_token=credentials['SessionToken'],
+                )
+            else:
+                self.__boto3_s3_client__ = boto3.session.Session().client('s3')
 
         return self.__boto3_s3_client__
