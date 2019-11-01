@@ -126,16 +126,21 @@ class Log:
         :type details: dict or None
         :param details: Optional details
         """
-        if Log.__genie__ is not None and Log.__genie_team__ is not None and Log.__genie_alias__ is not None:
-            if str(Log.__genie_team__).strip() != '':
-                if str(Log.__genie_alias__).strip() != '':
-                    Log.__genie__.send_alert(
-                        Log.__genie_team__,
-                        alias=Log.__genie_alias__,
-                        priority=priority,
-                        message=message,
-                        details=details
-                    )
+        if Log.__genie__ is not None:
+            print('Found genie')
+            if Log.__genie_team__ is not None:
+                print('Found team')
+                if Log.__genie_alias__ is not None:
+                    print('Found alias')
+                    if str(Log.__genie_team__).strip() != '':
+                        if str(Log.__genie_alias__).strip() != '':
+                            Log.__genie__.send_alert(
+                                Log.__genie_team__,
+                                alias=Log.__genie_alias__,
+                                priority=priority,
+                                message=message,
+                                details=details
+                            )
 
     @staticmethod
     def info(message) -> None:
