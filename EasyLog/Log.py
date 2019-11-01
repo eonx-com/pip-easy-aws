@@ -91,7 +91,7 @@ class Log:
             raise Exception('Unknown logging level specified')
 
         Log.__genie_level__ = level
-        
+
     @staticmethod
     def set_genie_alias(alias) -> None:
         """
@@ -100,7 +100,7 @@ class Log:
         :type alias: str
         :param alias: OpsGenie Alias
         """
-        Log.__genie_alias = alias
+        Log.__genie_alias__ = alias
 
     @staticmethod
     def set_genie_team(team) -> None:
@@ -110,7 +110,7 @@ class Log:
         :type team: str
         :param team: OpsGenie Team
         """
-        Log.__genie_team = team
+        Log.__genie_team__ = team
 
     @staticmethod
     def genie_alert(priority, message, details=None) -> None:
@@ -127,11 +127,8 @@ class Log:
         :param details: Optional details
         """
         if Log.__genie__ is not None:
-            print('Found genie')
             if Log.__genie_team__ is not None:
-                print('Found team')
                 if Log.__genie_alias__ is not None:
-                    print('Found alias')
                     if str(Log.__genie_team__).strip() != '':
                         if str(Log.__genie_alias__).strip() != '':
                             Log.__genie__.send_alert(
