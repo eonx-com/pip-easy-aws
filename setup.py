@@ -30,6 +30,7 @@ setup(
         'botocore',
         'pysftp',
         'paramiko',
-        'slackclient'
+        'slackclient',
+        'opsgenie-sdk'
     ]
 )
