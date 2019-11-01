@@ -14,6 +14,7 @@ setup(
         'EasyFilesystem',
         'EasyFilesystem.S3',
         'EasyFilesystem.Sftp',
+        'EasyGenie',
         'EasyLambda',
         'EasyLocalDisk',
         'EasyLog',
