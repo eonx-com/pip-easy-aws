@@ -126,18 +126,22 @@ class Log:
         :type details: dict or None
         :param details: Optional details
         """
-        if Log.__genie__ is not None:
-            if Log.__genie_team__ is not None:
-                if Log.__genie_alias__ is not None:
-                    if str(Log.__genie_team__).strip() != '':
-                        if str(Log.__genie_alias__).strip() != '':
-                            Log.__genie__.send_alert(
-                                Log.__genie_team__,
-                                alias=Log.__genie_alias__,
-                                priority=priority,
-                                message=message,
-                                details=details
-                            )
+        try:
+            if Log.__genie__ is not None:
+                if Log.__genie_team__ is not None:
+                    if Log.__genie_alias__ is not None:
+                        if str(Log.__genie_team__).strip() != '':
+                            if str(Log.__genie_alias__).strip() != '':
+                                Log.__genie__.send_alert(
+                                    Log.__genie_team__,
+                                    alias=Log.__genie_alias__,
+                                    priority=priority,
+                                    message=message,
+                                    details=details
+                                )
+        except Exception as message_exception:
+            print('Failed to send OpsGenie alert: [{priority}] {message}'.format(message=message, priority=priority))
+            print(message_exception)
 
     @staticmethod
     def info(message) -> None:
@@ -469,9 +473,13 @@ class Log:
         :type message: str
         :param message: The message to send
         """
-        if Log.__slack__ is not None and Log.__slack_channel__ is not None:
-            if str(Log.__slack_channel__).strip() != '':
-                Log.__slack__.send_message(channel=Log.__slack_channel__, message=message)
+        try:
+            if Log.__slack__ is not None and Log.__slack_channel__ is not None:
+                if str(Log.__slack_channel__).strip() != '':
+                    Log.__slack__.send_message(channel=Log.__slack_channel__, message=message)
+        except Exception as message_exception:
+            print('Failed to send message to Slack')
+            print(message_exception)
 
     @staticmethod
     def slack_file(local_filename) -> None:
@@ -481,9 +489,14 @@ class Log:
         :type local_filename: str
         :param local_filename: The path/filename to send
         """
-        if Log.__slack__ is not None and Log.__slack_channel__ is not None:
-            if str(Log.__slack_channel__).strip() != '':
-                Log.__slack__.send_file(channel=Log.__slack_channel__, local_filename=local_filename)
+        try:
+            if Log.__slack__ is not None and Log.__slack_channel__ is not None:
+                if str(Log.__slack_channel__).strip() != '':
+                    Log.__slack__.send_file(channel=Log.__slack_channel__, local_filename=local_filename)
+        except Exception as file_exception:
+            print('Failed to send file to Slack')
+            print(file_exception)
+
 
     @staticmethod
     def clear_log_history() -> None:
