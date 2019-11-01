@@ -125,9 +125,7 @@ class Log:
 
         :type details: dict or None
         :param details: Optional details
-        """
-        try:
-            if Log.__genie__ is not None:
+        """49.95+141
                 if Log.__genie_team__ is not None:
                     if Log.__genie_alias__ is not None:
                         if str(Log.__genie_team__).strip() != '':
