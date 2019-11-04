@@ -8,12 +8,29 @@ setup(
     author='Damian Sloane',
     author_email='damian.sloane@loyaltycorp.com.au',
     license='proprietary',
-    packages=['EasyLambda'],
+    packages=[
+        'EasyCloudFormation',
+        'EasyCloudWatch',
+        'EasyFilesystem',
+        'EasyFilesystem.S3',
+        'EasyFilesystem.Sftp',
+        'EasyGenie',
+        'EasyLambda',
+        'EasyLocalDisk',
+        'EasyLog',
+        'EasyPipeline',
+        'EasySecretsManager',
+        'EasySlack',
+        'EasyValidator'
+    ],
     zip_safe=False,
     install_requires=[
         'boto',
         'boto3',
         'botocore',
-        'EasyBoto3 @ git+ssh://git@github.com/loyaltycorp/easy_boto3.git@v2.0'
+        'pysftp',
+        'paramiko',
+        'slackclient',
+        'opsgenie-sdk'
     ]
 )

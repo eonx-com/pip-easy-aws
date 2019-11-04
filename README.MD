@@ -1,13 +1,27 @@
-# Easy Lambda Function
+# Easy Lambda
 
-This is a Python package designed to be used in Serverless Lambda functions. It's primary
-purpose is to facilitate simple logging and access to AWS facilities.
+This is a collection of Python classes designed to be used in Serverless Lambda functions to make life easier.
 
 ## Installation
 
 This package can be installed from the command line using PIP as follows:
 
-`pip install git+ssh://git@github.com/loyaltycorp/easy_lambda.git`
+`pip install git+ssh://git@github.com/loyaltycorp/easy_lambda.git@v3.0`
+
+# EasyCloudFormation
+
+Documentation to be done
+
+# EasyCloudWatch
+
+Documentation to be done
+
+# EasyFilesystem
+
+Documentation to be done
+
+
+# EasyLambda
 
 ## Basic Usage
 
@@ -15,7 +29,7 @@ Derive a new application specific class (e.g. MyApplication) that extends the Ea
 class.
 
 ```python
-from EasyIterator.EasyIterator import EasyIterator
+from EasyLambda.EasyLambda import EasyLambda
 
 class MyApplication(EasyLambda):
     """
@@ -26,7 +40,7 @@ class MyApplication(EasyLambda):
 Inside this class, override the run() method of EasyLambda
 
 ```python
-from EasyIterator.EasyIterator import EasyIterator
+from EasyLambda.EasyLambda import EasyLambda
 
 class MyApplication(EasyLambda):
     """
@@ -41,24 +55,40 @@ class MyApplication(EasyLambda):
         pass
 ```
 
-## Logging
+# EasyLocalDisk
+
+Documentation to be done
+
+# EasyLog
 
 ##### Setting Log Level
 
-To set the logging level call the `set_log_level()` function passing in an integer value:
+To set the logging level call the `Log.set_level()` function passing in one of the
+Log.LEVEL_XXXXX constants:
 
-* 0 (Standard Application Logging)
-* 1 (Warning Logging)
-* 2 (Verbose Logging)
-* 3 (Trace Logging)
+* Log.LEVEL_EXCEPTION 
+* Log.LEVEL_TEST 
+* Log.LEVEL_ERROR
+* Log.LEVEL_INFO 
+* Log.LEVEL_WARNING
+* Log.LEVEL_DEBUG
+* Log.LEVEL_TRACE
 
 ```python
-self.set_log_level(3)
+Log.set_level(Log.LEVEL_DEBUG)
 ```
 
-You can then use the `log_xxx()` functions in your code to log messages.
+If no level is defined it will automatically default to LEVEL_TRACE (the most verbose)
 
-* 0 (log)
-* 1 (log_warning, log)
-* 2 (log_debug, log_warning, log)
-* 3 (log_trace, log_debug, log_warning, log)
+You can then use any of the `Log.xxxxx()` functions, for example `Log.debug('message')`
+
+# EasyPipeline
+
+Documentation to be done
+
+# EasySecretsManager
+
+Documentation to be done
+
+# EasyValidator
+

@@ -1,4 +1,7 @@
 boto
 boto3
 botocore
-git+ssh://git@github.com/loyaltycorp/easy_boto3.git@v2.0
+pysftp
+paramiko
+slackclient
+opsgenie-sdk
