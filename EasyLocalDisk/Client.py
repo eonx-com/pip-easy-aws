@@ -223,10 +223,6 @@ class Client:
             source_file.extractall(destination_path)
 
     @staticmethod
-    def file_compress(source_filename, destination_filename, allow_overwrite=True) -> None:
-        pass
-
-    @staticmethod
     def file_copy(source_filename, destination_filename, allow_overwrite=True) -> None:
         """
         Copy a file
