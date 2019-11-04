@@ -209,7 +209,7 @@ class Client:
             Log.exception(ClientError.ERROR_FILE_MOVE_DELETE_FAILED)
 
     @staticmethod
-    def file_gzip_extract(source_filename, destination_path, allow_overwrite=True) -> None:
+    def file_decompress(source_filename, destination_path) -> None:
         """
         Decompress GZIP
 
@@ -218,13 +218,9 @@ class Client:
 
         :type destination_path: str
         :param destination_path:
-
-        :type allow_overwrite: bool
-        :param allow_overwrite:
         """
         with tarfile.open(source_filename) as source_file:
             source_file.extractall(destination_path)
-
 
     @staticmethod
     def file_copy(source_filename, destination_filename, allow_overwrite=True) -> None:
