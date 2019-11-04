@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='EasyLambda',
-    version='2.0.0',
+    version='3.0.0',
     description='Easy Lambda Function Library',
     url='git@github.com:loyaltycorp/easy_lambda',
     author='Damian Sloane',
