@@ -1,0 +1,7 @@
+boto
+boto3
+botocore
+opsgenie-sdk
+paramiko
+pysftp
+slackclient

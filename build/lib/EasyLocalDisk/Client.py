@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import tarfile
+import gzip
 import os
 import tempfile
 import uuid
@@ -209,22 +209,26 @@ class Client:
             Log.exception(ClientError.ERROR_FILE_MOVE_DELETE_FAILED)
 
     @staticmethod
-    def file_gzip_extract(source_filename, destination_path, allow_overwrite=True) -> None:
+    def file_decompress(source_filename, destination_filename, allow_overwrite=True) -> None:
         """
         Decompress GZIP
 
         :type source_filename: str
         :param source_filename:
 
-        :type destination_path: str
-        :param destination_path:
+        :type destination_filename: str
+        :param destination_filename:
 
         :type allow_overwrite: bool
         :param allow_overwrite:
         """
-        with tarfile.open(source_filename) as source_file:
-            source_file.extractall(destination_path)
+        with gzip.GzipFile(source_filename, 'rb') as source_file:
+            with open(destination_filename, 'wb') as destination_file:
+                content = source_file.read()
+                destination_filename.write(content.encode('utf-8'))
 
+    @staticmethod
+    def file_compress(source_filename, destination_filename, allow_overwrite=True) -> None:
 
     @staticmethod
     def file_copy(source_filename, destination_filename, allow_overwrite=True) -> None:
