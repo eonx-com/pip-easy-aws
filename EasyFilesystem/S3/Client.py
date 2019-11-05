@@ -234,14 +234,14 @@ class Client:
                     files.append(object_details['Key'])
 
                 # Check if the search results indicated there were more results
-                if 'NextMarker' not in list_objects_result:
+                if 'NextContinuationToken' not in list_objects_result:
                     break
 
                 Log.debug('Loading next marker...')
 
                 # There were more results, rerun the search to get the next page of results
-                next_marker = list_objects_result['NextMarker']
-                list_objects_result = self.__get_boto3_s3_client__().list_objects_v2(Bucket=bucket, NextMarker=next_marker)
+                next_continuation_token = list_objects_result['NextContinuationToken']
+                list_objects_result = self.__get_boto3_s3_client__().list_objects_v2(Bucket=bucket, ContinuationToken=next_continuation_token)
         except Exception as list_exception:
             Log.exception(ClientError.ERROR_FILE_LIST_UNHANDLED_EXCEPTION, list_exception)
 
