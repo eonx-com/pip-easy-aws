@@ -237,6 +237,8 @@ class Client:
                 if 'NextMarker' not in list_objects_result:
                     break
 
+                Log.debug('Loading next marker...')
+
                 # There were more results, rerun the search to get the next page of results
                 next_marker = list_objects_result['NextMarker']
                 list_objects_result = self.__get_boto3_s3_client__().list_objects_v2(Bucket=bucket, NextMarker=next_marker)
