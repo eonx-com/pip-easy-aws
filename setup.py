@@ -17,7 +17,6 @@ setup(
         'EasyLocalDisk',
         'EasyLog',
         'EasyOrganization',
-        'EasyPipeline',
         'EasySecretsManager'
     ],
     zip_safe=False,
