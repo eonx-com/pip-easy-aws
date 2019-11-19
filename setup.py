@@ -4,7 +4,7 @@ setup(
     name='EasyAws',
     version='1.0.0',
     description='Easy AWS Function Library',
-    url='git@github.com:eonx-com/easy_lambda',
+    url='https://github.com/eonx-com/pip-easy-aws.git',
     author='Damian Sloane',
     author_email='damian.sloane@eonx.com.au',
     license='proprietary',
