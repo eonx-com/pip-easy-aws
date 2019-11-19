@@ -34,7 +34,7 @@ class Client:
         while True:
             response = client_organizations.list_accounts()
 
-            if 'Accounts' not in reponse:
+            if 'Accounts' not in response:
                 raise Exception('Response from AWS did not contain expected accounts key')
 
             for account in response['Accounts']:
