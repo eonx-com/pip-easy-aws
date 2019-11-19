@@ -27,13 +27,10 @@ class Client:
 
         :return: Dictionary of accounts found
         """
-        client_organizations = boto3.client('organizations')
-
         accounts = {}
+        response = Client.get_organizations_client().list_accounts()
 
         while True:
-            response = client_organizations.list_accounts()
-
             if 'Accounts' not in response:
                 raise Exception('Response from AWS did not contain expected accounts key')
 
@@ -46,10 +43,10 @@ class Client:
                     'status': account['Status']
                 }
 
-            if 'NextToken' not in response:
+            if 'NextToken' not in response or str(response['NextToken']).strip() == '':
                 break
 
             # Get next page of accounts
-            response = client_organizations.list_accounts(NextToken=response['NextToken'])
+            response = Client.get_organizations_client().list_accounts(NextToken=response['NextToken'])
 
         return accounts
