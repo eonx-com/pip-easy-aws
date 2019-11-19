@@ -34,13 +34,17 @@ class Client:
         while True:
             response = client_organizations.list_accounts()
 
-            accounts[response['Id']] = {
-                'id': response['Id'],
-                'arn': response['Arn'],
-                'email': response['Email'],
-                'name': response['Name'],
-                'status': response['Status']
-            }
+            if 'Accounts' not in reponse:
+                raise Exception('Response from AWS did not contain expected accounts key')
+
+            for account in response['Accounts']:
+                accounts[account['Id']] = {
+                    'id': account['Id'],
+                    'arn': account['Arn'],
+                    'email': account['Email'],
+                    'name': account['Name'],
+                    'status': account['Status']
+                }
 
             if 'NextToken' not in response:
                 break
