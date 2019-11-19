@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 import base64
 import os
 import paramiko
@@ -92,7 +89,7 @@ class Client:
         :param path: The path to create
 
         :type allow_overwrite: bool
-        :param allow_overwrite: Flag indicating the path is allowed to be overwritten if it already exists. If False, and the path exists an exception will be thrown
+        :param allow_overwrite: Flag indicating the path is allowed to be overwritten if it exists. If False, and the path exists an exception will be thrown
 
         :return: None
         """
@@ -297,7 +294,7 @@ class Client:
         :param destination_filename: Destination path/filename within the same sftp_filesystem
 
         :type allow_overwrite: bool
-        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be thrown
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it exists. If False, and the file exists an exception will be thrown
 
         :return: None
         """
@@ -344,7 +341,7 @@ class Client:
 
 
         :type allow_overwrite: bool
-        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be thrown
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it exists. If False, and the file exists an exception will be thrown
 
         :return: None
         """
@@ -401,7 +398,7 @@ class Client:
         :param remote_filename: Filename/path of the remote file to be downloaded
 
         :type allow_overwrite: bool
-        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be raised
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it exists. If False, and the file exists an exception will be raised
 
         :return: None
         """
@@ -444,7 +441,7 @@ class Client:
         :param callback: Optional callback_staked function to call after each file has downloaded successfully
 
         :type allow_overwrite: bool
-        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be thrown
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it exists. If False, and the file exists an exception will be thrown
 
         :return: None
         """
@@ -487,7 +484,7 @@ class Client:
         :param remote_filename: Filename/path where the file should be uploaded
 
         :type allow_overwrite: bool
-        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be raised
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it exists. If False, and the file exists an exception will be raised
 
         :return: None
         """
@@ -555,10 +552,25 @@ class Client:
         """
         if rsa_private_key is not None:
             # Private key was set, use it and connecting using RSA authentication
-            self.connect_rsa_private_key(address=address, port=port, username=username, rsa_private_key=rsa_private_key, password=password, fingerprint=fingerprint, fingerprint_type=fingerprint_type)
+            self.connect_rsa_private_key(
+                address=address,
+                port=port,
+                username=username,
+                rsa_private_key=rsa_private_key,
+                password=password,
+                fingerprint=fingerprint,
+                fingerprint_type=fingerprint_type
+            )
         else:
             # Private key was not set, use a username/password
-            self.connect_password(address=address, port=port, username=username, password=password, fingerprint=fingerprint, fingerprint_type=fingerprint_type)
+            self.connect_password(
+                address=address,
+                port=port,
+                username=username,
+                password=password,
+                fingerprint=fingerprint,
+                fingerprint_type=fingerprint_type
+            )
 
     def connect_rsa_private_key(self, username, address, port, rsa_private_key, password=None, fingerprint=None, fingerprint_type=None) -> None:
         """
@@ -939,10 +951,10 @@ class Client:
         :param address: SFTP server sftp_address/hostname
 
         :type fingerprint: str/None
-        :param fingerprint: SFTP server sftp_fingerprint used to validate server identity. If not specified the known_hosts file on the host machine will be used
+        :param fingerprint: SFTP server sftp_fingerprint used to validate server identity. If not specified the known_hosts file on the host machine is used
 
         :type fingerprint_type: str/None
-        :param fingerprint_type: SFTP server sftp_fingerprint type (e.g. ssh-rsa, ssh-dss). This must be one of the key types supported by the underlying paramiko library
+        :param fingerprint_type: SFTP server sftp_fingerprint type (e.g. ssh-rsa, ssh-dss). This must be one of the key types supported by paramiko library
 
         :return: obj
         """

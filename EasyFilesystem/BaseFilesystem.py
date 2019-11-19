@@ -32,7 +32,7 @@ class BaseFilesystem:
         :param path: The path to create
 
         :type allow_overwrite: bool
-        :param allow_overwrite: Flag indicating the path is allowed to be overwritten if it already exists. If False, and the path exists an exception will be thrown
+        :param allow_overwrite: Flag indicating the path is allowed to be overwritten if it exists. If False, and the path exists an exception will be thrown
         """
         pass
 
@@ -128,7 +128,7 @@ class BaseFilesystem:
         :param destination_filename: The destination filename
 
         :type allow_overwrite: bool
-        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be thrown
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it exists. If False, and the file exists an exception will be thrown
         """
         pass
 
@@ -144,7 +144,7 @@ class BaseFilesystem:
         :param destination_filename: The destination path.filename
 
         :type allow_overwrite: bool
-        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be thrown
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it exists. If False, and the file exists an exception will be thrown
         """
         pass
 
@@ -160,7 +160,7 @@ class BaseFilesystem:
         :param remote_filename: Filename/path of the remote file to be downloaded
 
         :type allow_overwrite: bool
-        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be raised
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it exists. If False, and the file exists an exception will be raised
 
         :return: None
         """
@@ -181,7 +181,7 @@ class BaseFilesystem:
         :param callback: Optional callback_staked function to call after each file has downloaded successfully
 
         :type allow_overwrite: bool
-        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be thrown
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it exists. If False, and the file exists an exception will be thrown
 
         :return: None
         """
@@ -199,7 +199,7 @@ class BaseFilesystem:
         :param remote_filename: Filename/path where the file should be uploaded
 
         :type allow_overwrite: bool
-        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be raised
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it exists. If False, and the file exists an exception will be raised
 
         :return: None
         """

@@ -1,12 +1,12 @@
 from setuptools import setup
 
 setup(
-    name='EasyLambda',
-    version='3.0.0',
-    description='Easy Lambda Function Library',
-    url='git@github.com:loyaltycorp/easy_lambda',
+    name='EasyAws',
+    version='1.0.0',
+    description='Easy AWS Function Library',
+    url='git@github.com:eonx-com/easy_lambda',
     author='Damian Sloane',
-    author_email='damian.sloane@loyaltycorp.com.au',
+    author_email='damian.sloane@eonx.com.au',
     license='proprietary',
     packages=[
         'EasyCloudFormation',
@@ -14,14 +14,11 @@ setup(
         'EasyFilesystem',
         'EasyFilesystem.S3',
         'EasyFilesystem.Sftp',
-        'EasyGenie',
-        'EasyLambda',
         'EasyLocalDisk',
         'EasyLog',
+        'EasyOrganization',
         'EasyPipeline',
-        'EasySecretsManager',
-        'EasySlack',
-        'EasyValidator'
+        'EasySecretsManager'
     ],
     zip_safe=False,
     install_requires=[
@@ -29,8 +26,6 @@ setup(
         'boto3',
         'botocore',
         'pysftp',
-        'paramiko',
-        'slackclient',
-        'opsgenie-sdk'
+        'paramiko'
     ]
 )

@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 import boto3
 import os
 import uuid
@@ -84,7 +81,7 @@ class Client:
         :param path: The path to create
 
         :type allow_overwrite: bool
-        :param allow_overwrite: Flag indicating the path is allowed to be overwritten if it already exists. If False, and the path exists an exception will be thrown
+        :param allow_overwrite: Flag indicating the path is allowed to be overwritten if it exists. If False, and the path exists an exception will be thrown
 
         :return: None
         """
@@ -386,7 +383,7 @@ class Client:
         :param destination_filename: The destination filename
 
         :type allow_overwrite: bool
-        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be thrown
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it exists. If False, and the file exists an exception will be thrown
 
         :return: None
         """
@@ -409,7 +406,12 @@ class Client:
 
         # Move the file
         try:
-            self.file_copy(source_bucket=source_bucket, source_filename=source_filename, destination_bucket=destination_bucket, destination_filename=destination_filename)
+            self.file_copy(
+                source_bucket=source_bucket,
+                source_filename=source_filename,
+                destination_bucket=destination_bucket,
+                destination_filename=destination_filename
+            )
         except Exception as move_exception:
             Log.exception(ClientError.ERROR_FILE_MOVE_COPY_UNHANDLED_EXCEPTION, move_exception)
 
@@ -444,7 +446,7 @@ class Client:
         :param destination_filename: The destination path.filename
 
         :type allow_overwrite: bool
-        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be thrown
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it exists. If False, and the file exists an exception will be thrown
 
         :return: None
         """
@@ -466,7 +468,11 @@ class Client:
             Log.exception(ClientError.ERROR_FILE_COPY_SOURCE_NOT_FOUND)
 
         try:
-            self.__get_boto3_s3_client__().copy(CopySource={'Bucket': source_bucket, 'Key': source_filename}, Bucket=destination_bucket, Key=destination_filename)
+            self.__get_boto3_s3_client__().copy(
+                CopySource={'Bucket': source_bucket, 'Key': source_filename},
+                Bucket=destination_bucket,
+                Key=destination_filename
+            )
         except Exception as copy_exception:
             Log.exception(ClientError.ERROR_FILE_COPY_UNHANDLED_EXCEPTION, copy_exception)
 
@@ -488,7 +494,7 @@ class Client:
         :param local_filename: Download filename on local sftp_filesystem
 
         :type allow_overwrite: bool
-        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be thrown
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it exists. If False, and the file exists an exception will be thrown
 
         :return: None
         """
@@ -539,7 +545,7 @@ class Client:
         :param callback: Optional callback_staked function to call after each file has downloaded successfully
 
         :type allow_overwrite: bool
-        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be thrown
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it exists. If False, and the file exists an exception will be thrown
 
         :return: None
         """
@@ -589,7 +595,7 @@ class Client:
         :param local_filename: File on local sftp_filesystem to be uploaded
 
         :type allow_overwrite: bool
-        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be thrown
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it exists. If False, and the file exists an exception will be thrown
 
         :return: None
         """

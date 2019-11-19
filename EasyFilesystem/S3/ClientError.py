@@ -1,7 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-
 class ClientError:
     ERROR_UNHANDLED_EXCEPTION = ' Please review additional error messages.'
 

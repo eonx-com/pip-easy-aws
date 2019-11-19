@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 from EasyFilesystem.BaseFilesystem import BaseFilesystem
 from EasyFilesystem.S3.Client import Client
 from EasyLog.Log import Log
@@ -47,7 +44,7 @@ class Filesystem(BaseFilesystem):
         :param path: The path to create
 
         :type allow_overwrite: bool
-        :param allow_overwrite: Flag indicating the path is allowed to be overwritten if it already exists. If False, and the path exists an exception will be thrown
+        :param allow_overwrite: Flag indicating the path is allowed to be overwritten if it exists. If False, and the path exists an exception will be thrown
         """
         path = self.__rebase_path__(path)
 
@@ -171,12 +168,18 @@ class Filesystem(BaseFilesystem):
         :param destination_filename: The destination filename
 
         :type allow_overwrite: bool
-        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be thrown
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it exists. If False, and the file exists an exception will be thrown
         """
         source_filename = self.__rebase_path__(source_filename)
         destination_filename = self.__rebase_path__(destination_filename)
 
-        self.__client__.file_move(source_bucket=self.__bucket__, source_filename=source_filename, destination_bucket=self.__bucket__, destination_filename=destination_filename, allow_overwrite=allow_overwrite)
+        self.__client__.file_move(
+            source_bucket=self.__bucket__,
+            source_filename=source_filename,
+            destination_bucket=self.__bucket__,
+            destination_filename=destination_filename,
+            allow_overwrite=allow_overwrite
+        )
 
     def file_copy(self, source_filename, destination_filename, allow_overwrite=True) -> None:
         """
@@ -189,12 +192,17 @@ class Filesystem(BaseFilesystem):
         :param destination_filename: The destination path.filename
 
         :type allow_overwrite: bool
-        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be thrown
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it exists. If False, and the file exists an exception will be thrown
         """
         source_filename = self.__rebase_path__(source_filename)
         destination_filename = self.__rebase_path__(destination_filename)
 
-        self.__client__.file_copy(source_bucket=self.__bucket__, source_filename=source_filename, destination_bucket=self.__bucket__, destination_filename=destination_filename, allow_overwrite=allow_overwrite)
+        self.__client__.file_copy(
+            source_bucket=self.__bucket__,
+            source_filename=source_filename,
+            destination_bucket=self.__bucket__,
+            destination_filename=destination_filename,
+            allow_overwrite=allow_overwrite)
 
     def file_download(self, local_filename, remote_filename, allow_overwrite=True) -> None:
         """
@@ -207,13 +215,18 @@ class Filesystem(BaseFilesystem):
         :param remote_filename: Filename/path of the file to download from the SFTP server
 
         :type allow_overwrite: bool
-        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be thrown
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it exists. If False, and the file exists an exception will be thrown
 
         :return: None
         """
         remote_filename = self.__rebase_path__(remote_filename)
 
-        return self.__client__.file_download(bucket=self.__bucket__, local_filename=local_filename, remote_filename=remote_filename, allow_overwrite=allow_overwrite)
+        return self.__client__.file_download(
+            bucket=self.__bucket__,
+            local_filename=local_filename,
+            remote_filename=remote_filename,
+            allow_overwrite=allow_overwrite
+        )
 
     def file_download_recursive(self, remote_path, local_path, callback=None, allow_overwrite=True) -> None:
         """
@@ -229,7 +242,7 @@ class Filesystem(BaseFilesystem):
         :param callback: Optional callback_staked function to call after each file has downloaded
 
         :type allow_overwrite: bool
-        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be thrown
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it exists. If False, and the file exists an exception will be thrown
 
         :return: None
         """
@@ -254,7 +267,7 @@ class Filesystem(BaseFilesystem):
         :param remote_filename: Filename/path where the file should be uploaded
 
         :type allow_overwrite: bool
-        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it already exists. If False, and the file exists an exception will be raised
+        :param allow_overwrite: Flag indicating the file is allowed to be overwritten if it exists. If False, and the file exists an exception will be raised
 
         :return: None
         """

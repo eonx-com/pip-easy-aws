@@ -22,7 +22,7 @@ class Client:
         :param path: The path to create
 
         :type allow_overwrite: bool
-        :param allow_overwrite: Flag indicating the path is allowed to be overwritten if it already exists. If False, and the path exists an exception will be thrown
+        :param allow_overwrite: Flag indicating the path is allowed to be overwritten if it exists. If False, and the path exists an exception will be thrown
 
         :return: None
         """
